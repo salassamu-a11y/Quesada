@@ -1,0 +1,1879 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Neumáticos Quesada — Taller especialista en cambio, montaje, alineación y equilibrado de neumáticos en Mislata, Valencia. ☎ 963 593 087">
+  <title>Neumáticos Quesada | Mislata, Valencia</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            'q-blue':      '#2563EB',
+            'q-blue-d':    '#1D4ED8',
+            'q-blue-pale': '#EFF6FF',
+            'q-yellow':    '#FFD700',
+            'q-yellow-d':  '#E6C200',
+            'q-navy':      '#060D1F',
+            'q-navy-2':    '#0D1B3E',
+            'q-cream':     '#F5F0E8',
+          },
+          fontFamily: {
+            sans: ['Inter','system-ui','-apple-system','sans-serif'],
+          },
+        }
+      }
+    }
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,700;1,800;1,900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+  <style>
+    html { scroll-behavior: smooth; }
+    body { font-family: 'Inter', sans-serif; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+
+    /* ── iOS SVH viewport fix ── */
+    #inicio {
+      min-height: -webkit-fill-available;
+      min-height: 100svh;
+    }
+
+    /* ── iOS touch fixes ── */
+    #burger {
+      cursor: pointer;
+      touch-action: manipulation;
+    }
+    #mob-menu a, #mob-menu button {
+      touch-action: manipulation;
+    }
+
+    /* ── Glassmorphism nav ── */
+    .hdr-glass {
+      background: rgba(6,13,31,0.72);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    .hdr-scrolled {
+      background: rgba(6,13,31,0.94);
+      box-shadow: 0 8px 32px rgba(0,0,0,.5);
+    }
+
+    /* Nav underline yellow */
+    .nav-link { position: relative; padding-bottom: 2px; }
+    .nav-link::after {
+      content: ''; position: absolute; bottom: 0; left: 0;
+      width: 0; height: 2px; background: #FFD700;
+      transition: width .25s ease;
+    }
+    .nav-link:hover::after { width: 100%; }
+
+    /* ── Hero: gradient mask left-over-image ── */
+    .hero-img-wrap::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(90deg,
+        #060D1F 0%,
+        #060D1F 8%,
+        rgba(6,13,31,.75) 35%,
+        rgba(6,13,31,.25) 60%,
+        transparent 80%);
+      pointer-events: none;
+    }
+
+    /* ── Infinite marquee ── */
+    @keyframes marquee {
+      from { transform: translateX(0); }
+      to   { transform: translateX(-50%); }
+    }
+    .marquee-track {
+      display: flex;
+      width: max-content;
+      animation: marquee 32s linear infinite;
+    }
+    .marquee-track:hover { animation-play-state: paused; }
+
+    /* ── Service bento card ── */
+    .svc-card {
+      transition: transform .25s ease, box-shadow .25s ease, border-color .3s ease;
+    }
+    .svc-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 24px 64px rgba(0,0,0,.45);
+      border-color: rgba(255,215,0,.2) !important;
+    }
+    .svc-icon-wrap {
+      transition: transform .45s cubic-bezier(.34,1.56,.64,1);
+    }
+    .svc-card:hover .svc-icon-wrap { transform: rotate(18deg) scale(1.12); }
+
+    /* ── Gallery ── */
+    .gal-img  { transition: transform .6s ease; }
+    .gal-wrap { overflow: hidden; }
+    .gal-wrap:hover .gal-img { transform: scale(1.07); }
+    .gal-caption { transition: transform .35s ease; }
+    .gal-wrap:hover .gal-caption { transform: translateY(0) !important; }
+
+    /* ── Blur-in Scroll Reveal ── */
+    .will-reveal {
+      opacity: 0;
+      transform: translateY(28px);
+      transition:
+        opacity  .85s cubic-bezier(.16,1,.3,1),
+        transform .85s cubic-bezier(.16,1,.3,1);
+    }
+    .will-reveal.is-revealed {
+      opacity: 1;
+      transform: translateY(0);
+      filter: blur(0);
+    }
+
+    /* ── Yellow glow on CTA buttons ── */
+    .btn-yellow { position: relative; overflow: visible; }
+    .btn-yellow::after {
+      content: '';
+      position: absolute;
+      inset: -3px;
+      border-radius: inherit;
+      background: #FFD700;
+      opacity: 0;
+      filter: blur(18px);
+      transition: opacity .3s ease;
+      z-index: -1;
+    }
+    .btn-yellow:hover::after { opacity: .35; }
+
+    /* ── Gradient text ── */
+    .text-gradient {
+      background: linear-gradient(140deg, #fff 0%, #8ba8cc 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      color: transparent;
+    }
+
+    /* ── Bento card ambient shine ── */
+    .bento-shine { position: relative; overflow: hidden; }
+    .bento-shine::before {
+      content: '';
+      position: absolute;
+      inset: -80%;
+      background: conic-gradient(from 0deg, transparent 0deg, rgba(255,255,255,.025) 60deg, transparent 120deg);
+      animation: spin-slow 14s linear infinite;
+      pointer-events: none;
+    }
+    @keyframes spin-slow { to { transform: rotate(360deg); } }
+
+    /* ── Live status pulse ── */
+    @keyframes live-pulse {
+      0%   { transform: scale(.85); opacity: .9; }
+      100% { transform: scale(2.4); opacity: 0; }
+    }
+    .live-ring { animation: live-pulse 1.9s ease-out infinite; }
+
+    /* ── Subtle grid texture ── */
+    .grid-texture {
+      background-image:
+        linear-gradient(rgba(255,255,255,.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.04) 1px, transparent 1px);
+      background-size: 44px 44px;
+    }
+
+    /* ════════════════════════════════════════════
+       RESERVA DE CITA — CSS añadido
+    ════════════════════════════════════════════ */
+
+    /* Overlay: oculto por defecto, visible con .bk-open */
+    #booking-overlay {
+      opacity: 0;
+      pointer-events: none;
+      visibility: hidden;
+      transition: opacity .3s ease, visibility .3s ease;
+    }
+    #booking-overlay.bk-open {
+      opacity: 1;
+      pointer-events: auto;
+      visibility: visible;
+    }
+
+    /* Panel: animación de entrada/salida */
+    #booking-panel {
+      transform: translateY(22px) scale(.97);
+      transition: transform .38s cubic-bezier(.16,1,.3,1);
+    }
+    #booking-overlay.bk-open #booking-panel {
+      transform: translateY(0) scale(1);
+    }
+
+    /* Barra superior decorativa del modal */
+    #booking-panel::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 1px;
+      border-radius: 24px 24px 0 0;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,.22), transparent);
+      pointer-events: none;
+    }
+
+    /* FIX 1: backdrop-filter en pseudo-elemento separado para evitar conflicto con transform */
+    #booking-panel::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: 24px;
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      z-index: -1;
+      pointer-events: none;
+    }
+
+    /* Scrollbar del cuerpo del modal */
+    #bk-modal-body::-webkit-scrollbar { width: 4px; }
+    #bk-modal-body::-webkit-scrollbar-track { background: transparent; }
+    #bk-modal-body::-webkit-scrollbar-thumb { background: rgba(255,255,255,.12); border-radius: 4px; }
+
+    /* ── Días del calendario ── */
+    .bk-cal-day {
+      aspect-ratio: 1 / 1;
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 9px;
+      font-size: 12px;
+      font-weight: 600;
+      color: #d1d5db;
+      background: transparent;
+      border: 1px solid transparent;
+      cursor: pointer;
+      transition: background .15s ease, color .15s ease, transform .12s ease, border-color .15s ease;
+    }
+    .bk-cal-day:hover:not(:disabled) {
+      background: rgba(255,255,255,.08);
+      color: #fff;
+    }
+    .bk-cal-day.bk-day-past {
+      opacity: .18;
+      cursor: not-allowed;
+    }
+    .bk-cal-day.bk-day-wknd {
+      color: rgba(239,68,68,.35);
+      cursor: not-allowed;
+    }
+    .bk-cal-day.bk-day-today {
+      border-color: rgba(255,215,0,.42);
+      color: #FFD700;
+    }
+    .bk-cal-day.bk-day-sel {
+      background: #FFD700;
+      color: #060D1F;
+      font-weight: 800;
+      transform: scale(1.07);
+      border-color: transparent;
+      box-shadow: 0 4px 16px rgba(255,215,0,.3);
+    }
+
+    /* ── Fallback aspect-ratio para Safari < 15 ── */
+    @supports not (aspect-ratio: 1) {
+      .bk-cal-day {
+        height: 36px;
+      }
+    }
+
+    /* FIX 2: fallback aspect-ratio para galería y bento */
+    @supports not (aspect-ratio: 1/1) {
+      .gal-wrap {
+        position: relative;
+        padding-top: 75%;
+      }
+      .gal-wrap > * {
+        position: absolute;
+        inset: 0;
+      }
+    }
+
+    /* FIX 3: fallback gap para flexbox en Safari < 14.1 */
+    @supports not (gap: 0px) {
+      .nav-link + .nav-link       { margin-left: 2rem; }
+      .hero-ctas > * + *          { margin-left: 0.75rem; }
+      .wa-float-inner             { gap: 0; }
+      .wa-float-inner > * + *     { margin-left: 10px; }
+    }
+
+    /* ── Slots de hora ── */
+    .bk-slot {
+      padding: 7px 4px;
+      border-radius: 9px;
+      border: 1px solid rgba(255,255,255,.08);
+      background: rgba(255,255,255,.03);
+      color: #9ca3af;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all .15s ease;
+      text-align: center;
+      width: 100%;
+    }
+    .bk-slot:hover:not(:disabled) {
+      border-color: rgba(255,215,0,.38);
+      background: rgba(255,215,0,.07);
+      color: #fff;
+    }
+    .bk-slot.bk-slot-sel {
+      border-color: #FFD700;
+      background: rgba(255,215,0,.15);
+      color: #FFD700;
+      font-weight: 700;
+      box-shadow: 0 0 0 2px rgba(255,215,0,.12);
+    }
+    .bk-slot:disabled { opacity: .17; cursor: not-allowed; }
+
+    /* ── Inputs del formulario ── */
+    .bk-input {
+      transition: border-color .2s ease, background .2s ease, box-shadow .2s ease;
+    }
+    .bk-input:focus {
+      outline: none;
+      border-color: rgba(255,215,0,.48) !important;
+      background: rgba(255,255,255,.07) !important;
+      box-shadow: 0 0 0 3px rgba(255,215,0,.1);
+    }
+
+    /* ── Botones de servicio ── */
+    .bk-svc-btn {
+      transition: border-color .2s ease, background .2s ease;
+    }
+    .bk-svc-btn:hover {
+      border-color: rgba(255,215,0,.28) !important;
+      background: rgba(255,255,255,.055) !important;
+    }
+
+    /* ── Animación icono spinner ── */
+    @keyframes bk-spin { to { transform: rotate(360deg); } }
+    .bk-spin { display:inline-block; animation: bk-spin .7s linear infinite; }
+
+    /* ════════════════════════════════════════════
+       WHATSAPP PREMIUM — CSS
+    ════════════════════════════════════════════ */
+
+    /* ── Base: glow verde muy sutil en todos los wa-btn ── */
+    .wa-btn {
+      position: relative;
+      overflow: hidden;
+      transition: all .28s cubic-bezier(.16,1,.3,1);
+    }
+    .wa-btn::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(37,211,102,.10) 0%, rgba(18,140,126,.05) 100%);
+      opacity: 0;
+      transition: opacity .28s ease;
+      border-radius: inherit;
+      pointer-events: none;
+    }
+    .wa-btn:hover::before { opacity: 1; }
+    .wa-btn::after {
+      content: '';
+      position: absolute;
+      inset: -3px;
+      border-radius: inherit;
+      background: rgba(37,211,102,.18);
+      opacity: 0;
+      filter: blur(14px);
+      transition: opacity .3s ease;
+      z-index: -1;
+    }
+    .wa-btn:hover::after { opacity: .7; }
+    .wa-btn:active { transform: scale(.97) !important; }
+
+    /* ── Botón flotante ── */
+    #wa-float {
+      position: fixed;
+      bottom: 28px;
+      right: 28px;
+      z-index: 9990;
+      opacity: 0;
+      transform: translateY(20px) scale(.88);
+      animation: wa-float-in .65s cubic-bezier(.16,1,.3,1) 1.5s forwards;
+    }
+    @keyframes wa-float-in {
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .wa-float-inner {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 18px 12px 14px;
+      border-radius: 100px;
+      background: rgba(6,13,31,.90);
+      border: 1px solid rgba(37,211,102,.22);
+      box-shadow: 0 8px 28px rgba(0,0,0,.45), 0 2px 8px rgba(0,0,0,.3);
+      cursor: pointer;
+      transition: all .28s cubic-bezier(.16,1,.3,1);
+      white-space: nowrap;
+      position: relative;
+      overflow: hidden;
+      text-decoration: none;
+    }
+
+    /* FIX 4: contenido de .wa-float-inner por encima del span de blur */
+    .wa-float-inner > * { position: relative; z-index: 1; }
+    .wa-float-inner::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      background: linear-gradient(135deg, rgba(37,211,102,.09) 0%, transparent 55%);
+      opacity: 0;
+      transition: opacity .28s ease;
+      pointer-events: none;
+    }
+    .wa-float-inner:hover::before { opacity: 1; }
+    .wa-float-inner:hover {
+      border-color: rgba(37,211,102,.42);
+      box-shadow: 0 14px 40px rgba(0,0,0,.55), 0 0 28px rgba(37,211,102,.15);
+      transform: translateY(-3px);
+    }
+    .wa-float-inner:active { transform: translateY(0) scale(.96); }
+
+    /* ── Icono circular del float con pulso ── */
+    .wa-float-icon {
+      position: relative;
+      width: 30px;
+      height: 30px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      background: rgba(37,211,102,.15);
+      border: 1px solid rgba(37,211,102,.28);
+    }
+    @keyframes wa-ring-pulse {
+      0%   { transform: scale(1); opacity: .5; }
+      100% { transform: scale(2.2); opacity: 0; }
+    }
+    .wa-float-icon::before {
+      content: '';
+      position: absolute;
+      inset: -3px;
+      border-radius: 50%;
+      border: 1px solid rgba(37,211,102,.36);
+      animation: wa-ring-pulse 2.5s ease-out infinite;
+      pointer-events: none;
+    }
+
+    /* ── Botón WhatsApp dentro del modal ── */
+    .wa-modal-btn {
+      background: rgba(6,13,31,.55);
+      border: 1px solid rgba(37,211,102,.20);
+      transition: all .25s cubic-bezier(.16,1,.3,1);
+      position: relative;
+      overflow: hidden;
+    }
+    .wa-modal-btn::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(37,211,102,.10) 0%, rgba(18,140,126,.04) 100%);
+      opacity: 0;
+      transition: opacity .25s ease;
+      border-radius: inherit;
+      pointer-events: none;
+    }
+    .wa-modal-btn:hover::before { opacity: 1; }
+    .wa-modal-btn:hover {
+      border-color: rgba(37,211,102,.48);
+      box-shadow: 0 0 0 3px rgba(37,211,102,.07);
+    }
+  </style>
+</head>
+
+<body class="bg-q-navy text-white antialiased">
+
+
+<!-- ════════════════════════════════════════════
+     HEADER — glassmorphism fijo
+════════════════════════════════════════════ -->
+<header id="hdr" class="fixed top-0 inset-x-0 z-50 hdr-glass transition-all duration-300">
+  <div class="max-w-7xl mx-auto px-6 lg:px-10 flex items-center justify-between h-16 lg:h-20">
+
+    <a href="#inicio" class="flex-shrink-0 rounded-xl overflow-hidden hover:opacity-90 transition-opacity">
+      <img src="imagenes/logo-empresa.jpg" alt="Neumáticos Quesada" decoding="async" class="h-14 lg:h-[72px] w-auto object-contain block">
+    </a>
+
+    <nav class="hidden md:flex items-center gap-8">
+      <a href="#servicios" class="nav-link text-sm font-medium text-gray-300 hover:text-white transition-colors">Servicios</a>
+      <a href="#nosotros"  class="nav-link text-sm font-medium text-gray-300 hover:text-white transition-colors">Nosotros</a>
+      <a href="#galeria"   class="nav-link text-sm font-medium text-gray-300 hover:text-white transition-colors">Taller</a>
+      <a href="#contacto"  class="nav-link text-sm font-medium text-gray-300 hover:text-white transition-colors">Contacto</a>
+    </nav>
+
+    <div class="flex items-center gap-3">
+      <a href="tel:963593087"
+         class="hidden sm:inline-flex items-center gap-2 bg-q-yellow hover:bg-q-yellow-d text-q-navy text-sm font-bold px-5 py-2.5 rounded-lg transition-colors btn-yellow">
+        <i class="fas fa-phone text-[11px]"></i> 963 593 087
+      </a>
+      <!-- AÑADIDO: Botón "Pedir cita" — Header -->
+      <button onclick="openBookingModal()"
+              class="hidden sm:inline-flex items-center gap-2 border border-white/15 hover:border-q-yellow/40 bg-white/5 hover:bg-white/10 text-white text-sm font-semibold px-4 py-2.5 rounded-lg transition-all">
+        <i class="fas fa-calendar-check text-q-yellow text-[11px]"></i> Pedir cita
+      </button>
+
+      <!-- WHATSAPP: Botón header desktop -->
+      <a href="https://wa.me/34637621880?text=Hola%2C%20me%20gustar%C3%ADa%20solicitar%20informaci%C3%B3n%20o%20pedir%20cita%20en%20Neum%C3%A1ticos%20Quesada.%20%C2%BFPodr%C3%ADais%20ayudarme%3F%20Gracias." target="_blank" rel="noopener noreferrer" aria-label="Contactar por WhatsApp"
+         class="wa-btn hidden lg:inline-flex items-center gap-2 text-sm font-semibold px-4 py-2.5 rounded-lg"
+         style="border:1px solid rgba(37,211,102,.20); background:rgba(6,13,31,.5); color:rgba(220,252,231,.85); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px)">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" style="flex-shrink:0; color:rgba(37,211,102,.9)"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
+        WhatsApp
+      </a>
+
+      <button id="burger" aria-label="Abrir menú"
+              class="md:hidden w-9 h-9 flex items-center justify-center rounded-lg text-gray-300 hover:bg-white/10 transition-colors">
+        <i id="burger-icon" class="fas fa-bars"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- Mobile menu -->
+  <div id="mob-menu" class="hidden md:hidden border-t border-white/10">
+    <div class="max-w-7xl mx-auto px-6 py-4 space-y-1">
+      <a href="#servicios" onclick="closeMenu()" class="block text-sm font-medium text-gray-300 hover:bg-white/8 px-4 py-3 rounded-lg transition-colors">Servicios</a>
+      <a href="#nosotros"  onclick="closeMenu()" class="block text-sm font-medium text-gray-300 hover:bg-white/8 px-4 py-3 rounded-lg transition-colors">Nosotros</a>
+      <a href="#galeria"   onclick="closeMenu()" class="block text-sm font-medium text-gray-300 hover:bg-white/8 px-4 py-3 rounded-lg transition-colors">Taller</a>
+      <a href="#contacto"  onclick="closeMenu()" class="block text-sm font-medium text-gray-300 hover:bg-white/8 px-4 py-3 rounded-lg transition-colors">Contacto</a>
+      <a href="tel:963593087"
+         class="flex items-center gap-2 justify-center bg-q-yellow text-q-navy text-sm font-bold px-4 py-3 rounded-lg mt-2 transition-colors hover:bg-q-yellow-d">
+        <i class="fas fa-phone text-xs"></i> 963 593 087
+      </a>
+      <!-- AÑADIDO: Botón "Pedir cita" — Menú móvil -->
+      <button onclick="closeMenu(); openBookingModal()"
+              class="flex items-center gap-2 justify-center border border-white/15 hover:border-q-yellow/40 hover:bg-white/8 text-white text-sm font-semibold px-4 py-3 rounded-lg mt-2 transition-all">
+        <i class="fas fa-calendar-check text-q-yellow text-xs"></i> Pedir cita
+      </button>
+      <!-- WHATSAPP: Botón menú móvil -->
+      <a href="https://wa.me/34637621880?text=Hola%2C%20me%20gustar%C3%ADa%20solicitar%20informaci%C3%B3n%20o%20pedir%20cita%20en%20Neum%C3%A1ticos%20Quesada.%20%C2%BFPodr%C3%ADais%20ayudarme%3F%20Gracias." target="_blank" rel="noopener noreferrer" onclick="closeMenu()"
+         class="wa-btn flex items-center gap-2 justify-center text-sm font-semibold px-4 py-3 rounded-lg mt-2"
+         style="border:1px solid rgba(37,211,102,.18); background:rgba(37,211,102,.04); color:rgba(220,252,231,.88)">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style="flex-shrink:0; color:rgba(37,211,102,.9)"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
+        Reservar por WhatsApp
+      </a>
+    </div>
+  </div>
+</header>
+
+
+<!-- ════════════════════════════════════════════
+     SECCIÓN 1 — HERO cinematic split-screen
+════════════════════════════════════════════ -->
+<section id="inicio" class="relative bg-q-navy flex items-center overflow-hidden">
+
+  <!-- Grid texture overlay -->
+  <div class="absolute inset-0 grid-texture opacity-100 pointer-events-none"></div>
+
+  <!-- Hero background image (right half, gradient-masked) -->
+  <div class="hero-img-wrap absolute inset-0 lg:left-[42%]">
+    <img src="imagenes/taller-interior.jpeg"
+         alt="Interior taller Neumáticos Quesada"
+         fetchpriority="high" decoding="async" class="w-full h-full object-cover">
+  </div>
+
+  <!-- Bottom vignette -->
+  <div class="absolute bottom-0 inset-x-0 h-40 bg-gradient-to-t from-q-navy to-transparent z-10 pointer-events-none"></div>
+
+  <div class="relative z-20 max-w-7xl mx-auto px-6 lg:px-10 pt-28 pb-20 w-full">
+    <div class="max-w-[600px]">
+
+      <div class="inline-flex items-center gap-2.5 text-q-yellow text-[11px] font-bold tracking-[.22em] uppercase mb-7">
+        <span class="w-6 h-px bg-q-yellow"></span>
+        Mislata &middot; Valencia &middot; Desde 1994
+      </div>
+
+      <h1 class="text-[3.2rem] sm:text-[4rem] lg:text-[4.75rem] font-black leading-[1.0] mb-7">
+        <span class="text-gradient">Tu taller de</span><br>
+        <em class="not-italic italic text-q-yellow">neumáticos</em><br>
+        <span class="text-gradient">de confianza.</span>
+      </h1>
+
+      <p class="text-gray-400 text-lg leading-relaxed mb-10 max-w-md">
+        Cambio, montaje, alineación y equilibrado profesional. Más de 30 años cuidando las ruedas de Mislata y alrededores con las mejores marcas del mercado.
+      </p>
+
+      <div class="hero-ctas flex flex-wrap gap-4">
+        <a href="#contacto"
+           class="inline-flex items-center gap-2.5 bg-q-yellow hover:bg-q-yellow-d text-q-navy font-bold text-[15px] px-8 py-4 rounded-xl transition-all btn-yellow">
+          Solicita presupuesto gratis
+          <i class="fas fa-arrow-right text-xs"></i>
+        </a>
+        <!-- AÑADIDO: Botón "Pedir cita" — Hero -->
+        <button onclick="openBookingModal()"
+                class="inline-flex items-center gap-2.5 bg-q-blue hover:bg-q-blue-d text-white font-bold text-[15px] px-8 py-4 rounded-xl transition-all">
+          <i class="fas fa-calendar-check text-sm"></i> Pedir cita
+        </button>
+      </div>
+
+      <!-- Social proof -->
+      <div class="mt-10 pt-8 border-t border-white/10 flex items-center gap-4 flex-wrap">
+        <div class="flex gap-0.5">
+          <i class="fas fa-star text-q-yellow text-sm"></i>
+          <i class="fas fa-star text-q-yellow text-sm"></i>
+          <i class="fas fa-star text-q-yellow text-sm"></i>
+          <i class="fas fa-star text-q-yellow text-sm"></i>
+          <i class="fas fa-star text-q-yellow text-sm"></i>
+        </div>
+        <span class="font-bold text-white text-sm">4.9 / 5</span>
+        <span class="text-gray-600 text-sm">&middot;</span>
+        <span class="text-gray-400 text-sm">245 reseñas en Google Maps</span>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+
+<!-- ════════════════════════════════════════════
+     MARCAS — Infinite Marquee
+════════════════════════════════════════════ -->
+<section class="bg-q-navy-2 border-y border-white/5 overflow-hidden py-5">
+  <div class="relative">
+    <!-- Fade edges -->
+    <div class="absolute inset-y-0 left-0 w-28 bg-gradient-to-r from-q-navy-2 to-transparent z-10 pointer-events-none"></div>
+    <div class="absolute inset-y-0 right-0 w-28 bg-gradient-to-l from-q-navy-2 to-transparent z-10 pointer-events-none"></div>
+
+    <div class="marquee-track select-none" aria-hidden="true">
+      <!-- Copy 1 -->
+      <div class="flex items-center gap-10 px-6">
+        <span class="text-gray-500 font-black text-sm tracking-tight hover:text-white transition-colors cursor-default whitespace-nowrap">Michelin</span>
+        <span class="w-1 h-1 bg-q-yellow rounded-full flex-shrink-0 opacity-60"></span>
+        <span class="text-gray-500 font-black text-sm tracking-tight hover:text-white transition-colors cursor-default whitespace-nowrap">Bridgestone</span>
+        <span class="w-1 h-1 bg-q-yellow rounded-full flex-shrink-0 opacity-60"></span>
+        <span class="text-gray-500 font-black text-sm tracking-tight hover:text-white transition-colors cursor-default whitespace-nowrap">Continental</span>
+        <span class="w-1 h-1 bg-q-yellow rounded-full flex-shrink-0 opacity-60"></span>
+        <span class="text-gray-500 font-black text-sm tracking-tight hover:text-white transition-colors cursor-default whitespace-nowrap">Pirelli</span>
+        <span class="w-1 h-1 bg-q-yellow rounded-full flex-shrink-0 opacity-60"></span>
+        <span class="text-gray-500 font-black text-sm tracking-tight hover:text-white transition-colors cursor-default whitespace-nowrap">Goodyear</span>
+        <span class="w-1 h-1 bg-q-yellow rounded-full flex-shrink-0 opacity-60"></span>
+        <span class="text-gray-500 font-black text-sm tracking-tight hover:text-white transition-colors cursor-default whitespace-nowrap">Dunlop</span>
+        <span class="w-1 h-1 bg-q-yellow rounded-full flex-shrink-0 opacity-60"></span>
+        <span class="text-gray-500 font-black text-sm tracking-tight hover:text-white transition-colors cursor-default whitespace-nowrap">Hankook</span>
+        <span class="w-1 h-1 bg-q-yellow rounded-full flex-shrink-0 opacity-60"></span>
+        <span class="text-gray-500 font-black text-sm tracking-tight hover:text-white transition-colors cursor-default whitespace-nowrap">Nokian</span>
+        <span class="w-1 h-1 bg-q-yellow rounded-full flex-shrink-0 opacity-60"></span>
+        <span class="text-gray-500 font-black text-sm tracking-tight hover:text-white transition-colors cursor-default whitespace-nowrap">Falken</span>
+        <span class="w-1 h-1 bg-q-yellow rounded-full flex-shrink-0 opacity-60"></span>
+        <span class="text-gray-500 font-black text-sm tracking-tight hover:text-white transition-colors cursor-default whitespace-nowrap">Toyo</span>
+        <span class="w-1 h-1 bg-q-yellow rounded-full flex-shrink-0 opacity-60"></span>
+        <span class="text-gray-500 font-black text-sm tracking-tight hover:text-white transition-colors cursor-default whitespace-nowrap">Vredestein</span>
+        <span class="w-1 h-1 bg-q-yellow rounded-full flex-shrink-0 opacity-60"></span>
+      </div>
+      <!-- Copy 2 (duplicate for seamless loop) -->
+      <div class="flex items-center gap-10 px-6">
+        <span class="text-gray-500 font-black text-sm tracking-tight hover:text-white transition-colors cursor-default whitespace-nowrap">Michelin</span>
+        <span class="w-1 h-1 bg-q-yellow rounded-full flex-shrink-0 opacity-60"></span>
+        <span class="text-gray-500 font-black text-sm tracking-tight hover:text-white transition-colors cursor-default whitespace-nowrap">Bridgestone</span>
+        <span class="w-1 h-1 bg-q-yellow rounded-full flex-shrink-0 opacity-60"></span>
+        <span class="text-gray-500 font-black text-sm tracking-tight hover:text-white transition-colors cursor-default whitespace-nowrap">Continental</span>
+        <span class="w-1 h-1 bg-q-yellow rounded-full flex-shrink-0 opacity-60"></span>
+        <span class="text-gray-500 font-black text-sm tracking-tight hover:text-white transition-colors cursor-default whitespace-nowrap">Pirelli</span>
+        <span class="w-1 h-1 bg-q-yellow rounded-full flex-shrink-0 opacity-60"></span>
+        <span class="text-gray-500 font-black text-sm tracking-tight hover:text-white transition-colors cursor-default whitespace-nowrap">Goodyear</span>
+        <span class="w-1 h-1 bg-q-yellow rounded-full flex-shrink-0 opacity-60"></span>
+        <span class="text-gray-500 font-black text-sm tracking-tight hover:text-white transition-colors cursor-default whitespace-nowrap">Dunlop</span>
+        <span class="w-1 h-1 bg-q-yellow rounded-full flex-shrink-0 opacity-60"></span>
+        <span class="text-gray-500 font-black text-sm tracking-tight hover:text-white transition-colors cursor-default whitespace-nowrap">Hankook</span>
+        <span class="w-1 h-1 bg-q-yellow rounded-full flex-shrink-0 opacity-60"></span>
+        <span class="text-gray-500 font-black text-sm tracking-tight hover:text-white transition-colors cursor-default whitespace-nowrap">Nokian</span>
+        <span class="w-1 h-1 bg-q-yellow rounded-full flex-shrink-0 opacity-60"></span>
+        <span class="text-gray-500 font-black text-sm tracking-tight hover:text-white transition-colors cursor-default whitespace-nowrap">Falken</span>
+        <span class="w-1 h-1 bg-q-yellow rounded-full flex-shrink-0 opacity-60"></span>
+        <span class="text-gray-500 font-black text-sm tracking-tight hover:text-white transition-colors cursor-default whitespace-nowrap">Toyo</span>
+        <span class="w-1 h-1 bg-q-yellow rounded-full flex-shrink-0 opacity-60"></span>
+        <span class="text-gray-500 font-black text-sm tracking-tight hover:text-white transition-colors cursor-default whitespace-nowrap">Vredestein</span>
+        <span class="w-1 h-1 bg-q-yellow rounded-full flex-shrink-0 opacity-60"></span>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ════════════════════════════════════════════
+     SECCIÓN 3 — SOBRE NOSOTROS (Bento Grid, fondo claro)
+════════════════════════════════════════════ -->
+<section id="nosotros" class="bg-q-cream py-20 lg:py-28">
+  <div class="max-w-7xl mx-auto px-6 lg:px-10">
+
+    <div class="mb-12 will-reveal">
+      <div class="inline-flex items-center gap-2 text-q-blue text-[11px] font-bold tracking-[.2em] uppercase mb-4">
+        <span class="w-5 h-px bg-q-blue"></span>
+        Sobre nosotros
+      </div>
+      <h2 class="text-4xl sm:text-[3.25rem] font-black italic text-q-navy leading-[1.05]">
+        Somos Neumáticos<br>Quesada.
+      </h2>
+    </div>
+
+    <!-- Bento grid: 12 columnas -->
+    <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
+
+      <!-- Foto grande (7 cols) -->
+      <div class="md:col-span-7 rounded-3xl overflow-hidden aspect-[4/3] shadow-lg will-reveal">
+        <img src="imagenes/audi-taller.jpeg"
+             alt="Audi SQ7 en el taller Neumáticos Quesada"
+             loading="lazy" decoding="async" class="w-full h-full object-cover">
+      </div>
+
+      <!-- Columna derecha (5 cols) -->
+      <div class="md:col-span-5 flex flex-col gap-4">
+
+        <!-- Texto card -->
+        <div class="bg-q-navy rounded-3xl p-7 flex-1 will-reveal">
+          <p class="text-gray-300 text-sm leading-relaxed mb-4">
+            Llevamos más de 30 años siendo el taller de referencia para conductores de Mislata y alrededores. Desde el primer día, nuestro compromiso ha sido el mismo: el mejor servicio al precio más justo, sin sorpresas.
+          </p>
+          <p class="text-gray-300 text-sm leading-relaxed">
+            Trabajamos todo tipo de vehículos —coches, motos, furgonetas y 4x4— con equipos de última generación y el asesoramiento personalizado que cada cliente merece.
+          </p>
+        </div>
+
+        <!-- Stats row -->
+        <div class="grid grid-cols-3 gap-3 will-reveal">
+          <div class="bg-q-yellow rounded-2xl p-5 text-center">
+            <p class="text-2xl font-black text-q-navy leading-none">4.9<span class="text-lg">★</span></p>
+            <p class="text-q-navy/60 text-[10px] font-bold uppercase tracking-wide mt-1.5">Google</p>
+          </div>
+          <div class="bg-q-navy rounded-2xl p-5 text-center">
+            <p class="text-2xl font-black text-white leading-none">245<span class="text-q-yellow text-base">+</span></p>
+            <p class="text-gray-500 text-[10px] font-bold uppercase tracking-wide mt-1.5">Reseñas</p>
+          </div>
+          <div class="bg-white rounded-2xl p-5 text-center shadow-sm">
+            <p class="text-2xl font-black text-q-navy leading-none">30<span class="text-q-blue text-base">+</span></p>
+            <p class="text-gray-400 text-[10px] font-bold uppercase tracking-wide mt-1.5">Años</p>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+</section>
+
+
+<!-- ════════════════════════════════════════════
+     SECCIÓN 4 — SERVICIOS (Bento Grid oscuro)
+════════════════════════════════════════════ -->
+<section id="servicios" class="bg-q-navy py-20 lg:py-28">
+  <div class="max-w-7xl mx-auto px-6 lg:px-10">
+
+    <div class="text-center mb-14 will-reveal">
+      <div class="inline-flex items-center gap-2 text-q-yellow text-[11px] font-bold tracking-[.2em] uppercase mb-4">
+        <span class="w-5 h-px bg-q-yellow"></span>
+        Servicios
+        <span class="w-5 h-px bg-q-yellow"></span>
+      </div>
+      <h2 class="text-4xl sm:text-[3.25rem] font-black text-white mb-3">Nuestros servicios</h2>
+      <p class="text-gray-500 text-lg">Todo lo que tu vehículo necesita, en un solo taller.</p>
+    </div>
+
+    <!-- Bento asimétrico -->
+    <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
+
+      <!-- Reparación — grande (7 cols) -->
+      <div class="svc-card bento-shine md:col-span-7 bg-gradient-to-br from-[#0e1f42] to-[#060D1F] rounded-3xl p-8 border border-white/5 flex flex-col justify-between min-h-[280px] will-reveal">
+        <div>
+          <div class="svc-icon-wrap w-12 h-12 bg-white/8 rounded-2xl flex items-center justify-center mb-6">
+            <i class="fas fa-wrench text-q-yellow text-xl"></i>
+          </div>
+          <h3 class="font-black text-white text-2xl mb-3">Reparación</h3>
+          <p class="text-gray-400 text-sm leading-relaxed max-w-sm">
+            Detección y reparación de pinchazos y daños. Evaluamos el neumático antes de cualquier intervención para garantizar tu seguridad en cada kilómetro.
+          </p>
+        </div>
+        <a href="#contacto" class="inline-flex items-center gap-2 text-q-yellow text-sm font-bold hover:gap-3 transition-all mt-6 group">
+          Solicitar servicio <i class="fas fa-arrow-right text-xs group-hover:translate-x-1 transition-transform"></i>
+        </a>
+      </div>
+
+      <!-- Alineación (5 cols) -->
+      <div class="svc-card bento-shine md:col-span-5 bg-gradient-to-br from-[#0e1f42] to-[#060D1F] rounded-3xl p-8 border border-white/5 flex flex-col justify-between will-reveal">
+        <div>
+          <div class="svc-icon-wrap w-12 h-12 bg-white/8 rounded-2xl flex items-center justify-center mb-6">
+            <i class="fas fa-crosshairs text-q-yellow text-xl"></i>
+          </div>
+          <h3 class="font-black text-white text-xl mb-3">Alineación</h3>
+          <p class="text-gray-400 text-sm leading-relaxed">
+            Corrección de geometría con tecnología láser. Mayor seguridad, menor consumo y neumáticos que duran más.
+          </p>
+        </div>
+        <a href="#contacto" class="inline-flex items-center gap-2 text-q-yellow text-sm font-bold hover:gap-3 transition-all mt-6 group">
+          Solicitar <i class="fas fa-arrow-right text-xs group-hover:translate-x-1 transition-transform"></i>
+        </a>
+      </div>
+
+      <!-- Montaje (5 cols) -->
+      <div class="svc-card bento-shine md:col-span-5 bg-gradient-to-br from-[#0e1f42] to-[#060D1F] rounded-3xl p-8 border border-white/5 flex flex-col justify-between will-reveal">
+        <div>
+          <div class="svc-icon-wrap w-12 h-12 bg-white/8 rounded-2xl flex items-center justify-center mb-6">
+            <svg class="w-6 h-6 text-q-yellow" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+              <circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/>
+              <line x1="12" y1="2" x2="12" y2="5"/><line x1="12" y1="19" x2="12" y2="22"/>
+              <line x1="2" y1="12" x2="5" y2="12"/><line x1="19" y1="12" x2="22" y2="12"/>
+            </svg>
+          </div>
+          <h3 class="font-black text-white text-xl mb-3">Montaje</h3>
+          <p class="text-gray-400 text-sm leading-relaxed">
+            Desmontaje y montaje profesional rápido y seguro. Amplio stock de neumáticos de primeras marcas para todo tipo de vehículos.
+          </p>
+        </div>
+        <a href="#contacto" class="inline-flex items-center gap-2 text-q-yellow text-sm font-bold hover:gap-3 transition-all mt-6 group">
+          Solicitar <i class="fas fa-arrow-right text-xs group-hover:translate-x-1 transition-transform"></i>
+        </a>
+      </div>
+
+      <!-- Equilibrado (7 cols) -->
+      <div class="svc-card bento-shine md:col-span-7 bg-gradient-to-br from-[#0e1f42] to-[#060D1F] rounded-3xl p-8 border border-white/5 flex flex-col justify-between will-reveal">
+        <div>
+          <div class="svc-icon-wrap w-12 h-12 bg-white/8 rounded-2xl flex items-center justify-center mb-6">
+            <i class="fas fa-rotate text-q-yellow text-xl"></i>
+          </div>
+          <h3 class="font-black text-white text-2xl mb-3">Equilibrado</h3>
+          <p class="text-gray-400 text-sm leading-relaxed max-w-sm">
+            Eliminamos las vibraciones para una conducción suave y protegemos tus neumáticos del desgaste desigual que acorta su vida útil.
+          </p>
+        </div>
+        <a href="#contacto" class="inline-flex items-center gap-2 text-q-yellow text-sm font-bold hover:gap-3 transition-all mt-6 group">
+          Solicitar servicio <i class="fas fa-arrow-right text-xs group-hover:translate-x-1 transition-transform"></i>
+        </a>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+
+<!-- ════════════════════════════════════════════
+     SECCIÓN 5 — CTA BANNER
+════════════════════════════════════════════ -->
+<section class="bg-q-navy-2 overflow-hidden relative border-y border-white/5">
+  <div class="absolute inset-y-0 right-0 w-1/2 hidden lg:block">
+    <img src="imagenes/michelin-taller.jpeg"
+         alt="Michelin Pilot Sport 5 montado en Neumáticos Quesada"
+         loading="lazy" decoding="async" class="w-full h-full object-cover opacity-45">
+    <div class="absolute inset-0 bg-gradient-to-r from-q-navy-2 via-q-navy-2/55 to-transparent"></div>
+  </div>
+
+  <div class="relative max-w-7xl mx-auto px-6 lg:px-10 py-20 lg:py-28">
+    <div class="max-w-xl will-reveal">
+      <p class="text-q-yellow text-[11px] font-bold tracking-[.22em] uppercase mb-4">Confía en los expertos.</p>
+      <h2 class="text-4xl sm:text-5xl font-black text-white leading-tight mb-6">
+        Tu seguridad empieza<br><span class="italic text-q-yellow">por las ruedas.</span>
+      </h2>
+      <p class="text-gray-400 text-base leading-relaxed mb-8">
+        Llevamos más de tres décadas garantizando que cada vehículo sale en las mejores condiciones. Precio justo, garantía real y el trato cercano que mereces.
+      </p>
+      <a href="tel:963593087"
+         class="inline-flex items-center gap-2.5 bg-q-yellow hover:bg-q-yellow-d text-q-navy font-bold px-8 py-4 rounded-xl transition-all btn-yellow">
+        <i class="fas fa-phone text-sm"></i> Llámanos ahora
+      </a>
+    </div>
+  </div>
+</section>
+
+
+<!-- ════════════════════════════════════════════
+     SECCIÓN 6 — GALERÍA
+════════════════════════════════════════════ -->
+<section id="galeria" class="bg-q-cream py-20 lg:py-28">
+  <div class="max-w-7xl mx-auto px-6 lg:px-10">
+
+    <div class="text-center mb-14 will-reveal">
+      <div class="inline-flex items-center gap-2 text-q-blue text-[11px] font-bold tracking-[.2em] uppercase mb-4">
+        <span class="w-5 h-px bg-q-blue"></span>
+        Galería
+        <span class="w-5 h-px bg-q-blue"></span>
+      </div>
+      <h2 class="text-4xl sm:text-[3.25rem] font-black text-q-navy mb-3 leading-tight">
+        Nuestro trabajo<br><span class="italic">habla por nosotros</span>
+      </h2>
+      <p class="text-gray-500 text-lg">Cada vehículo que entra, sale a punto.</p>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+
+      <div class="gal-wrap rounded-3xl overflow-hidden aspect-[4/3] relative shadow-md will-reveal">
+        <img src="imagenes/audi-taller.jpeg"
+             alt="Audi SQ7 sobre elevador para alineación" loading="lazy" decoding="async" class="gal-img w-full h-full object-cover">
+        <div class="gal-caption absolute bottom-0 inset-x-0 translate-y-full bg-gradient-to-t from-black/80 via-black/40 to-transparent p-5">
+          <p class="text-white font-bold text-sm">Alineación y equilibrado &middot; Audi SQ7</p>
+        </div>
+      </div>
+
+      <div class="gal-wrap rounded-3xl overflow-hidden aspect-[4/3] relative shadow-md will-reveal">
+        <img src="imagenes/jeep-taller.jpeg"
+             alt="Alineación Jeep Willys" loading="lazy" decoding="async" class="gal-img w-full h-full object-cover">
+        <div class="gal-caption absolute bottom-0 inset-x-0 translate-y-full bg-gradient-to-t from-black/80 via-black/40 to-transparent p-5">
+          <p class="text-white font-bold text-sm">Alineación Jeep Willys</p>
+        </div>
+      </div>
+
+      <div class="gal-wrap rounded-3xl overflow-hidden aspect-[4/3] relative shadow-md will-reveal">
+        <img src="imagenes/benelli-taller.jpeg"
+             alt="Benelli TRK en el taller — también para motos" loading="lazy" decoding="async" class="gal-img w-full h-full object-cover">
+        <div class="gal-caption absolute bottom-0 inset-x-0 translate-y-full bg-gradient-to-t from-black/80 via-black/40 to-transparent p-5">
+          <p class="text-white font-bold text-sm">Motos también &middot; Benelli TRK</p>
+        </div>
+      </div>
+
+      <div class="gal-wrap rounded-3xl overflow-hidden aspect-[4/3] relative shadow-md will-reveal">
+        <img src="imagenes/honda-taller.jpeg"
+             alt="Pinchazo reparado Honda CBR 600 RR" loading="lazy" decoding="async" class="gal-img w-full h-full object-cover">
+        <div class="gal-caption absolute bottom-0 inset-x-0 translate-y-full bg-gradient-to-t from-black/80 via-black/40 to-transparent p-5">
+          <p class="text-white font-bold text-sm">Pinchazo reparado Honda CBR 600 RR</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+
+<!-- ════════════════════════════════════════════
+     SECCIÓN 7 — CONTACTO
+════════════════════════════════════════════ -->
+<section id="contacto" class="bg-q-navy py-20 lg:py-28">
+  <div class="max-w-7xl mx-auto px-6 lg:px-10">
+
+    <div class="text-center mb-16 will-reveal">
+      <div class="inline-flex items-center gap-2 text-q-yellow text-[11px] font-bold tracking-[.2em] uppercase mb-4">
+        <span class="w-5 h-px bg-q-yellow"></span>
+        Contacto
+        <span class="w-5 h-px bg-q-yellow"></span>
+      </div>
+      <h2 class="text-4xl sm:text-[3.25rem] font-black text-white mb-3 leading-tight">
+        ¿Listo para ponerte<br><span class="italic text-q-yellow">en marcha?</span>
+      </h2>
+      <p class="text-gray-500 text-lg max-w-lg mx-auto mt-4 mb-8">
+        Llámanos o pásate por el taller. Estamos de lunes a viernes en Mislata, Valencia.
+      </p>
+      <!-- AÑADIDO: Botones contacto envueltos en flex para colocar "Pedir cita" al lado -->
+      <div class="flex flex-wrap items-center justify-center gap-4">
+        <a href="tel:963593087"
+           class="inline-flex items-center gap-2.5 bg-q-yellow hover:bg-q-yellow-d text-q-navy font-bold text-lg px-10 py-4 rounded-xl transition-all btn-yellow">
+          <i class="fas fa-phone text-sm"></i> 963 593 087
+        </a>
+        <!-- AÑADIDO: Botón "Pedir cita" — Contacto -->
+        <button onclick="openBookingModal()"
+                class="inline-flex items-center gap-2.5 border border-white/20 hover:border-q-yellow/40 hover:bg-white/5 text-white font-bold text-lg px-10 py-4 rounded-xl transition-all">
+          <i class="fas fa-calendar-check text-sm"></i> Pedir cita
+        </button>
+        <!-- WHATSAPP: Botón sección contacto -->
+        <a href="https://wa.me/34637621880?text=Hola%2C%20me%20gustar%C3%ADa%20solicitar%20informaci%C3%B3n%20o%20pedir%20cita%20en%20Neum%C3%A1ticos%20Quesada.%20%C2%BFPodr%C3%ADais%20ayudarme%3F%20Gracias." target="_blank" rel="noopener noreferrer"
+           class="wa-btn inline-flex items-center gap-2.5 font-bold text-lg px-10 py-4 rounded-xl"
+           style="border:1px solid rgba(37,211,102,.22); background:rgba(6,13,31,.5); color:rgba(220,252,231,.88); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px)">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" style="flex-shrink:0; color:rgba(37,211,102,.9)"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
+          WhatsApp
+        </a>
+      </div>
+    </div>
+
+    <div class="grid lg:grid-cols-2 gap-8">
+
+      <div class="space-y-4 will-reveal">
+
+        <!-- Dirección -->
+        <div class="flex items-start gap-4 bg-white/4 border border-white/8 p-5 rounded-2xl hover:bg-white/7 transition-colors">
+          <div class="w-10 h-10 flex-shrink-0 bg-q-yellow rounded-xl flex items-center justify-center">
+            <i class="fas fa-location-dot text-q-navy text-sm"></i>
+          </div>
+          <div>
+            <p class="text-[10px] font-bold tracking-[.18em] uppercase text-gray-500 mb-0.5">Dirección</p>
+            <p class="font-semibold text-white">C/ del Cardenal Benlloch, 67, bajo</p>
+            <p class="text-gray-400 text-sm">46920 Mislata, Valencia</p>
+          </div>
+        </div>
+
+        <!-- Teléfono + Email -->
+        <div class="grid grid-cols-2 gap-4">
+          <div class="flex items-start gap-3 bg-white/4 border border-white/8 p-5 rounded-2xl hover:bg-white/7 transition-colors">
+            <div class="w-10 h-10 flex-shrink-0 bg-q-yellow rounded-xl flex items-center justify-center">
+              <i class="fas fa-phone text-q-navy text-sm"></i>
+            </div>
+            <div>
+              <p class="text-[10px] font-bold tracking-[.18em] uppercase text-gray-500 mb-0.5">Teléfono</p>
+              <a href="tel:963593087" class="font-semibold text-white hover:text-q-yellow transition-colors text-sm">963 593 087</a>
+            </div>
+          </div>
+          <div class="flex items-start gap-3 bg-white/4 border border-white/8 p-5 rounded-2xl hover:bg-white/7 transition-colors">
+            <div class="w-10 h-10 flex-shrink-0 bg-q-yellow rounded-xl flex items-center justify-center">
+              <i class="fas fa-envelope text-q-navy text-sm"></i>
+            </div>
+            <div>
+              <p class="text-[10px] font-bold tracking-[.18em] uppercase text-gray-500 mb-0.5">Email</p>
+              <a href="mailto:neucergon@hotmail.com" class="font-semibold text-white hover:text-q-yellow transition-colors text-xs break-all">neucergon@hotmail.com</a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Horario con Live Status integrado -->
+        <div class="bg-white/4 border border-white/8 p-6 rounded-2xl">
+          <div class="flex items-center justify-between mb-5">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 flex-shrink-0 bg-q-yellow rounded-xl flex items-center justify-center">
+                <i class="fas fa-clock text-q-navy text-sm"></i>
+              </div>
+              <p class="font-bold text-white">Horario de apertura</p>
+            </div>
+            <!-- Live Status pill -->
+            <div id="status-pill" class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/8 border border-white/10">
+              <span class="relative flex h-2 w-2 flex-shrink-0">
+                <span id="status-ping" class="live-ring absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                <span id="status-dot" class="relative inline-flex rounded-full h-2 w-2 bg-green-400"></span>
+              </span>
+              <span id="status-text" class="font-semibold text-green-400 text-xs">Comprobando…</span>
+            </div>
+          </div>
+
+          <table class="w-full text-sm">
+            <tbody class="divide-y divide-white/5">
+              <tr>
+                <td class="py-2.5 font-medium text-gray-300">Lunes – Jueves</td>
+                <td class="py-2.5 text-right font-semibold text-white">8:00–14:00 &nbsp;·&nbsp; 15:30–20:00</td>
+              </tr>
+              <tr>
+                <td class="py-2.5 font-medium text-gray-300">Viernes</td>
+                <td class="py-2.5 text-right font-semibold text-white">8:00–14:00 &nbsp;·&nbsp; 15:30–18:00</td>
+              </tr>
+              <tr>
+                <td class="py-2.5 font-medium text-gray-300">Sábado</td>
+                <td class="py-2.5 text-right">
+                  <span class="inline-flex px-2.5 py-0.5 rounded-full bg-red-500/15 text-red-400 text-xs font-semibold">Cerrado</span>
+                </td>
+              </tr>
+              <tr>
+                <td class="py-2.5 font-medium text-gray-300">Domingo</td>
+                <td class="py-2.5 text-right">
+                  <span class="inline-flex px-2.5 py-0.5 rounded-full bg-red-500/15 text-red-400 text-xs font-semibold">Cerrado</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Google Maps link -->
+        <a href="https://g.co/kgs/uhA6gAq" target="_blank" rel="noopener noreferrer"
+           class="flex items-center gap-3 bg-white/4 border border-white/8 hover:bg-white/8 text-white font-semibold px-5 py-4 rounded-2xl transition-colors group">
+          <i class="fab fa-google text-q-yellow text-lg"></i>
+          <span>Ver en Google Maps</span>
+          <i class="fas fa-arrow-up-right-from-square text-xs text-gray-500 ml-auto group-hover:text-q-yellow transition-colors"></i>
+        </a>
+
+      </div>
+
+      <!-- Mapa (dark-themed via CSS filter) -->
+      <div class="rounded-3xl overflow-hidden border border-white/8 shadow-2xl min-h-[460px] will-reveal">
+        <iframe
+          src="https://maps.google.com/maps?q=Neumaticos+Quesada+Cardenal+Benlloch+67+Mislata+Valencia&output=embed&z=16"
+          width="100%" height="100%"
+          style="border:0; min-height:460px; display:block; filter: invert(92%) hue-rotate(180deg) saturate(0.75) brightness(0.92);"
+          allowfullscreen loading="lazy"
+          referrerpolicy="no-referrer-when-downgrade"
+          title="Ubicación Neumáticos Quesada — Mislata, Valencia">
+        </iframe>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+
+<!-- ════════════════════════════════════════════
+     FOOTER
+════════════════════════════════════════════ -->
+<footer class="bg-[#040916] border-t border-white/5 py-14">
+  <div class="max-w-7xl mx-auto px-6 lg:px-10">
+
+    <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-10 mb-12">
+
+      <div class="lg:col-span-2">
+        <img src="imagenes/logo-empresa.jpg" alt="Neumáticos Quesada"
+             loading="lazy" decoding="async" class="h-14 w-auto object-contain bg-white rounded-xl px-4 py-2 mb-5">
+        <p class="text-gray-500 text-sm leading-relaxed mb-4">
+          C/ del Cardenal Benlloch, 67, bajo<br>46920 Mislata, Valencia
+        </p>
+        <div class="space-y-2">
+          <a href="tel:963593087"
+             class="flex items-center gap-2 text-gray-500 hover:text-white text-sm transition-colors">
+            <i class="fas fa-phone text-q-yellow text-xs w-4"></i> 963 593 087
+          </a>
+          <a href="mailto:neucergon@hotmail.com"
+             class="flex items-center gap-2 text-gray-500 hover:text-white text-sm transition-colors">
+            <i class="fas fa-envelope text-q-yellow text-xs w-4"></i> neucergon@hotmail.com
+          </a>
+        </div>
+      </div>
+
+      <div>
+        <h4 class="text-white font-bold text-sm mb-4">Servicios</h4>
+        <ul class="space-y-2.5">
+          <li><a href="#servicios" class="text-gray-500 hover:text-white text-sm transition-colors">Reparación de neumáticos</a></li>
+          <li><a href="#servicios" class="text-gray-500 hover:text-white text-sm transition-colors">Alineación de dirección</a></li>
+          <li><a href="#servicios" class="text-gray-500 hover:text-white text-sm transition-colors">Montaje de neumáticos</a></li>
+          <li><a href="#servicios" class="text-gray-500 hover:text-white text-sm transition-colors">Equilibrado de ruedas</a></li>
+        </ul>
+      </div>
+
+      <div>
+        <h4 class="text-white font-bold text-sm mb-4">General</h4>
+        <ul class="space-y-2.5">
+          <li><a href="#nosotros"  class="text-gray-500 hover:text-white text-sm transition-colors">Sobre nosotros</a></li>
+          <li><a href="#galeria"   class="text-gray-500 hover:text-white text-sm transition-colors">Galería del taller</a></li>
+          <li><a href="#contacto"  class="text-gray-500 hover:text-white text-sm transition-colors">Contacto y horarios</a></li>
+          <li>
+            <a href="https://g.co/kgs/uhA6gAq" target="_blank" rel="noopener"
+               class="text-gray-500 hover:text-white text-sm transition-colors">
+              Reseñas en Google
+            </a>
+          </li>
+        </ul>
+      </div>
+
+    </div>
+
+    <div class="border-t border-white/5 pt-7 flex flex-col sm:flex-row items-center justify-between gap-3">
+      <p class="text-gray-600 text-xs">© 2024 Neumáticos Quesada Cdad. Todos los derechos reservados.</p>
+      <a href="https://g.co/kgs/uhA6gAq" target="_blank" rel="noopener"
+         class="flex items-center gap-1.5 text-gray-600 hover:text-white text-xs transition-colors">
+        <i class="fab fa-google text-q-yellow"></i> Ver en Google Maps
+      </a>
+    </div>
+
+  </div>
+</footer>
+
+
+<!-- ════════════════════════════════════════════
+     JAVASCRIPT
+════════════════════════════════════════════ -->
+<script>
+  // ── Header glass on scroll ──
+  const hdr = document.getElementById('hdr');
+  window.addEventListener('scroll', () => {
+    hdr.classList.toggle('hdr-scrolled', window.scrollY > 40);
+  }, { passive: true });
+
+  // ── Mobile menu ──
+  const burger     = document.getElementById('burger');
+  const burgerIcon = document.getElementById('burger-icon');
+  const mobMenu    = document.getElementById('mob-menu');
+
+  burger.addEventListener('click', () => {
+    const open = !mobMenu.classList.contains('hidden');
+    mobMenu.classList.toggle('hidden', open);
+    burgerIcon.className = open ? 'fas fa-bars' : 'fas fa-times';
+  });
+
+  function closeMenu() {
+    mobMenu.classList.add('hidden');
+    burgerIcon.className = 'fas fa-bars';
+  }
+
+  document.addEventListener('click', e => {
+    if (!burger.contains(e.target) && !mobMenu.contains(e.target)) closeMenu();
+  });
+
+  // ── Smooth scroll with header offset ──
+  document.querySelectorAll('a[href^="#"]').forEach(a => {
+    a.addEventListener('click', e => {
+      const target = document.querySelector(a.getAttribute('href'));
+      if (!target) return;
+      e.preventDefault();
+      window.scrollTo({
+        top: target.getBoundingClientRect().top + window.scrollY - hdr.offsetHeight - 16,
+        behavior: 'smooth'
+      });
+      closeMenu();
+    });
+  });
+
+  // ── Live status (Abierto / Cerrado) ──
+  // L–J: 8:00–14:00 (480–840) | 15:30–20:00 (930–1200)
+  // V:   8:00–14:00 (480–840) | 15:30–18:00 (930–1080)
+  function updateStatus() {
+    const now  = new Date();
+    const day  = now.getDay();
+    const mins = now.getHours() * 60 + now.getMinutes();
+
+    let isOpen = false;
+    if (day >= 1 && day <= 4) {
+      isOpen = (mins >= 480 && mins < 840) || (mins >= 930 && mins < 1200);
+    } else if (day === 5) {
+      isOpen = (mins >= 480 && mins < 840) || (mins >= 930 && mins < 1080);
+    }
+
+    const ping = document.getElementById('status-ping');
+    const dot  = document.getElementById('status-dot');
+    const txt  = document.getElementById('status-text');
+    const pill = document.getElementById('status-pill');
+
+    if (isOpen) {
+      ping.className  = 'live-ring absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75';
+      dot.className   = 'relative inline-flex rounded-full h-2 w-2 bg-green-400';
+      txt.textContent = 'Abierto ahora';
+      txt.className   = 'font-semibold text-green-400 text-xs';
+      pill.className  = 'flex items-center gap-2 px-3 py-1.5 rounded-full bg-green-500/10 border border-green-500/25';
+    } else {
+      ping.className  = 'absolute inline-flex h-full w-full rounded-full opacity-0';
+      dot.className   = 'relative inline-flex rounded-full h-2 w-2 bg-red-500';
+      txt.textContent = 'Cerrado ahora';
+      txt.className   = 'font-semibold text-red-400 text-xs';
+      pill.className  = 'flex items-center gap-2 px-3 py-1.5 rounded-full bg-red-500/10 border border-red-500/25';
+    }
+  }
+
+  updateStatus();
+  setInterval(updateStatus, 60_000);
+
+  // ── Blur-in Scroll Reveal (escalonado) ──
+  (function () {
+    const selectors = [
+      '#inicio > div > div',
+      '#nosotros .will-reveal',
+      '#servicios .will-reveal',
+      '#servicios ~ section .will-reveal',
+      '#galeria .will-reveal',
+      '#contacto .will-reveal',
+    ];
+
+    // Collect all elements that already have will-reveal from markup
+    const allEls = [];
+    document.querySelectorAll('.will-reveal').forEach(el => {
+      if (!allEls.includes(el)) allEls.push(el);
+    });
+
+    // Also auto-tag hero children
+    document.querySelectorAll('#inicio .max-w-\\[600px\\] > *').forEach(el => {
+      if (!allEls.includes(el)) { allEls.push(el); el.classList.add('will-reveal'); }
+    });
+
+    // Stagger siblings
+    allEls.forEach(el => {
+      const siblings = Array.from(el.parentElement.children).filter(c =>
+        c.classList.contains('will-reveal')
+      );
+      const idx = siblings.indexOf(el);
+      if (idx > 0) el.style.transitionDelay = `${idx * 0.12}s`;
+    });
+
+    const obs = new IntersectionObserver(entries => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('is-revealed');
+        } else if (entry.boundingClientRect.top > 0) {
+          entry.target.classList.remove('is-revealed');
+        }
+      });
+    }, { threshold: 0.07, rootMargin: '0px 0px -40px 0px' });
+
+    allEls.forEach(el => obs.observe(el));
+  })();
+</script>
+
+
+<!-- ════════════════════════════════════════════
+     MODAL RESERVA DE CITA — HTML añadido
+     Coloca justo antes de </body>
+════════════════════════════════════════════ -->
+<div id="booking-overlay"
+     role="dialog" aria-modal="true" aria-labelledby="bk-title"
+     class="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+
+  <!-- Fondo oscuro con blur -->
+  <button type="button" onclick="closeBookingModal()" style="background:transparent;border:none;position:absolute;inset:0;width:100%;height:100%;cursor:pointer;touch-action:manipulation" aria-label="Cerrar modal"></button>
+
+  <!-- Panel del modal -->
+  <div id="booking-panel"
+       style="max-height:90vh; background:linear-gradient(138deg,rgba(13,27,62,.97) 0%,rgba(6,13,31,.99) 100%)"
+       class="relative w-full max-w-3xl flex flex-col rounded-3xl border border-white/10 shadow-2xl">
+
+    <!-- ── Cabecera fija ── -->
+    <div class="flex-shrink-0 flex items-center justify-between px-6 pt-6 pb-5 border-b border-white/8"
+         style="border-radius:24px 24px 0 0; background:linear-gradient(138deg,rgba(13,27,62,.98) 0%,rgba(6,13,31,.99) 100%)">
+      <div>
+        <div class="inline-flex items-center gap-2 text-q-yellow text-[10px] font-bold tracking-[.22em] uppercase mb-1">
+          <i class="fas fa-calendar-check"></i> Reserva online
+        </div>
+        <h2 id="bk-title" class="font-black text-white text-xl leading-tight">Pedir cita</h2>
+      </div>
+      <button onclick="closeBookingModal()" aria-label="Cerrar"
+              class="w-9 h-9 flex items-center justify-center rounded-xl border border-white/10 text-gray-400 hover:text-white hover:bg-white/10 transition-all">
+        <i class="fas fa-times text-sm"></i>
+      </button>
+    </div>
+
+    <!-- ── Cuerpo scrollable ── -->
+    <div id="bk-modal-body" class="flex-1 overflow-y-auto p-6">
+      <div class="grid lg:grid-cols-2 gap-6">
+
+        <!-- ──────────────────────────────
+             COLUMNA IZQUIERDA: Calendario + Slots
+        ────────────────────────────────── -->
+        <div>
+          <p class="flex items-center gap-1.5 text-[10px] font-bold tracking-[.18em] uppercase text-gray-500 mb-3">
+            <i class="far fa-calendar text-q-yellow"></i> Selecciona día
+          </p>
+
+          <!-- Calendario -->
+          <div class="rounded-2xl border border-white/8 p-4" style="background:rgba(255,255,255,.03)">
+            <div class="flex items-center justify-between mb-4">
+              <button id="bk-cal-prev" type="button" onclick="bookingCalNav(-1)"
+                      class="w-8 h-8 flex items-center justify-center rounded-lg border border-white/8 text-gray-400 hover:text-white hover:bg-white/10 transition-all disabled:opacity-25 disabled:cursor-not-allowed">
+                <i class="fas fa-chevron-left text-xs"></i>
+              </button>
+              <span id="bk-cal-label" class="font-bold text-white text-sm capitalize"></span>
+              <button id="bk-cal-next" type="button" onclick="bookingCalNav(1)"
+                      class="w-8 h-8 flex items-center justify-center rounded-lg border border-white/8 text-gray-400 hover:text-white hover:bg-white/10 transition-all">
+                <i class="fas fa-chevron-right text-xs"></i>
+              </button>
+            </div>
+            <!-- Cabecera L M X J V S D -->
+            <div class="grid grid-cols-7 mb-2">
+              <span class="text-center py-1 text-[10px] font-bold text-gray-600 uppercase">L</span>
+              <span class="text-center py-1 text-[10px] font-bold text-gray-600 uppercase">M</span>
+              <span class="text-center py-1 text-[10px] font-bold text-gray-600 uppercase">X</span>
+              <span class="text-center py-1 text-[10px] font-bold text-gray-600 uppercase">J</span>
+              <span class="text-center py-1 text-[10px] font-bold text-gray-600 uppercase">V</span>
+              <span class="text-center py-1 text-[10px] font-bold text-red-500/40 uppercase">S</span>
+              <span class="text-center py-1 text-[10px] font-bold text-red-500/40 uppercase">D</span>
+            </div>
+            <!-- Grid de días (generado por JS) -->
+            <div id="bk-cal-grid" class="grid grid-cols-7 gap-1"></div>
+          </div>
+
+          <!-- Slots de hora (ocultos hasta selección de día) -->
+          <div id="bk-slots-wrap" class="mt-5 hidden">
+            <p class="flex items-center gap-1.5 text-[10px] font-bold tracking-[.18em] uppercase text-gray-500 mb-3">
+              <i class="far fa-clock text-q-yellow"></i> Hora disponible
+            </p>
+            <div class="mb-3">
+              <p class="text-[10px] text-gray-600 font-semibold uppercase tracking-widest mb-2">Mañana</p>
+              <div id="bk-slots-morning" class="grid grid-cols-3 sm:grid-cols-4 gap-1.5"></div>
+            </div>
+            <div>
+              <p class="text-[10px] text-gray-600 font-semibold uppercase tracking-widest mb-2">Tarde</p>
+              <div id="bk-slots-afternoon" class="grid grid-cols-3 sm:grid-cols-4 gap-1.5"></div>
+            </div>
+          </div>
+
+          <!-- Mensaje fin de semana -->
+          <div id="bk-no-slots" class="mt-5 hidden rounded-2xl border border-red-500/20 p-5 text-center"
+               style="background:rgba(239,68,68,.06)">
+            <i class="fas fa-ban text-red-400 text-2xl mb-2 block"></i>
+            <p class="text-red-400 font-bold text-sm">Día no disponible</p>
+            <p class="text-gray-500 text-xs mt-1">El taller no abre sábados ni domingos</p>
+          </div>
+        </div>
+
+        <!-- ──────────────────────────────
+             COLUMNA DERECHA: Servicio + Datos
+        ────────────────────────────────── -->
+        <div class="flex flex-col gap-5">
+
+          <!-- Selector de servicio -->
+          <div>
+            <p class="flex items-center gap-1.5 text-[10px] font-bold tracking-[.18em] uppercase text-gray-500 mb-3">
+              <i class="fas fa-tools text-q-yellow"></i> Servicio
+            </p>
+            <div class="grid grid-cols-2 gap-2">
+
+              <button type="button" data-service="Reparación" onclick="bookingSelectService(this)"
+                      class="bk-svc-btn flex items-center gap-2.5 p-3.5 rounded-xl border border-white/8 text-left"
+                      style="background:rgba(255,255,255,.03)">
+                <span class="bk-svc-icon w-8 h-8 flex-shrink-0 flex items-center justify-center rounded-lg"
+                      style="background:rgba(255,255,255,.06)">
+                  <i class="fas fa-wrench text-xs" style="color:#FFD700"></i>
+                </span>
+                <span class="bk-svc-label text-sm font-semibold text-gray-300">Reparación</span>
+              </button>
+
+              <button type="button" data-service="Alineación" onclick="bookingSelectService(this)"
+                      class="bk-svc-btn flex items-center gap-2.5 p-3.5 rounded-xl border border-white/8 text-left"
+                      style="background:rgba(255,255,255,.03)">
+                <span class="bk-svc-icon w-8 h-8 flex-shrink-0 flex items-center justify-center rounded-lg"
+                      style="background:rgba(255,255,255,.06)">
+                  <i class="fas fa-crosshairs text-xs" style="color:#FFD700"></i>
+                </span>
+                <span class="bk-svc-label text-sm font-semibold text-gray-300">Alineación</span>
+              </button>
+
+              <button type="button" data-service="Montaje" onclick="bookingSelectService(this)"
+                      class="bk-svc-btn flex items-center gap-2.5 p-3.5 rounded-xl border border-white/8 text-left"
+                      style="background:rgba(255,255,255,.03)">
+                <span class="bk-svc-icon w-8 h-8 flex-shrink-0 flex items-center justify-center rounded-lg"
+                      style="background:rgba(255,255,255,.06)">
+                  <i class="fas fa-cog text-xs" style="color:#FFD700"></i>
+                </span>
+                <span class="bk-svc-label text-sm font-semibold text-gray-300">Montaje</span>
+              </button>
+
+              <button type="button" data-service="Equilibrado" onclick="bookingSelectService(this)"
+                      class="bk-svc-btn flex items-center gap-2.5 p-3.5 rounded-xl border border-white/8 text-left"
+                      style="background:rgba(255,255,255,.03)">
+                <span class="bk-svc-icon w-8 h-8 flex-shrink-0 flex items-center justify-center rounded-lg"
+                      style="background:rgba(255,255,255,.06)">
+                  <i class="fas fa-rotate text-xs" style="color:#FFD700"></i>
+                </span>
+                <span class="bk-svc-label text-sm font-semibold text-gray-300">Equilibrado</span>
+              </button>
+
+            </div>
+          </div>
+
+          <!-- Datos personales -->
+          <div>
+            <p class="flex items-center gap-1.5 text-[10px] font-bold tracking-[.18em] uppercase text-gray-500 mb-3">
+              <i class="fas fa-user text-q-yellow"></i> Tus datos
+            </p>
+            <div class="space-y-3">
+              <input id="bk-name" type="text" placeholder="Nombre completo" autocomplete="name"
+                     class="bk-input w-full rounded-xl border border-white/10 px-4 py-3 text-sm font-medium text-white placeholder-gray-600"
+                     style="background:rgba(255,255,255,.04)">
+              <input id="bk-phone" type="tel" placeholder="Teléfono" autocomplete="tel"
+                     class="bk-input w-full rounded-xl border border-white/10 px-4 py-3 text-sm font-medium text-white placeholder-gray-600"
+                     style="background:rgba(255,255,255,.04)">
+              <input id="bk-plate" type="text" placeholder="Matrícula (opcional)" autocomplete="off"
+                     class="bk-input w-full rounded-xl border border-white/10 px-4 py-3 text-sm font-medium text-white placeholder-gray-600 uppercase"
+                     style="background:rgba(255,255,255,.04)">
+            </div>
+          </div>
+
+          <!-- Resumen de cita (aparece al completar selección) -->
+          <div id="bk-summary" class="hidden rounded-2xl border p-4"
+               style="border-color:rgba(255,215,0,.22); background:rgba(255,215,0,.05)">
+            <p class="text-[10px] font-bold tracking-[.18em] uppercase mb-2.5" style="color:rgba(255,215,0,.7)">Resumen de tu cita</p>
+            <div class="space-y-1.5">
+              <div class="flex items-center gap-2 text-sm">
+                <i class="far fa-calendar text-q-yellow text-xs w-4 text-center flex-shrink-0"></i>
+                <span id="bk-sum-date" class="text-gray-300 font-medium capitalize"></span>
+              </div>
+              <div class="flex items-center gap-2 text-sm">
+                <i class="far fa-clock text-q-yellow text-xs w-4 text-center flex-shrink-0"></i>
+                <span id="bk-sum-time" class="text-gray-300 font-medium"></span>
+              </div>
+              <div class="flex items-center gap-2 text-sm">
+                <i class="fas fa-tools text-q-yellow text-xs w-4 text-center flex-shrink-0"></i>
+                <span id="bk-sum-service" class="text-gray-300 font-medium"></span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Error de validación -->
+          <div id="bk-error" class="hidden rounded-xl border px-4 py-3"
+               style="background:rgba(239,68,68,.08); border-color:rgba(239,68,68,.28)">
+            <p id="bk-error-text" class="text-red-400 text-sm font-medium"></p>
+          </div>
+
+          <!-- Botón confirmar -->
+          <button type="button" id="bk-confirm" onclick="bookingConfirm()"
+                  class="w-full inline-flex items-center justify-center gap-2.5 bg-q-yellow hover:bg-q-yellow-d text-q-navy font-black text-[15px] px-8 py-4 rounded-xl transition-all btn-yellow mt-auto disabled:opacity-50 disabled:cursor-not-allowed">
+            <span id="bk-confirm-text">
+              <i class="fas fa-calendar-check text-base" style="margin-right:6px"></i>Confirmar cita
+            </span>
+          </button>
+
+          <!-- WHATSAPP: Separador + botón alternativo en modal -->
+          <div class="flex items-center gap-3" style="margin-top:-4px">
+            <div class="flex-1 h-px" style="background:rgba(255,255,255,.07)"></div>
+            <span class="text-gray-600 text-xs font-medium">o reserva directamente</span>
+            <div class="flex-1 h-px" style="background:rgba(255,255,255,.07)"></div>
+          </div>
+          <button type="button" onclick="waModalOpen()"
+                  class="wa-modal-btn wa-btn w-full inline-flex items-center justify-center gap-2.5 text-sm font-semibold px-8 py-3.5 rounded-xl" style="margin-top:-4px">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="flex-shrink:0; color:rgba(37,211,102,.88)"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
+            <span style="color:rgba(220,252,231,.9)">Reservar por WhatsApp</span>
+          </button>
+
+          <p class="text-gray-600 text-xs text-center -mt-3">Te contactaremos para confirmar tu reserva</p>
+
+        </div><!-- /columna derecha -->
+      </div><!-- /grid -->
+    </div><!-- /body scrollable -->
+
+    <!-- ── Pantalla de éxito (superpuesta al panel) ── -->
+    <div id="bk-success" class="hidden absolute inset-0 flex items-center justify-center rounded-3xl"
+         style="background:linear-gradient(138deg,rgba(13,27,62,.98) 0%,rgba(6,13,31,.99) 100%)">
+      <div class="text-center px-8 py-12">
+        <div class="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6"
+             style="background:rgba(34,197,94,.12); border:1px solid rgba(34,197,94,.3)">
+          <i class="fas fa-check text-green-400 text-3xl"></i>
+        </div>
+        <h3 class="font-black text-white text-2xl mb-2">¡Cita registrada!</h3>
+        <p class="text-gray-400 text-sm leading-relaxed mb-4 max-w-xs mx-auto">
+          Hemos recibido tu solicitud. Te llamaremos en breve para confirmar todos los detalles.
+        </p>
+        <p id="bk-success-summary" class="font-bold text-sm mb-6" style="color:#FFD700"></p>
+        <button onclick="closeBookingModal()"
+                class="inline-flex items-center gap-2 border border-white/12 text-white text-sm font-semibold px-6 py-3 rounded-xl transition-all hover:bg-white/8">
+          Cerrar <i class="fas fa-times text-xs"></i>
+        </button>
+      </div>
+    </div>
+
+  </div><!-- /booking-panel -->
+</div><!-- /booking-overlay -->
+
+
+<!-- ════════════════════════════════════════════
+     RESERVA DE CITA — JavaScript añadido
+════════════════════════════════════════════ -->
+<script>
+(function () {
+  'use strict';
+
+  /* ── Horarios disponibles ────────────────────────────────── */
+  var BK_MORNING  = ['08:00','08:30','09:00','09:30','10:00','10:30','11:00','11:30','12:00','12:30','13:00','13:30'];
+  var BK_AFT_WEEK = ['15:30','16:00','16:30','17:00','17:30','18:00','18:30','19:00','19:30'];
+  var BK_AFT_FRI  = ['15:30','16:00','16:30','17:00','17:30'];
+
+  /* ── Estado interno ──────────────────────────────────────── */
+  var bkState = { viewYear: 0, viewMonth: 0, selDate: null, selSlot: null, selService: null };
+
+  /* ── Abrir / Cerrar modal ──────────────────────────────── */
+  window.openBookingModal = function () {
+    bkReset();
+    bkCalInit();
+    document.getElementById('booking-overlay').classList.add('bk-open');
+    document.body.style.overflow = 'hidden';
+  };
+
+  window.closeBookingModal = function () {
+    document.getElementById('booking-overlay').classList.remove('bk-open');
+    setTimeout(function () { document.body.style.overflow = ''; }, 360);
+  };
+
+  /* ESC para cerrar */
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') closeBookingModal();
+  });
+
+  /* ── Reset completo del modal ────────────────────────────── */
+  function bkReset() {
+    bkState = { viewYear: 0, viewMonth: 0, selDate: null, selSlot: null, selService: null };
+    document.getElementById('bk-slots-wrap').classList.add('hidden');
+    document.getElementById('bk-no-slots').classList.add('hidden');
+    document.getElementById('bk-summary').classList.add('hidden');
+    document.getElementById('bk-error').classList.add('hidden');
+    document.getElementById('bk-success').classList.add('hidden');
+    var confirmBtn = document.getElementById('bk-confirm');
+    confirmBtn.disabled = false;
+    document.getElementById('bk-confirm-text').innerHTML =
+      '<i class="fas fa-calendar-check text-base" style="margin-right:6px"></i>Confirmar cita';
+    document.querySelectorAll('.bk-svc-btn').forEach(bkSvcDeselect);
+    ['bk-name','bk-phone','bk-plate'].forEach(function (id) {
+      document.getElementById(id).value = '';
+    });
+    var body = document.getElementById('bk-modal-body');
+    if (body) body.scrollTop = 0;
+  }
+
+  /* ── Calendario ─────────────────────────────────────────── */
+  function bkCalInit() {
+    var now = new Date();
+    bkState.viewYear  = now.getFullYear();
+    bkState.viewMonth = now.getMonth();
+    bkRenderCal();
+  }
+
+  window.bookingCalNav = function (dir) {
+    bkState.viewMonth += dir;
+    if (bkState.viewMonth > 11) { bkState.viewMonth = 0; bkState.viewYear++; }
+    if (bkState.viewMonth < 0)  { bkState.viewMonth = 11; bkState.viewYear--; }
+    bkRenderCal();
+  };
+
+  function bkRenderCal() {
+    var y = bkState.viewYear, m = bkState.viewMonth;
+    var now   = new Date();
+    var today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+    /* Etiqueta mes/año */
+    var rawLabel = new Date(y, m, 1).toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
+    document.getElementById('bk-cal-label').textContent =
+      rawLabel.charAt(0).toUpperCase() + rawLabel.slice(1);
+
+    /* Bloquear botón "anterior" en mes actual */
+    var prevBtn = document.getElementById('bk-cal-prev');
+    prevBtn.disabled = (y === now.getFullYear() && m <= now.getMonth());
+
+    /* Calcular offset (la semana empieza en lunes) */
+    var firstDow = new Date(y, m, 1).getDay(); /* 0=Dom */
+    var offset   = firstDow === 0 ? 6 : firstDow - 1;
+    var daysInM  = new Date(y, m + 1, 0).getDate();
+
+    var grid = document.getElementById('bk-cal-grid');
+    grid.innerHTML = '';
+
+    /* Celdas vacías antes del día 1 */
+    for (var i = 0; i < offset; i++) {
+      grid.appendChild(document.createElement('div'));
+    }
+
+    /* Un botón por cada día */
+    for (var d = 1; d <= daysInM; d++) {
+      (function (day) {
+        var date    = new Date(y, m, day);
+        var dow     = date.getDay();
+        var isPast  = date < today;
+        var isWknd  = dow === 0 || dow === 6;
+        var isToday = date.getTime() === today.getTime();
+        var isSel   = bkState.selDate && date.getTime() === bkState.selDate.getTime();
+
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.textContent = day;
+        btn.className = 'bk-cal-day';
+
+        if (isWknd || isPast) {
+          btn.disabled = true;
+          btn.classList.add(isWknd ? 'bk-day-wknd' : 'bk-day-past');
+        } else {
+          if (isToday) btn.classList.add('bk-day-today');
+          if (isSel)   btn.classList.add('bk-day-sel');
+          btn.addEventListener('click', function () { bkSelectDate(date); });
+        }
+        grid.appendChild(btn);
+      })(d);
+    }
+  }
+
+  function bkSelectDate(date) {
+    bkState.selDate = date;
+    bkState.selSlot = null;
+    bkRenderCal();
+
+    var dow = date.getDay();
+    if (dow === 0 || dow === 6) {
+      document.getElementById('bk-slots-wrap').classList.add('hidden');
+      document.getElementById('bk-no-slots').classList.remove('hidden');
+    } else {
+      document.getElementById('bk-no-slots').classList.add('hidden');
+      document.getElementById('bk-slots-wrap').classList.remove('hidden');
+      bkRenderSlots(date);
+    }
+    bkUpdateSummary();
+  }
+
+  /* ── Slots de hora ──────────────────────────────────────── */
+  function bkRenderSlots(date) {
+    var dow = date.getDay();
+    var aftSlots = dow === 5 ? BK_AFT_FRI : BK_AFT_WEEK;
+
+    var now     = new Date();
+    var isToday = date.toDateString() === now.toDateString();
+    var nowMins = now.getHours() * 60 + now.getMinutes();
+
+    function makeSlotBtn(slot) {
+      var parts    = slot.split(':');
+      var slotMins = parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10);
+      var isPast   = isToday && slotMins <= nowMins;
+
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.textContent = slot;
+      btn.className = 'bk-slot';
+      if (isPast) {
+        btn.disabled = true;
+      } else {
+        if (bkState.selSlot === slot) btn.classList.add('bk-slot-sel');
+        btn.addEventListener('click', function () { bkSelectSlot(slot); });
+      }
+      return btn;
+    }
+
+    var mornEl = document.getElementById('bk-slots-morning');
+    mornEl.innerHTML = '';
+    BK_MORNING.forEach(function (s) { mornEl.appendChild(makeSlotBtn(s)); });
+
+    var aftEl = document.getElementById('bk-slots-afternoon');
+    aftEl.innerHTML = '';
+    aftSlots.forEach(function (s) { aftEl.appendChild(makeSlotBtn(s)); });
+  }
+
+  function bkSelectSlot(slot) {
+    bkState.selSlot = slot;
+    bkRenderSlots(bkState.selDate);
+    bkUpdateSummary();
+  }
+
+  /* ── Selector de servicio ───────────────────────────────── */
+  window.bookingSelectService = function (btn) {
+    bkState.selService = btn.dataset.service;
+    document.querySelectorAll('.bk-svc-btn').forEach(bkSvcDeselect);
+    bkSvcSelect(btn);
+    bkUpdateSummary();
+  };
+
+  function bkSvcSelect(btn) {
+    btn.style.borderColor = 'rgba(255,215,0,.42)';
+    btn.style.background  = 'rgba(255,215,0,.08)';
+    var icon = btn.querySelector('.bk-svc-icon');
+    var lbl  = btn.querySelector('.bk-svc-label');
+    if (icon) {
+      icon.style.background = '#FFD700';
+      var ico = icon.querySelector('i');
+      if (ico) ico.style.color = '#060D1F';
+    }
+    if (lbl) lbl.style.color = '#fff';
+  }
+
+  function bkSvcDeselect(btn) {
+    btn.style.borderColor = '';
+    btn.style.background  = 'rgba(255,255,255,.03)';
+    var icon = btn.querySelector('.bk-svc-icon');
+    var lbl  = btn.querySelector('.bk-svc-label');
+    if (icon) {
+      icon.style.background = 'rgba(255,255,255,.06)';
+      var ico = icon.querySelector('i');
+      if (ico) ico.style.color = '#FFD700';
+    }
+    if (lbl) lbl.style.color = '#d1d5db';
+  }
+
+  /* ── Resumen ────────────────────────────────────────────── */
+  function bkUpdateSummary() {
+    var s   = bkState;
+    var div = document.getElementById('bk-summary');
+    if (s.selDate && s.selSlot && s.selService) {
+      var raw = s.selDate.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' });
+      document.getElementById('bk-sum-date').textContent    = raw.charAt(0).toUpperCase() + raw.slice(1);
+      document.getElementById('bk-sum-time').textContent    = s.selSlot + ' h';
+      document.getElementById('bk-sum-service').textContent = s.selService;
+      div.classList.remove('hidden');
+    } else {
+      div.classList.add('hidden');
+    }
+  }
+
+  /* ── Confirmar reserva ──────────────────────────────────── */
+  window.bookingConfirm = function () {
+    var s     = bkState;
+    var name  = document.getElementById('bk-name').value.trim();
+    var phone = document.getElementById('bk-phone').value.trim();
+
+    /* Validaciones elegantes */
+    if (!s.selDate)    { bkShowError('Por favor, selecciona un día.');        return; }
+    if (!s.selSlot)    { bkShowError('Por favor, selecciona una hora.');       return; }
+    if (!s.selService) { bkShowError('Por favor, selecciona un servicio.');    return; }
+    if (!name)         { bkShowError('Por favor, introduce tu nombre.');       return; }
+    if (!phone || !/^[+\d][\d\s\-]{6,}$/.test(phone)) {
+      bkShowError('Por favor, introduce un teléfono válido.'); return;
+    }
+
+    document.getElementById('bk-error').classList.add('hidden');
+
+    /* Estado de carga */
+    var btn = document.getElementById('bk-confirm');
+    btn.disabled = true;
+    document.getElementById('bk-confirm-text').innerHTML =
+      '<i class="fas fa-spinner bk-spin" style="margin-right:6px"></i>Enviando…';
+
+    /* Simulación de envío (aquí conectarías tu backend o mailto) */
+    setTimeout(function () {
+      var raw = s.selDate.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' });
+      var dateStr = raw.charAt(0).toUpperCase() + raw.slice(1);
+      document.getElementById('bk-success-summary').textContent =
+        dateStr + ' · ' + s.selSlot + ' h · ' + s.selService;
+      document.getElementById('bk-success').classList.remove('hidden');
+    }, 1800);
+  };
+
+  function bkShowError(msg) {
+    var div = document.getElementById('bk-error');
+    document.getElementById('bk-error-text').textContent = msg;
+    div.classList.remove('hidden');
+    div.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+})();
+</script>
+
+
+<!-- ════════════════════════════════════════════
+     WHATSAPP — Botón flotante premium
+     Esquina inferior derecha, siempre visible
+════════════════════════════════════════════ -->
+<div id="wa-float" role="complementary" aria-label="Contactar por WhatsApp">
+  <a href="https://wa.me/34637621880?text=Hola%2C%20me%20gustar%C3%ADa%20solicitar%20informaci%C3%B3n%20o%20pedir%20cita%20en%20Neum%C3%A1ticos%20Quesada.%20%C2%BFPodr%C3%ADais%20ayudarme%3F%20Gracias." target="_blank" rel="noopener noreferrer" class="wa-float-inner" aria-label="Abrir WhatsApp">
+    <span style="position:absolute;inset:0;border-radius:100px;backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);pointer-events:none;z-index:0"></span>
+    <!-- Icono con pulso -->
+    <span class="wa-float-icon">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="color:rgba(37,211,102,.95); position:relative; z-index:1"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
+    </span>
+    <!-- Texto — visible en sm+ -->
+    <span class="hidden sm:flex flex-col" style="gap:1px">
+      <span style="font-size:11px; font-weight:700; color:rgba(220,252,231,.95); letter-spacing:.01em; line-height:1.2">WhatsApp</span>
+      <span style="font-size:10px; font-weight:500; color:rgba(156,163,175,.8); line-height:1.2">Reserva tu cita</span>
+    </span>
+    <!-- Flecha decorativa desktop -->
+    <svg class="hidden sm:block" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color:rgba(37,211,102,.55); margin-left:2px"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+  </a>
+</div>
+
+
+<!-- ════════════════════════════════════════════
+     WHATSAPP — JavaScript
+════════════════════════════════════════════ -->
+<script>
+(function () {
+  'use strict';
+
+  var WA_NUMBER = '34637621880';
+
+  /* ── waOpen(service): abre WhatsApp con mensaje contextual ── */
+  window.waOpen = function (service) {
+    var msg;
+    if (service) {
+      msg = 'Hola, me gustaría pedir cita para *' + service + '* en Neumáticos Quesada. ¿Tendríais disponibilidad? Gracias.';
+    } else {
+      msg = 'Hola, me gustaría solicitar información o pedir cita en Neumáticos Quesada. ¿Podríais ayudarme? Gracias.';
+    }
+    var url = 'https://wa.me/' + WA_NUMBER + '?text=' + encodeURIComponent(msg);
+    window.location.href = url;
+  };
+
+  /* ── waModalOpen(): lee el resumen del modal y compone mensaje estructurado ── */
+  window.waModalOpen = function () {
+    var name    = ((document.getElementById('bk-name')        || {}).value || '').trim();
+    var date    = ((document.getElementById('bk-sum-date')    || {}).textContent || '').trim();
+    var time    = ((document.getElementById('bk-sum-time')    || {}).textContent || '').trim();
+    var service = ((document.getElementById('bk-sum-service') || {}).textContent || '').trim();
+
+    /* Si no hay nada seleccionado, mensaje genérico */
+    if (!service && !date && !time && !name) {
+      window.waOpen();
+      return;
+    }
+
+    var lines = ['Hola, me gustaría solicitar una cita en *Neumáticos Quesada*.\n'];
+    if (service) lines.push('📋 *Servicio:* ' + service);
+    if (date)    lines.push('📅 *Fecha:* '    + date);
+    if (time)    lines.push('🕐 *Hora:* '     + time.replace(' h', '') + ' h');
+    if (name)    lines.push('👤 *Nombre:* '   + name);
+    lines.push('\nGracias.');
+
+    var msg = lines.join('\n');
+    var url = 'https://wa.me/' + WA_NUMBER + '?text=' + encodeURIComponent(msg);
+    window.location.href = url;
+  };
+
+})();
+</script>
+
+</body>
+</html>
