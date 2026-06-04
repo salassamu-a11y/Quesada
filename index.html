@@ -572,69 +572,68 @@
 
 
 <!-- ════════════════════════════════════════════
-     SECCIÓN 1 — HERO cinematic split-screen
+     SECCIÓN 1 — HERO brutalista
 ════════════════════════════════════════════ -->
-<section id="inicio" class="relative bg-q-navy flex items-center overflow-hidden">
+<section id="inicio" class="relative overflow-hidden"
+         style="background:#000;min-height:100svh;display:flex;flex-direction:column;justify-content:flex-end;">
 
-  <!-- Grid texture overlay -->
-  <div class="absolute inset-0 grid-texture opacity-100 pointer-events-none"></div>
+  <!-- Imagen pantalla completa — grayscale, sin overlay ni gradiente -->
+  <img src="imagenes/taller-interior.jpeg"
+       alt="Interior taller Neumáticos Quesada"
+       fetchpriority="high" decoding="async"
+       class="absolute inset-0 w-full h-full object-cover"
+       style="filter:grayscale(100%) contrast(1.2);">
 
-  <!-- Hero background image (right half, gradient-masked) -->
-  <div class="hero-img-wrap absolute inset-0 lg:left-[42%]">
-    <img src="imagenes/taller-interior.jpeg"
-         alt="Interior taller Neumáticos Quesada"
-         fetchpriority="high" decoding="async" class="w-full h-full object-cover">
-  </div>
+  <!-- Contenido -->
+  <div class="relative z-10 w-full px-6 lg:px-12 pb-14 pt-28">
 
-  <!-- Bottom vignette -->
-  <div class="absolute bottom-0 inset-x-0 h-40 bg-gradient-to-t from-q-navy to-transparent z-10 pointer-events-none"></div>
+    <!-- Título brutal -->
+    <h1 style="font-size:clamp(3.8rem,13.5vw,12rem);font-weight:900;line-height:.88;
+               color:#fff;text-transform:uppercase;letter-spacing:-.02em;margin:0 0 .4em;">
+      NEUMÁTICOS
+    </h1>
 
-  <div class="relative z-20 max-w-7xl mx-auto px-6 lg:px-10 pt-28 pb-20 w-full">
-    <div class="max-w-[600px]">
+    <!-- Subtítulo monospace amarillo -->
+    <p style="font-family:'Courier New',Courier,monospace;
+              font-size:clamp(.8rem,1.6vw,1.05rem);color:#FFD700;font-weight:700;
+              letter-spacing:.18em;text-transform:uppercase;margin:0 0 2.2rem;">
+      Mislata · Valencia · Desde 1994
+    </p>
 
-      <div class="inline-flex items-center gap-2.5 text-q-yellow text-[11px] font-bold tracking-[.22em] uppercase mb-7">
-        <span class="w-6 h-px bg-q-yellow"></span>
-        Mislata &middot; Valencia &middot; Desde 1994
-      </div>
-
-      <h1 class="text-[3.2rem] sm:text-[4rem] lg:text-[4.75rem] font-black leading-[1.0] mb-7">
-        <span class="text-gradient">Tu taller de</span><br>
-        <em class="not-italic italic text-q-yellow">neumáticos</em><br>
-        <span class="text-gradient">de confianza.</span>
-      </h1>
-
-      <p class="text-gray-400 text-lg leading-relaxed mb-10 max-w-md">
-        Cambio, montaje, alineación y equilibrado profesional. Más de 30 años cuidando las ruedas de Mislata y alrededores con las mejores marcas del mercado.
-      </p>
-
-      <div class="hero-ctas flex flex-wrap gap-4">
-        <a href="#contacto"
-           class="inline-flex items-center gap-2.5 bg-q-yellow hover:bg-q-yellow-d text-q-navy font-bold text-[15px] px-8 py-4 rounded-xl transition-all btn-yellow">
-          Solicita presupuesto gratis
-          <i class="fas fa-arrow-right text-xs"></i>
-        </a>
-        <!-- AÑADIDO: Botón "Pedir cita" — Hero -->
-        <button onclick="openBookingModal()"
-                class="inline-flex items-center gap-2.5 bg-q-blue hover:bg-q-blue-d text-white font-bold text-[15px] px-8 py-4 rounded-xl transition-all">
-          <i class="fas fa-calendar-check text-sm"></i> Pedir cita
-        </button>
-      </div>
-
-      <!-- Social proof -->
-      <div class="mt-10 pt-8 border-t border-white/10 flex items-center gap-4 flex-wrap">
-        <div class="flex gap-0.5">
-          <i class="fas fa-star text-q-yellow text-sm"></i>
-          <i class="fas fa-star text-q-yellow text-sm"></i>
-          <i class="fas fa-star text-q-yellow text-sm"></i>
-          <i class="fas fa-star text-q-yellow text-sm"></i>
-          <i class="fas fa-star text-q-yellow text-sm"></i>
-        </div>
-        <span class="font-bold text-white text-sm">4.9 / 5</span>
-        <span class="text-gray-600 text-sm">&middot;</span>
-        <span class="text-gray-400 text-sm">245 reseñas en Google Maps</span>
-      </div>
-
+    <!-- CTAs — esquinas rectas -->
+    <div class="flex flex-wrap gap-4 mb-10">
+      <a href="#contacto"
+         class="inline-flex items-center gap-2.5 font-black text-[15px] px-8 py-4 transition-all"
+         style="background:#FFD700;color:#000;border:2px solid #FFD700;border-radius:0;"
+         onmouseover="this.style.background='transparent';this.style.color='#FFD700';"
+         onmouseout="this.style.background='#FFD700';this.style.color='#000';">
+        Solicita presupuesto gratis
+        <i class="fas fa-arrow-right text-xs"></i>
+      </a>
+      <button onclick="openBookingModal()"
+              class="inline-flex items-center gap-2.5 font-black text-[15px] px-8 py-4 transition-all"
+              style="background:transparent;color:#fff;border:2px solid #fff;border-radius:0;"
+              onmouseover="this.style.background='#fff';this.style.color='#000';"
+              onmouseout="this.style.background='transparent';this.style.color='#fff';">
+        <i class="fas fa-calendar-check text-sm"></i> Pedir cita
+      </button>
     </div>
+
+    <!-- Social proof -->
+    <div style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;
+                padding-top:1.25rem;border-top:1px solid rgba(255,255,255,.18);">
+      <div class="flex gap-0.5">
+        <i class="fas fa-star text-sm" style="color:#FFD700;"></i>
+        <i class="fas fa-star text-sm" style="color:#FFD700;"></i>
+        <i class="fas fa-star text-sm" style="color:#FFD700;"></i>
+        <i class="fas fa-star text-sm" style="color:#FFD700;"></i>
+        <i class="fas fa-star text-sm" style="color:#FFD700;"></i>
+      </div>
+      <span class="font-bold text-white text-sm">4.9 / 5</span>
+      <span class="text-gray-600 text-sm">·</span>
+      <span class="text-sm" style="color:#999;">245 reseñas en Google Maps</span>
+    </div>
+
   </div>
 </section>
 
