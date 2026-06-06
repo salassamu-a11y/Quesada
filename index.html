@@ -53,10 +53,8 @@
 
     /* ── Glassmorphism nav ── */
     .hdr-glass {
-      background: rgba(6,13,31,0.72);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
-      border-bottom: 1px solid rgba(255,255,255,0.06);
+      background: #1a1a1a;
+      border-bottom: 3px solid #000;
     }
     .hdr-scrolled {
       background: rgba(6,13,31,0.94);
@@ -551,12 +549,12 @@
 
     <div class="flex items-center gap-3">
       <a href="tel:963593087"
-         class="hidden sm:inline-flex items-center gap-2 bg-q-yellow hover:bg-q-yellow-d text-q-navy text-sm font-bold px-5 py-2.5 rounded-lg transition-colors btn-yellow">
+         class="hidden sm:inline-flex items-center gap-2 bg-q-yellow hover:bg-q-yellow-d text-q-navy text-sm font-bold px-5 py-2.5 transition-colors btn-neo">
         <i class="fas fa-phone text-[11px]"></i> 963 593 087
       </a>
       <!-- AÑADIDO: Botón "Pedir cita" — Header -->
       <button onclick="openBookingModal()"
-              class="hidden sm:inline-flex items-center gap-2 border border-white/15 hover:border-q-yellow/40 bg-white/5 hover:bg-white/10 text-white text-sm font-semibold px-4 py-2.5 rounded-lg transition-all">
+              class="hidden sm:inline-flex items-center gap-2 border border-white/15 hover:border-q-yellow/40 bg-white/5 hover:bg-white/10 text-white text-sm font-semibold px-4 py-2.5 rounded-lg transition-all btn-neo">
         <i class="fas fa-calendar-check text-q-yellow text-[11px]"></i> Pedir cita
       </button>
 
@@ -641,13 +639,13 @@
 
       <div class="hero-ctas flex flex-wrap gap-4">
         <a href="#contacto"
-           class="inline-flex items-center gap-2.5 bg-q-yellow hover:bg-q-yellow-d text-q-navy font-bold text-[15px] px-8 py-4 rounded-xl transition-all btn-yellow">
+           class="inline-flex items-center gap-2.5 bg-q-yellow hover:bg-q-yellow-d text-q-navy font-bold text-[15px] px-8 py-4 transition-all btn-yellow btn-neo">
           Solicita presupuesto gratis
           <i class="fas fa-arrow-right text-xs"></i>
         </a>
         <!-- AÑADIDO: Botón "Pedir cita" — Hero -->
         <button onclick="openBookingModal()"
-                class="inline-flex items-center gap-2.5 bg-q-blue hover:bg-q-blue-d text-white font-bold text-[15px] px-8 py-4 rounded-xl transition-all">
+                class="inline-flex items-center gap-2.5 bg-white hover:bg-q-yellow-d text-black font-bold text-[15px] px-8 py-4 transition-all btn-neo">
           <i class="fas fa-calendar-check text-sm"></i> Pedir cita
         </button>
       </div>
