@@ -14,11 +14,11 @@
             'q-blue':      '#2563EB',
             'q-blue-d':    '#1D4ED8',
             'q-blue-pale': '#EFF6FF',
-            'q-yellow':    '#FFCC00',
+            'q-yellow':    '#FFD700',
             'q-yellow-d':  '#E6C200',
-            'q-navy':      '#1a1a1a',
-            'q-navy-2':    '#000',
-            'q-cream':     '#fff',
+            'q-navy':      '#060D1F',
+            'q-navy-2':    '#0D1B3E',
+            'q-cream':     '#F5F0E8',
           },
           fontFamily: {
             sans: ['Inter','system-ui','-apple-system','sans-serif'],
@@ -53,8 +53,10 @@
 
     /* ── Glassmorphism nav ── */
     .hdr-glass {
-      background: #1a1a1a;
-      border-bottom: 3px solid #000;
+      background: rgba(6,13,31,0.72);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid rgba(255,255,255,0.06);
     }
     .hdr-scrolled {
       background: rgba(6,13,31,0.94);
@@ -492,38 +494,6 @@
       border-color: rgba(37,211,102,.48);
       box-shadow: 0 0 0 3px rgba(37,211,102,.07);
     }
-
-    /* ── Neo-brutalist button ── */
-    .btn-neo {
-      box-shadow: 4px 4px 0 #000;
-      border: 2px solid #000;
-      border-radius: 0;
-      transition: box-shadow .15s ease, transform .15s ease;
-    }
-    .btn-neo:hover {
-      transform: translate(4px, 4px);
-      box-shadow: 0 0 0 #000;
-    }
-
-    /* ── Brand chip ── */
-    .brand-chip {
-      border: 2px solid #000;
-      font-family: monospace;
-    }
-
-    /* ── Marquee servicios ── */
-    @keyframes marquee-svc {
-      from { transform: translateX(0); }
-      to   { transform: translateX(-50%); }
-    }
-    .marquee-svc-track {
-      display: flex;
-      width: max-content;
-      animation: marquee-svc 28s linear infinite;
-    }
-    .marquee-svc-track:hover { animation-play-state: paused; }
-
-    section { border-bottom: 3px solid #000; }
   </style>
 </head>
 
@@ -549,12 +519,12 @@
 
     <div class="flex items-center gap-3">
       <a href="tel:963593087"
-         class="hidden sm:inline-flex items-center gap-2 bg-q-yellow hover:bg-q-yellow-d text-q-navy text-sm font-bold px-5 py-2.5 transition-colors btn-neo">
+         class="hidden sm:inline-flex items-center gap-2 bg-q-yellow hover:bg-q-yellow-d text-q-navy text-sm font-bold px-5 py-2.5 rounded-lg transition-colors btn-yellow">
         <i class="fas fa-phone text-[11px]"></i> 963 593 087
       </a>
       <!-- AÑADIDO: Botón "Pedir cita" — Header -->
       <button onclick="openBookingModal()"
-              class="hidden sm:inline-flex items-center gap-2 border border-white/15 hover:border-q-yellow/40 bg-white/5 hover:bg-white/10 text-white text-sm font-semibold px-4 py-2.5 rounded-lg transition-all btn-neo">
+              class="hidden sm:inline-flex items-center gap-2 border border-white/15 hover:border-q-yellow/40 bg-white/5 hover:bg-white/10 text-white text-sm font-semibold px-4 py-2.5 rounded-lg transition-all">
         <i class="fas fa-calendar-check text-q-yellow text-[11px]"></i> Pedir cita
       </button>
 
@@ -639,13 +609,13 @@
 
       <div class="hero-ctas flex flex-wrap gap-4">
         <a href="#contacto"
-           class="inline-flex items-center gap-2.5 bg-q-yellow hover:bg-q-yellow-d text-q-navy font-bold text-[15px] px-8 py-4 transition-all btn-yellow btn-neo">
+           class="inline-flex items-center gap-2.5 bg-q-yellow hover:bg-q-yellow-d text-q-navy font-bold text-[15px] px-8 py-4 rounded-xl transition-all btn-yellow">
           Solicita presupuesto gratis
           <i class="fas fa-arrow-right text-xs"></i>
         </a>
         <!-- AÑADIDO: Botón "Pedir cita" — Hero -->
         <button onclick="openBookingModal()"
-                class="inline-flex items-center gap-2.5 bg-white hover:bg-q-yellow-d text-black font-bold text-[15px] px-8 py-4 transition-all btn-neo">
+                class="inline-flex items-center gap-2.5 bg-q-blue hover:bg-q-blue-d text-white font-bold text-[15px] px-8 py-4 rounded-xl transition-all">
           <i class="fas fa-calendar-check text-sm"></i> Pedir cita
         </button>
       </div>
