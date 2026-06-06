@@ -14,11 +14,11 @@
             'q-blue':      '#2563EB',
             'q-blue-d':    '#1D4ED8',
             'q-blue-pale': '#EFF6FF',
-            'q-yellow':    '#FFD700',
+            'q-yellow':    '#FFCC00',
             'q-yellow-d':  '#E6C200',
-            'q-navy':      '#060D1F',
-            'q-navy-2':    '#0D1B3E',
-            'q-cream':     '#F5F0E8',
+            'q-navy':      '#1a1a1a',
+            'q-navy-2':    '#000',
+            'q-cream':     '#fff',
           },
           fontFamily: {
             sans: ['Inter','system-ui','-apple-system','sans-serif'],
@@ -494,6 +494,38 @@
       border-color: rgba(37,211,102,.48);
       box-shadow: 0 0 0 3px rgba(37,211,102,.07);
     }
+
+    /* ── Neo-brutalist button ── */
+    .btn-neo {
+      box-shadow: 4px 4px 0 #000;
+      border: 2px solid #000;
+      border-radius: 0;
+      transition: box-shadow .15s ease, transform .15s ease;
+    }
+    .btn-neo:hover {
+      transform: translate(4px, 4px);
+      box-shadow: 0 0 0 #000;
+    }
+
+    /* ── Brand chip ── */
+    .brand-chip {
+      border: 2px solid #000;
+      font-family: monospace;
+    }
+
+    /* ── Marquee servicios ── */
+    @keyframes marquee-svc {
+      from { transform: translateX(0); }
+      to   { transform: translateX(-50%); }
+    }
+    .marquee-svc-track {
+      display: flex;
+      width: max-content;
+      animation: marquee-svc 28s linear infinite;
+    }
+    .marquee-svc-track:hover { animation-play-state: paused; }
+
+    section { border-bottom: 3px solid #000; }
   </style>
 </head>
 
