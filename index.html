@@ -2047,6 +2047,26 @@
   const nosotros = document.getElementById('nosotros');
   if (nosotros) observer.observe(nosotros);
 })();
+
+// Parallax hero — factor 0.5
+(function () {
+  const wrap = document.querySelector('.hero-img-wrap');
+  if (!wrap) return;
+
+  let ticking = false;
+
+  function applyParallax() {
+    wrap.style.transform = 'translateY(' + (window.scrollY * 0.5) + 'px)';
+    ticking = false;
+  }
+
+  window.addEventListener('scroll', function () {
+    if (!ticking) {
+      requestAnimationFrame(applyParallax);
+      ticking = true;
+    }
+  }, { passive: true });
+})();
 </script>
 
 </body>
