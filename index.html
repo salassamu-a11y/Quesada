@@ -588,8 +588,8 @@
 
   <!-- Hero background image (right half, gradient-masked) -->
   <div class="hero-img-wrap absolute inset-0 lg:left-[42%]">
-    <img src="imagenes/taller-interior.jpeg"
-         alt="Interior taller Neumáticos Quesada"
+    <img src="imagenes/taller-fachada.jpeg"
+         alt="Fachada taller Neumáticos Quesada"
          fetchpriority="high" decoding="async" class="w-full h-full object-cover">
   </div>
 
@@ -2048,25 +2048,6 @@
   if (nosotros) observer.observe(nosotros);
 })();
 
-// Parallax hero — factor 0.5
-(function () {
-  const wrap = document.querySelector('.hero-img-wrap');
-  if (!wrap) return;
-
-  let ticking = false;
-
-  function applyParallax() {
-    wrap.style.transform = 'translateY(' + (window.scrollY * 0.5) + 'px)';
-    ticking = false;
-  }
-
-  window.addEventListener('scroll', function () {
-    if (!ticking) {
-      requestAnimationFrame(applyParallax);
-      ticking = true;
-    }
-  }, { passive: true });
-})();
 </script>
 
 </body>
