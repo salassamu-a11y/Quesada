@@ -96,7 +96,9 @@
       width: max-content;
       animation: marquee 32s linear infinite;
     }
-    .marquee-track:hover { animation-play-state: paused; }
+    @media (hover: hover) {
+      .marquee-track:hover { animation-play-state: paused; }
+    }
     @media (max-width: 640px) {
       .marquee-track { animation-duration: 16s; }
     }
