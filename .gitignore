@@ -1,0 +1,11 @@
+# Credenciales — nunca al repo
+.env
+
+# Dependencias
+node_modules/
+
+# Datos generados en runtime
+citas.json
+
+# Capturas de desarrollo
+*.png

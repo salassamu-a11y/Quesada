@@ -1,0 +1,114 @@
+# CLAUDE.md — Neumáticos Quesada
+
+## Proyecto
+Web + sistema de citas con recordatorio WhatsApp para taller de neumáticos en Mislata, Valencia.
+
+## Stack
+- Frontend: index.html único, Tailwind CDN, Inter + Barlow Condensed (Google Fonts, títulos) + Font Awesome 6.5
+- Backend: Node.js + http nativo (sin frameworks)
+- Datos: citas.json (array JSON), config.json (configuración del taller)
+- WhatsApp: Twilio API
+- Scheduler: node-cron
+- Dependencias npm: dotenv ^16.4.5, node-cron ^3.0.3, twilio ^5.3.0, uuid ^9.0.1
+- Deploy: Render (Railway descartado — conflicto con Twilio)
+
+## Colores del tema
+- q-blue: #2563EB
+- q-blue-d: #1D4ED8
+- q-blue-pale: #EFF6FF
+- q-yellow: #FFD700
+- q-yellow-d: #E6C200
+- q-navy: #060D1F
+- q-navy-2: #0D1B3E
+- q-cream: #F5F0E8
+
+## Estructura de archivos
+proyecto/
+├── index.html        ← web pública (completa)
+├── server.js         ← backend Node.js (completo)
+├── citas.json        ← se crea automáticamente al registrar la primera cita
+├── config.json       ← no creado, no usado en el código actual
+├── .env              ← credenciales (nunca al repo)
+└── package.json
+
+## Frontend — Secciones de index.html (en orden)
+
+| id        | Fondo     | Descripción                                                  |
+|-----------|-----------|--------------------------------------------------------------|
+| #inicio   | q-navy    | Hero cinematic split-screen — imagen: `taller-fachada.jpeg` |
+| —         | q-navy-2  | Marquee infinito de marcas                                   |
+| #nosotros | q-cream   | Bento grid "Sobre nosotros" + stats (4.9★, 245+ reseñas, 30+ años) |
+| #servicios| q-navy    | Bento grid asimétrico — 4 servicios (Reparación, Alineación, Montaje, Equilibrado); hover: translateY(-4px) + border-left q-yellow |
+| —         | q-navy-2  | CTA banner "Tu seguridad empieza por las ruedas"             |
+| #galeria  | q-cream   | Galería 2×2 del taller                                       |
+| #resenas  | q-navy    | Tres reseñas reales de Google (Manu BR, Juan Padilla, I. Fuertes) |
+| #reserva  | q-navy-2  | Formulario inline "Reserva tu cita" → `fetch POST /cita`     |
+| #contacto | q-navy    | Info de contacto + horario + live status + mapa embebido     |
+| —         | #040916   | Footer                                                       |
+
+## Frontend — Funcionalidades JS
+
+- **Modal de reserva** (`#booking-overlay`): calendario mensual + slots de hora + selector de servicio (botones) + nombre/teléfono/matrícula → `fetch POST /cita`. Activado por `openBookingModal()` (header, hero, contacto).
+- **Formulario sección Reserva** (`#reserva-form`): nombre, teléfono, fecha (`<input type="date">`), hora (`<select>` mañana/tarde), servicio (`<select>`), mensaje opcional → `fetch POST /cita`. Valida campos y rechaza fines de semana.
+- **Botón flotante WhatsApp** (`#wa-float`): enlace directo wa.me, esquina inferior derecha, animación de entrada.
+- **Live status taller** (`#status-pill`): muestra "Abierto/Cerrado" según horario real (L–J 8–14/15:30–20, V 8–14/15:30–18). Se actualiza cada minuto.
+- **Contadores animados** (`#nosotros` stats): `IntersectionObserver` + `requestAnimationFrame`, easing cúbico, se activan una sola vez al entrar en viewport.
+- **Scroll reveal** (`.will-reveal`): animación blur-in + translate al entrar en viewport.
+- **Nav activa**: Servicios | Nosotros | Taller | Reserva | Contacto (desktop y menú móvil).
+
+## Modelo de cita (citas.json)
+```json
+{
+  "id": "uuid",
+  "nombre": "",
+  "telefono": "",
+  "fecha": "YYYY-MM-DD",
+  "hora": "HH:MM",
+  "servicio": "",
+  "mensaje": "",
+  "estado": "pendiente|confirmada|cancelada",
+  "recordatorioEnviado": false,
+  "creadaEn": "ISO timestamp"
+}
+```
+
+## Endpoints server.js
+| Método | Ruta                              | Descripción                                    |
+|--------|-----------------------------------|------------------------------------------------|
+| POST   | /cita                             | Guarda cita nueva en citas.json (devuelve 201) |
+| GET    | /admin                            | Panel HTML con tabla de citas (auth básica)    |
+| POST   | /admin/cita/:id/estado            | Cambia estado (pendiente/confirmada/cancelada) |
+| POST   | /admin/cita/:id/recordatorio      | Envía WhatsApp manual y marca recordatorioEnviado=true |
+
+## Variables de entorno (.env)
+```
+PORT=3001
+ADMIN_USER=
+ADMIN_PASS=
+TWILIO_ACCOUNT_SID=
+TWILIO_AUTH_TOKEN=
+TWILIO_WHATSAPP_FROM=whatsapp:+14155238886
+TALLER_TELEFONO=
+TALLER_NOMBRE=Neumáticos Quesada
+```
+
+## Cron job
+- Hora: 10:00 cada día
+- Filtra: estado=confirmada, fecha=mañana, recordatorioEnviado=false
+- Acción: envía WhatsApp y marca recordatorioEnviado=true
+
+## Estado actual
+| Área          | Estado | Notas                                                  |
+|---------------|--------|--------------------------------------------------------|
+| index.html    | ✅     | Completo — sección Reserva, modal avanzado, WA flotante |
+| server.js     | ✅     | Completo — todos los endpoints implementados           |
+| citas.json    | ⚠️     | Se crea al guardar la primera cita                     |
+| config.json   | ❌     | No creado, no referenciado en el código                |
+| Twilio        | ⚠️     | Cuenta pendiente de crear; credenciales vacías en .env |
+| Deploy Render | ❌     | Pendiente (Railway descartado — conflicto con Twilio)  |
+
+## Reglas
+- Claude Code nunca ejecuta curl ni llamadas reales a Twilio para debuggear
+- Leer siempre citas.json con fs.readFileSync antes de escribir (evitar race conditions)
+- El panel /admin usa auth básica HTTP nativa (sin librerías)
+- Puerto: process.env.PORT || 3001

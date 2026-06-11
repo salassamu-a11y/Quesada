@@ -1,0 +1,14 @@
+{
+  "name": "neumaticos-quesada",
+  "version": "1.0.0",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "node-cron": "^3.0.3",
+    "twilio": "^5.3.0",
+    "uuid": "^9.0.1"
+  }
+}
