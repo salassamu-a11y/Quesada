@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(python -c \"from PIL import Image; img = Image.open\\('C:/Users/salas/OneDrive/Escritorio/Prueba_1/imagenes/Captura.avif'\\); img.save\\('C:/Users/salas/OneDrive/Escritorio/Prueba_1/imagenes/Captura.jpg', 'JPEG', quality=85\\); print\\('Convertido correctamente'\\)\" 2>&1)",
+      "PowerShell(ffmpeg -version 2>$null)",
+      "PowerShell(node --version 2>$null)",
+      "PowerShell(node -e \"const sharp = require\\('sharp'\\); sharp\\('C:/Users/salas/OneDrive/Escritorio/Prueba_1/imagenes/Captura.avif'\\).jpeg\\({quality:85}\\).toFile\\('C:/Users/salas/OneDrive/Escritorio/Prueba_1/imagenes/Captura.jpg'\\).then\\(\\(\\)=>console.log\\('OK'\\)\\).catch\\(e=>console.error\\(e.message\\)\\)\")",
+      "PowerShell(pip install pillow-avif-plugin 2>&1)",
+      "PowerShell(python -c \"import pillow_avif; from PIL import Image; img = Image.open\\('C:/Users/salas/OneDrive/Escritorio/Prueba_1/imagenes/Captura.avif'\\); img.save\\('C:/Users/salas/OneDrive/Escritorio/Prueba_1/imagenes/Captura.jpg', 'JPEG', quality=85\\); print\\('Convertido correctamente'\\)\" 2>&1)",
+      "WebFetch(domain:g.co)",
+      "WebSearch",
+      "WebFetch(domain:www.google.com)",
+      "WebFetch(domain:www.tallerity.com)",
+      "WebFetch(domain:automedesindustrial.es)",
+      "PowerShell(Start-Process \"c:\\\\Users\\\\salas\\\\OneDrive\\\\Escritorio\\\\Prueba_1\\\\index.html\")"
+    ]
+  }
+}
