@@ -112,6 +112,39 @@
     .js-anim .hero-eyebrow-line { transform: scaleX(0); transform-origin: left center; }
     .js-anim .hero-img-wrap { clip-path: inset(0% 0% 0% 100%); }
 
+    /* ── Rueda-progreso de scroll (GSAP) ──
+       Solo existe bajo .js-anim; botón "volver arriba" con forma de llanta */
+    #wheel-progress {
+      display: none;
+      position: fixed;
+      bottom: 28px;
+      left: 28px;
+      z-index: 9980; /* bajo el modal (9999) y el float de WhatsApp (9990) */
+      width: 60px;
+      height: 60px;
+      padding: 0;
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      opacity: 0;
+      visibility: hidden;
+      transform: translateY(16px);
+      transition: opacity .35s ease, transform .35s ease, visibility .35s ease;
+      pointer-events: none;
+      filter: drop-shadow(0 6px 18px rgba(0,0,0,.45));
+    }
+    .js-anim #wheel-progress { display: block; }
+    #wheel-progress.wp-visible {
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(0);
+      pointer-events: auto;
+    }
+    #wheel-progress.wp-visible:hover { transform: translateY(-3px) scale(1.06); }
+    @media (max-width: 640px) {
+      #wheel-progress { width: 46px; height: 46px; bottom: 22px; left: 18px; }
+    }
+
     /* ── Infinite marquee ── */
     @keyframes marquee {
       from { transform: translateX(0); }
@@ -2031,6 +2064,88 @@
     <svg class="hidden sm:block" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color:rgba(37,211,102,.55); margin-left:2px"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
   </a>
 </div>
+
+
+<!-- ════════════════════════════════════════════
+     RUEDA-PROGRESO DE SCROLL — botón "volver arriba"
+     Llanta SVG: el rotor gira con el scroll, el aro
+     amarillo se rellena como indicador de progreso
+════════════════════════════════════════════ -->
+<button id="wheel-progress" aria-label="Volver arriba" title="Volver arriba">
+  <svg viewBox="0 0 100 100" width="100%" height="100%" aria-hidden="true">
+    <!-- Cuerpo del neumático -->
+    <circle cx="50" cy="50" r="47" fill="rgba(6,13,31,.92)" stroke="rgba(255,255,255,.10)" stroke-width="1"/>
+
+    <!-- Rotor: tacos de rodadura + radios + buje (gira con el scroll) -->
+    <g id="wheel-rotor">
+      <g stroke="rgba(255,255,255,.30)" stroke-width="2.6" stroke-linecap="round">
+        <line x1="93" y1="50" x2="96.5" y2="50"/>
+        <line x1="87.2" y1="71.5" x2="90.3" y2="73.3"/>
+        <line x1="71.5" y1="87.2" x2="73.3" y2="90.3"/>
+        <line x1="50" y1="93" x2="50" y2="96.5"/>
+        <line x1="28.5" y1="87.2" x2="26.7" y2="90.3"/>
+        <line x1="12.8" y1="71.5" x2="9.7" y2="73.3"/>
+        <line x1="7" y1="50" x2="3.5" y2="50"/>
+        <line x1="12.8" y1="28.5" x2="9.7" y2="26.7"/>
+        <line x1="28.5" y1="12.8" x2="26.7" y2="9.7"/>
+        <line x1="50" y1="7" x2="50" y2="3.5"/>
+        <line x1="71.5" y1="12.8" x2="73.3" y2="9.7"/>
+        <line x1="87.2" y1="28.5" x2="90.3" y2="26.7"/>
+      </g>
+      <g stroke="#8BA8CC" stroke-width="4.5" stroke-linecap="round">
+        <line x1="50" y1="40" x2="50" y2="18"/>
+        <line x1="59.5" y1="46.9" x2="80.4" y2="40.1"/>
+        <line x1="55.9" y1="58.1" x2="68.8" y2="75.9"/>
+        <line x1="44.1" y1="58.1" x2="31.2" y2="75.9"/>
+        <line x1="40.5" y1="46.9" x2="19.6" y2="40.1"/>
+      </g>
+      <circle cx="50" cy="50" r="9.5" fill="#FFD700"/>
+      <circle cx="50" cy="50" r="3.2" fill="#060D1F"/>
+    </g>
+
+    <!-- Aro de progreso (estático, empieza arriba) -->
+    <circle cx="50" cy="50" r="40" fill="none" stroke="rgba(255,215,0,.16)" stroke-width="3"/>
+    <circle id="wheel-ring" cx="50" cy="50" r="40" fill="none" stroke="#FFD700" stroke-width="3"
+            stroke-linecap="round" transform="rotate(-90 50 50)"/>
+  </svg>
+</button>
+
+<script>
+(function () {
+  'use strict';
+  if (!window.gsap || !window.ScrollTrigger) return;
+  if (!document.documentElement.classList.contains('js-anim')) return;
+
+  var wheel = document.getElementById('wheel-progress');
+  var rotor = document.getElementById('wheel-rotor');
+  var ring  = document.getElementById('wheel-ring');
+  if (!wheel || !rotor || !ring) return;
+
+  var CIRC = 2 * Math.PI * 40; /* perímetro del aro r=40 */
+  ring.style.strokeDasharray  = CIRC;
+  ring.style.strokeDashoffset = CIRC;
+
+  gsap.set(rotor, { svgOrigin: '50 50' });
+  /* quickTo da inercia suave a la rotación sin recalcular tweens */
+  var spinTo = gsap.quickTo(rotor, 'rotation', { duration: 0.4, ease: 'power2.out' });
+
+  ScrollTrigger.create({
+    trigger: document.body,
+    start: 'top top',
+    end: 'bottom bottom',
+    onUpdate: function (self) {
+      spinTo(self.progress * 720); /* dos vueltas completas en toda la página */
+      ring.style.strokeDashoffset = CIRC * (1 - self.progress);
+      wheel.classList.toggle('wp-visible', window.scrollY > 300);
+    }
+  });
+  wheel.classList.toggle('wp-visible', window.scrollY > 300);
+
+  wheel.addEventListener('click', function () {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+})();
+</script>
 
 
 <!-- ════════════════════════════════════════════
