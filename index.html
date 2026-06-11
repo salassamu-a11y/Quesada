@@ -34,6 +34,15 @@
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700;800;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
+  <!-- Activa estados iniciales de animación GSAP solo si el usuario no pide reduced-motion.
+       Si GSAP no carga, la clase se retira al final del body y la web queda como antes. -->
+  <script>
+    (function () {
+      var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+      if (!reduce) document.documentElement.classList.add('js-anim');
+    })();
+  </script>
+
   <style>
     html { scroll-behavior: smooth; }
     body { font-family: 'Inter', sans-serif; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
@@ -87,6 +96,21 @@
         transparent 80%);
       pointer-events: none;
     }
+
+    /* ── Hero entrance cinematográfica (GSAP) ──
+       Las máscaras tienen padding extra para no recortar acentos con leading 1.0.
+       Los estados iniciales solo aplican bajo .js-anim (sin GSAP no hay FOUC). */
+    .hero-mask {
+      display: block;
+      overflow: hidden;
+      padding: 0.12em 0;
+      margin: -0.12em 0;
+    }
+    .hero-line { display: block; }
+    .js-anim .hero-line { transform: translateY(118%); }
+    .js-anim .hero-fade { opacity: 0; transform: translateY(18px); }
+    .js-anim .hero-eyebrow-line { transform: scaleX(0); transform-origin: left center; }
+    .js-anim .hero-img-wrap { clip-path: inset(0% 0% 0% 100%); }
 
     /* ── Infinite marquee ── */
     @keyframes marquee {
@@ -599,22 +623,22 @@
   <div class="relative z-20 max-w-7xl mx-auto px-6 lg:px-10 pt-28 pb-20 w-full">
     <div class="max-w-[600px]">
 
-      <div class="inline-flex items-center gap-2.5 text-q-yellow text-[11px] font-bold tracking-[.22em] uppercase mb-7">
-        <span class="w-6 h-px bg-q-yellow"></span>
+      <div class="hero-fade inline-flex items-center gap-2.5 text-q-yellow text-[11px] font-bold tracking-[.22em] uppercase mb-7">
+        <span class="hero-eyebrow-line w-6 h-px bg-q-yellow"></span>
         Mislata &middot; Valencia &middot; Desde 1994
       </div>
 
       <h1 class="text-[3.2rem] sm:text-[4rem] lg:text-[4.75rem] font-black font-barlow leading-[1.0] mb-7">
-        <span class="text-gradient">Tu taller de</span><br>
-        <em class="not-italic italic text-q-yellow">neumáticos</em><br>
-        <span class="text-gradient">de confianza.</span>
+        <span class="hero-mask"><span class="hero-line text-gradient">Tu taller de</span></span>
+        <span class="hero-mask"><span class="hero-line"><em class="not-italic italic text-q-yellow">neumáticos</em></span></span>
+        <span class="hero-mask"><span class="hero-line text-gradient">de confianza.</span></span>
       </h1>
 
-      <p class="text-gray-400 text-lg leading-relaxed mb-10 max-w-md">
+      <p class="hero-fade text-gray-400 text-lg leading-relaxed mb-10 max-w-md">
         Cambio, montaje, alineación y equilibrado profesional. Más de 30 años cuidando las ruedas de Mislata y alrededores con las mejores marcas del mercado.
       </p>
 
-      <div class="hero-ctas flex flex-wrap gap-4">
+      <div class="hero-ctas hero-fade flex flex-wrap gap-4">
         <a href="#contacto"
            class="inline-flex items-center gap-2.5 bg-q-yellow hover:bg-q-yellow-d text-q-navy font-bold text-[15px] px-8 py-4 rounded-xl transition-all btn-yellow">
           Solicita presupuesto gratis
@@ -628,7 +652,7 @@
       </div>
 
       <!-- Social proof -->
-      <div class="mt-10 pt-8 border-t border-white/10 flex items-center gap-4 flex-wrap">
+      <div class="hero-fade mt-10 pt-8 border-t border-white/10 flex items-center gap-4 flex-wrap">
         <div class="flex gap-0.5">
           <i class="fas fa-star text-q-yellow text-sm"></i>
           <i class="fas fa-star text-q-yellow text-sm"></i>
@@ -1308,6 +1332,34 @@
   if (window.gsap && window.ScrollTrigger) {
     gsap.registerPlugin(ScrollTrigger);
   }
+  // Fallback: sin GSAP se retiran los estados iniciales y la web queda como antes
+  if (!window.gsap) {
+    document.documentElement.classList.remove('js-anim');
+  }
+</script>
+
+
+<!-- ════════════════════════════════════════════
+     GSAP — HERO entrada cinematográfica
+════════════════════════════════════════════ -->
+<script>
+(function () {
+  'use strict';
+  if (!window.gsap || !document.documentElement.classList.contains('js-anim')) return;
+
+  var tl = gsap.timeline({ defaults: { ease: 'power4.out' } });
+
+  tl
+    // La imagen entra barriendo de derecha a izquierda, con zoom-out sutil
+    .to('.hero-img-wrap', { clipPath: 'inset(0% 0% 0% 0%)', duration: 1.15, ease: 'power3.inOut' }, 0)
+    .from('.hero-img-wrap img', { scale: 1.14, duration: 1.7, ease: 'power2.out' }, 0)
+    // Titular: cada línea emerge de su máscara, escalonado
+    .to('.hero-line', { y: 0, duration: 0.95, stagger: 0.13 }, 0.3)
+    // La línea amarilla del eyebrow se dibuja
+    .to('.hero-eyebrow-line', { scaleX: 1, duration: 0.6 }, 0.35)
+    // Eyebrow, párrafo, CTAs y social proof en cascada
+    .to('.hero-fade', { opacity: 1, y: 0, duration: 0.75, stagger: 0.11 }, 0.55);
+})();
 </script>
 
 
@@ -1410,10 +1462,12 @@
       if (!allEls.includes(el)) allEls.push(el);
     });
 
-    // Also auto-tag hero children
-    document.querySelectorAll('#inicio .max-w-\\[600px\\] > *').forEach(el => {
-      if (!allEls.includes(el)) { allEls.push(el); el.classList.add('will-reveal'); }
-    });
+    // Also auto-tag hero children — solo si GSAP no gestiona la entrada del hero
+    if (!document.documentElement.classList.contains('js-anim')) {
+      document.querySelectorAll('#inicio .max-w-\\[600px\\] > *').forEach(el => {
+        if (!allEls.includes(el)) { allEls.push(el); el.classList.add('will-reveal'); }
+      });
+    }
 
     // Stagger siblings
     allEls.forEach(el => {
