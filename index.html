@@ -162,6 +162,40 @@
       .marquee-track { animation-duration: 16s; }
     }
 
+    /* ── Tipografía cinética (fondo de Servicios, GSAP scrub) ── */
+    .kinetic-strip {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      pointer-events: none;
+      user-select: none;
+      display: none; /* solo desktop, ver media query */
+      z-index: 0;
+    }
+    @media (min-width: 768px) {
+      .js-anim .kinetic-strip { display: block; }
+    }
+    .kinetic-text {
+      display: block;
+      white-space: nowrap;
+      font-family: 'Barlow Condensed', sans-serif;
+      font-weight: 900;
+      font-style: italic;
+      font-size: clamp(7rem, 14vw, 13rem);
+      line-height: 1;
+      letter-spacing: .03em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,.035);
+    }
+    @supports (-webkit-text-stroke: 1px black) {
+      .kinetic-text {
+        color: transparent;
+        -webkit-text-stroke: 1px rgba(255,255,255,.08);
+      }
+    }
+
     /* ── Service bento card ── */
     .svc-card {
       transition: transform 0.2s ease, box-shadow 0.2s ease, border-left 0.2s ease;
@@ -844,8 +878,14 @@
 <!-- ════════════════════════════════════════════
      SECCIÓN 4 — SERVICIOS (Bento Grid oscuro)
 ════════════════════════════════════════════ -->
-<section id="servicios" class="bg-q-navy py-20 lg:py-28">
-  <div class="max-w-7xl mx-auto px-6 lg:px-10">
+<section id="servicios" class="relative overflow-hidden bg-q-navy py-20 lg:py-28">
+
+  <!-- Tipografía cinética de fondo (se desplaza con el scroll, GSAP) -->
+  <div class="kinetic-strip" aria-hidden="true">
+    <span class="kinetic-text">Montaje &mdash; Equilibrado &mdash; Alineación &mdash; Reparación &mdash; Montaje &mdash; Equilibrado &mdash; Alineación &mdash; Reparación &mdash;</span>
+  </div>
+
+  <div class="relative max-w-7xl mx-auto px-6 lg:px-10">
 
     <div class="text-center mb-14 will-reveal">
       <div class="inline-flex items-center gap-2 text-q-yellow text-[11px] font-bold tracking-[.2em] uppercase mb-4">
@@ -2143,6 +2183,88 @@
 
   wheel.addEventListener('click', function () {
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+})();
+</script>
+
+
+<!-- ════════════════════════════════════════════
+     GSAP — Marquee reactivo + tipografía cinética
+════════════════════════════════════════════ -->
+<script>
+(function () {
+  'use strict';
+  if (!window.gsap || !window.ScrollTrigger) return;
+  if (!document.documentElement.classList.contains('js-anim')) return;
+
+  var mm = gsap.matchMedia();
+
+  /* ── Marquee de marcas: GSAP toma el control y reacciona a la
+        velocidad del scroll (acelera + skew, vuelve solo a reposo) ── */
+  var track = document.querySelector('.marquee-track');
+  if (track) {
+    var loop = null;
+
+    /* Se desactiva la animación CSS solo aquí: si este script no llega
+       a ejecutarse, el marquee CSS original sigue funcionando */
+    track.style.animation = 'none';
+
+    mm.add(
+      { small: '(max-width: 640px)', large: '(min-width: 641px)' },
+      function (ctx) {
+        loop = gsap.to(track, {
+          xPercent: -50,
+          duration: ctx.conditions.small ? 16 : 32,
+          ease: 'none',
+          repeat: -1
+        });
+        return function () { loop.kill(); loop = null; };
+      }
+    );
+
+    /* Pausa al pasar el ratón (replica el hover del CSS original) */
+    if (window.matchMedia('(hover: hover)').matches) {
+      track.addEventListener('mouseenter', function () { if (loop) loop.pause(); });
+      track.addEventListener('mouseleave', function () { if (loop) loop.play(); });
+    }
+
+    var calmTimer = null;
+    ScrollTrigger.create({
+      onUpdate: function (self) {
+        if (!loop || loop.paused()) return;
+        var v = self.getVelocity(); /* px/s con signo */
+        gsap.to(loop, {
+          timeScale: 1 + gsap.utils.clamp(0, 4, Math.abs(v) / 400),
+          duration: 0.3, ease: 'power2.out', overwrite: true
+        });
+        gsap.to(track, {
+          skewX: gsap.utils.clamp(-6, 6, v / 300),
+          duration: 0.3, ease: 'power2.out', overwrite: 'auto'
+        });
+        /* Sin eventos de scroll, todo vuelve a reposo */
+        clearTimeout(calmTimer);
+        calmTimer = setTimeout(function () {
+          if (loop) gsap.to(loop, { timeScale: 1, duration: 0.8, ease: 'power2.out', overwrite: true });
+          gsap.to(track, { skewX: 0, duration: 0.8, ease: 'power2.out', overwrite: 'auto' });
+        }, 180);
+      }
+    });
+  }
+
+  /* ── Tipografía cinética detrás de Servicios (solo desktop) ── */
+  mm.add('(min-width: 768px)', function () {
+    var strip = document.querySelector('.kinetic-text');
+    if (!strip) return;
+    gsap.fromTo(strip, { xPercent: -2 }, {
+      xPercent: -28,
+      ease: 'none',
+      scrollTrigger: {
+        trigger: '#servicios',
+        start: 'top bottom',
+        end: 'bottom top',
+        scrub: 1
+      }
+    });
   });
 })();
 </script>
