@@ -51,10 +51,11 @@ proyecto/
 - **Modal de reserva** (`#booking-overlay`): calendario mensual + slots de hora + selector de servicio (botones) + nombre/teléfono/matrícula → `fetch POST /cita`. Activado por `openBookingModal()` (header, hero, contacto).
 - **Formulario sección Reserva** (`#reserva-form`): nombre, teléfono, fecha (`<input type="date">`), hora (`<select>` mañana/tarde), servicio (`<select>`), mensaje opcional → `fetch POST /cita`. Valida campos y rechaza fines de semana.
 - **Botón flotante WhatsApp** (`#wa-float`): enlace directo wa.me, esquina inferior derecha, animación de entrada.
-- **Live status taller** (`#status-pill`): muestra "Abierto/Cerrado" según horario real (L–J 8–14/15:30–20, V 8–14/15:30–18). Se actualiza cada minuto.
+- **Live status taller** (`#status-pill`): muestra "Abierto/Cerrado" según horario real (L–J 8–14/15:30–20, V 8–16 continuo). Se actualiza cada minuto.
 - **Contadores animados** (`#nosotros` stats): `IntersectionObserver` + `requestAnimationFrame`, easing cúbico, se activan una sola vez al entrar en viewport.
 - **Scroll reveal** (`.will-reveal`): animación blur-in + translate al entrar en viewport.
 - **Nav activa**: Servicios | Nosotros | Taller | Reserva | Contacto (desktop y menú móvil).
+- **Animaciones GSAP + ScrollTrigger**: hero con clip-reveal, rueda-progreso de scroll, marquee reactivo a velocidad de scroll, tipografía cinética en Servicios, separadores tread. Micro-interacciones: botones magnéticos, tilt 3D en tarjetas de servicio, odómetro en contadores de stats, input matrícula estilizado.
 
 ## Modelo de cita (citas.json)
 ```json
@@ -79,6 +80,7 @@ proyecto/
 | GET    | /admin                            | Panel HTML con tabla de citas (auth básica)    |
 | POST   | /admin/cita/:id/estado            | Cambia estado (pendiente/confirmada/cancelada) |
 | POST   | /admin/cita/:id/recordatorio      | Envía WhatsApp manual y marca recordatorioEnviado=true |
+| POST   | /admin/cita                       | Crea cita nueva desde el panel admin con estado=confirmada directamente (auth básica) |
 
 ## Variables de entorno (.env)
 ```
@@ -106,6 +108,10 @@ TALLER_NOMBRE=Neumáticos Quesada
 | config.json   | ❌     | No creado, no referenciado en el código                |
 | Twilio        | ⚠️     | Cuenta pendiente de crear; credenciales vacías en .env |
 | Deploy Render | ❌     | Pendiente (Railway descartado — conflicto con Twilio)  |
+
+## WhatsApp — Aclaración operativa
+- El WhatsApp Business actual del taller sigue gestionado manualmente por Vicky (sin cambios).
+- Número Twilio **nuevo pendiente de compra**, exclusivo para envío de recordatorios automáticos — no sustituye el canal de atención al cliente existente.
 
 ## Reglas
 - Claude Code nunca ejecuta curl ni llamadas reales a Twilio para debuggear
