@@ -1384,7 +1384,7 @@
               </tr>
               <tr>
                 <td class="py-2.5 font-medium text-gray-300">Viernes</td>
-                <td class="py-2.5 text-right font-semibold text-white">8:00–14:00 &nbsp;·&nbsp; 15:30–18:00</td>
+                <td class="py-2.5 text-right font-semibold text-white">8:00–16:00</td>
               </tr>
               <tr>
                 <td class="py-2.5 font-medium text-gray-300">Sábado</td>
@@ -1581,7 +1581,7 @@
 
   // ── Live status (Abierto / Cerrado) ──
   // L–J: 8:00–14:00 (480–840) | 15:30–20:00 (930–1200)
-  // V:   8:00–14:00 (480–840) | 15:30–18:00 (930–1080)
+  // V:   8:00–16:00 (480–960)
   function updateStatus() {
     const now  = new Date();
     const day  = now.getDay();
@@ -1591,7 +1591,7 @@
     if (day >= 1 && day <= 4) {
       isOpen = (mins >= 480 && mins < 840) || (mins >= 930 && mins < 1200);
     } else if (day === 5) {
-      isOpen = (mins >= 480 && mins < 840) || (mins >= 930 && mins < 1080);
+      isOpen = (mins >= 480 && mins < 960);
     }
 
     const ping = document.getElementById('status-ping');
@@ -1927,7 +1927,7 @@
   /* ── Horarios disponibles ────────────────────────────────── */
   var BK_MORNING  = ['08:00','08:30','09:00','09:30','10:00','10:30','11:00','11:30','12:00','12:30','13:00','13:30'];
   var BK_AFT_WEEK = ['15:30','16:00','16:30','17:00','17:30','18:00','18:30','19:00','19:30'];
-  var BK_AFT_FRI  = ['15:30','16:00','16:30','17:00','17:30'];
+  var BK_AFT_FRI  = ['14:00','14:30','15:00','15:30'];
 
   /* ── Estado interno ──────────────────────────────────────── */
   var bkState = { viewYear: 0, viewMonth: 0, selDate: null, selSlot: null, selService: null };
