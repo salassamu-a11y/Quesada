@@ -129,6 +129,45 @@ function adminHTML(citas) {
 <body class="bg-gray-100 min-h-screen p-6">
   <div class="max-w-5xl mx-auto">
     <h1 class="text-2xl font-bold text-blue-900 mb-6">${taller} — Citas (${citas.length})</h1>
+    <div class="mb-4">
+      <button onclick="toggleNuevaCita()" class="bg-blue-700 hover:bg-blue-800 text-white text-sm font-medium px-4 py-2 rounded-lg">+ Nueva cita</button>
+      <div id="nueva-cita-form" class="hidden mt-3 bg-white rounded-lg shadow p-5 max-w-2xl">
+        <h2 class="text-base font-semibold text-gray-800 mb-4">Nueva cita</h2>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs text-gray-500 mb-1">Nombre</label>
+            <input id="nc-nombre" type="text" class="w-full border rounded px-3 py-2 text-sm">
+          </div>
+          <div>
+            <label class="block text-xs text-gray-500 mb-1">Teléfono</label>
+            <input id="nc-telefono" type="tel" class="w-full border rounded px-3 py-2 text-sm">
+          </div>
+          <div>
+            <label class="block text-xs text-gray-500 mb-1">Fecha</label>
+            <input id="nc-fecha" type="date" class="w-full border rounded px-3 py-2 text-sm">
+          </div>
+          <div>
+            <label class="block text-xs text-gray-500 mb-1">Hora</label>
+            <input id="nc-hora" type="time" class="w-full border rounded px-3 py-2 text-sm">
+          </div>
+          <div class="col-span-2">
+            <label class="block text-xs text-gray-500 mb-1">Servicio</label>
+            <select id="nc-servicio" class="w-full border rounded px-3 py-2 text-sm">
+              <option value="">— Selecciona servicio —</option>
+              <option value="Reparación de neumáticos">Reparación de neumáticos</option>
+              <option value="Alineación y geometría">Alineación y geometría</option>
+              <option value="Montaje de neumáticos">Montaje de neumáticos</option>
+              <option value="Equilibrado de ruedas">Equilibrado de ruedas</option>
+            </select>
+          </div>
+        </div>
+        <div class="mt-4 flex gap-2">
+          <button onclick="guardarNuevaCita()" class="bg-green-600 hover:bg-green-700 text-white text-sm px-4 py-2 rounded">Guardar cita</button>
+          <button onclick="toggleNuevaCita()" class="text-sm text-gray-500 hover:text-gray-700 px-4 py-2">Cancelar</button>
+        </div>
+        <p id="nc-error" class="hidden mt-2 text-red-600 text-sm"></p>
+      </div>
+    </div>
     <div class="bg-white rounded-lg shadow overflow-x-auto">
       <table class="w-full text-sm">
         <thead class="bg-gray-50 text-gray-600 uppercase text-xs">
@@ -145,6 +184,39 @@ function adminHTML(citas) {
       </table>
     </div>
   </div>
+  <script>
+    function toggleNuevaCita() {
+      document.getElementById('nueva-cita-form').classList.toggle('hidden');
+    }
+    async function guardarNuevaCita() {
+      const nombre   = document.getElementById('nc-nombre').value.trim();
+      const telefono = document.getElementById('nc-telefono').value.trim();
+      const fecha    = document.getElementById('nc-fecha').value;
+      const hora     = document.getElementById('nc-hora').value;
+      const servicio = document.getElementById('nc-servicio').value;
+      const errEl    = document.getElementById('nc-error');
+
+      if (!nombre || !telefono || !fecha || !hora || !servicio) {
+        errEl.textContent = 'Todos los campos son obligatorios.';
+        errEl.classList.remove('hidden');
+        return;
+      }
+      errEl.classList.add('hidden');
+
+      const res = await fetch('/admin/cita', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nombre, telefono, fecha, hora, servicio })
+      });
+
+      if (res.ok) {
+        location.reload();
+      } else {
+        errEl.textContent = 'Error al guardar la cita.';
+        errEl.classList.remove('hidden');
+      }
+    }
+  </script>
 </body>
 </html>`;
 }
@@ -152,6 +224,19 @@ function adminHTML(citas) {
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host}`);
   const p = url.pathname;
+
+  // GET / → sirve index.html
+  if (req.method === 'GET' && (p === '/' || p === '/index.html')) {
+    const htmlPath = path.join(__dirname, 'index.html');
+    if (!fs.existsSync(htmlPath)) {
+      res.writeHead(404, { 'Content-Type': 'text/plain' });
+      res.end('index.html no encontrado');
+      return;
+    }
+    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+    res.end(fs.readFileSync(htmlPath));
+    return;
+  }
 
   // POST /cita
   if (req.method === 'POST' && p === '/cita') {
@@ -189,6 +274,29 @@ const server = http.createServer(async (req, res) => {
       const citas = readCitas();
       res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
       res.end(adminHTML(citas));
+      return;
+    }
+
+    // POST /admin/cita — nueva cita con estado confirmada (Vicky ya cerró con el cliente)
+    if (req.method === 'POST' && p === '/admin/cita') {
+      const body = await parseBody(req);
+      const cita = {
+        id: uuidv4(),
+        nombre: body.nombre || '',
+        telefono: body.telefono || '',
+        fecha: body.fecha || '',
+        hora: body.hora || '',
+        servicio: body.servicio || '',
+        mensaje: '',
+        estado: 'confirmada',
+        recordatorioEnviado: false,
+        creadaEn: new Date().toISOString(),
+      };
+      const citas = readCitas();
+      citas.push(cita);
+      writeCitas(citas);
+      res.writeHead(201, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: true, id: cita.id }));
       return;
     }
 
