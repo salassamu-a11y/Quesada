@@ -114,6 +114,7 @@ function adminHTML(citas) {
           <form method="post" action="/admin/cita/${c.id}/recordatorio" class="inline">
             <button class="text-xs bg-[#2563EB] hover:bg-[#1D4ED8] text-white px-3 py-1.5 rounded-lg transition-colors font-medium">WhatsApp</button>
           </form>
+          <button onclick="eliminarCita('${c.id}')" class="text-xs bg-red-900/50 hover:bg-red-800/60 text-red-400 border border-red-700/50 px-3 py-1.5 rounded-lg transition-colors font-medium">Eliminar</button>
         </td>
       </tr>`).join('');
 
@@ -195,6 +196,11 @@ function adminHTML(citas) {
   <script>
     function toggleNuevaCita() {
       document.getElementById('nueva-cita-form').classList.toggle('hidden');
+    }
+    async function eliminarCita(id) {
+      if (!confirm('¿Eliminar esta cita? Esta acción no se puede deshacer.')) return;
+      const res = await fetch('/admin/cita/' + id, { method: 'DELETE' });
+      if (res.ok) location.reload();
     }
     async function guardarNuevaCita() {
       const nombre   = document.getElementById('nc-nombre').value.trim();
@@ -324,6 +330,23 @@ const server = http.createServer(async (req, res) => {
       writeCitas(citas);
       res.writeHead(302, { Location: '/admin' });
       res.end();
+      return;
+    }
+
+    // DELETE /admin/cita/:id
+    const deleteMatch = p.match(/^\/admin\/cita\/([^/]+)$/);
+    if (req.method === 'DELETE' && deleteMatch) {
+      const citas = readCitas();
+      const idx = citas.findIndex(c => c.id === deleteMatch[1]);
+      if (idx === -1) {
+        res.writeHead(404, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: false, error: 'Cita no encontrada' }));
+        return;
+      }
+      citas.splice(idx, 1);
+      writeCitas(citas);
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: true }));
       return;
     }
 
