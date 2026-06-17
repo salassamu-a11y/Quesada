@@ -57,11 +57,11 @@ async function sendWhatsApp(telefono, mensaje) {
 
 function buildReminderText(cita) {
   const taller = process.env.TALLER_NOMBRE || 'el taller';
-  return `Hola ${cita.nombre}, te recordamos tu cita en ${taller} el ${cita.fecha} a las ${cita.hora} para: ${cita.servicio}. ¡Te esperamos!`;
+  return `Hola ${cita.nombre} 👋 Soy el asistente de ${taller}. Te recordamos que tienes cita el ${cita.fecha} a las ${cita.hora} para ${cita.servicio}. ¡Te esperamos!`;
 }
 
-// Recordatorios automáticos diarios a las 10:00
-cron.schedule('0 10 * * *', async () => {
+// Recordatorios automáticos diarios a las 19:00
+cron.schedule('0 19 * * *', async () => {
   const citas = readCitas();
   const tomorrow = new Date();
   tomorrow.setDate(tomorrow.getDate() + 1);
