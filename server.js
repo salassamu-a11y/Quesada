@@ -88,31 +88,31 @@ cron.schedule('0 19 * * *', async () => {
 
 function adminHTML(citas) {
   const estadoBadge = e =>
-    e === 'confirmada' ? 'bg-green-100 text-green-800' :
-    e === 'cancelada'  ? 'bg-red-100 text-red-800' :
-                         'bg-yellow-100 text-yellow-800';
+    e === 'confirmada' ? 'bg-green-900/50 text-green-400 border border-green-700/50' :
+    e === 'cancelada'  ? 'bg-red-900/50 text-red-400 border border-red-700/50' :
+                         'bg-yellow-900/50 text-yellow-400 border border-yellow-700/50';
 
   const rows = citas.length === 0
-    ? '<tr><td colspan="6" class="p-4 text-center text-gray-400">Sin citas registradas</td></tr>'
+    ? '<tr><td colspan="6" class="px-4 py-8 text-center text-gray-500">Sin citas registradas</td></tr>'
     : citas.map(c => `
-      <tr class="border-b hover:bg-gray-50">
-        <td class="p-3">${c.nombre}</td>
-        <td class="p-3">${c.telefono}</td>
-        <td class="p-3 whitespace-nowrap">${c.fecha} ${c.hora}</td>
-        <td class="p-3">${c.servicio}</td>
-        <td class="p-3">
-          <span class="px-2 py-1 rounded text-xs font-medium ${estadoBadge(c.estado)}">${c.estado}</span>
+      <tr class="border-b border-white/5 hover:bg-white/5 transition-colors">
+        <td class="px-4 py-3 text-white font-medium">${c.nombre}</td>
+        <td class="px-4 py-3 text-gray-300">${c.telefono}</td>
+        <td class="px-4 py-3 text-gray-300 whitespace-nowrap">${c.fecha} ${c.hora}</td>
+        <td class="px-4 py-3 text-gray-300">${c.servicio}</td>
+        <td class="px-4 py-3">
+          <span class="px-2 py-1 rounded-full text-xs font-medium ${estadoBadge(c.estado)}">${c.estado}</span>
         </td>
-        <td class="p-3 space-x-1">
+        <td class="px-4 py-3 flex items-center gap-2">
           <form method="post" action="/admin/cita/${c.id}/estado" class="inline">
-            <select name="estado" onchange="this.form.submit()" class="text-xs border rounded px-1 py-1">
+            <select name="estado" onchange="this.form.submit()" class="text-xs bg-[#060D1F] border border-white/10 text-gray-300 rounded-lg px-2 py-1.5 cursor-pointer focus:outline-none focus:border-[#2563EB]">
               <option ${c.estado === 'pendiente'   ? 'selected' : ''}>pendiente</option>
               <option ${c.estado === 'confirmada'  ? 'selected' : ''}>confirmada</option>
               <option ${c.estado === 'cancelada'   ? 'selected' : ''}>cancelada</option>
             </select>
           </form>
           <form method="post" action="/admin/cita/${c.id}/recordatorio" class="inline">
-            <button class="text-xs bg-blue-700 text-white px-2 py-1 rounded hover:bg-blue-800">WhatsApp</button>
+            <button class="text-xs bg-[#2563EB] hover:bg-[#1D4ED8] text-white px-3 py-1.5 rounded-lg transition-colors font-medium">WhatsApp</button>
           </form>
         </td>
       </tr>`).join('');
@@ -126,33 +126,40 @@ function adminHTML(citas) {
   <title>${taller} — Admin</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-gray-100 min-h-screen p-6">
-  <div class="max-w-5xl mx-auto">
-    <h1 class="text-2xl font-bold text-blue-900 mb-6">${taller} — Citas (${citas.length})</h1>
-    <div class="mb-4">
-      <button onclick="toggleNuevaCita()" class="bg-blue-700 hover:bg-blue-800 text-white text-sm font-medium px-4 py-2 rounded-lg">+ Nueva cita</button>
-      <div id="nueva-cita-form" class="hidden mt-3 bg-white rounded-lg shadow p-5 max-w-2xl">
-        <h2 class="text-base font-semibold text-gray-800 mb-4">Nueva cita</h2>
+<body class="bg-[#060D1F] min-h-screen p-6 font-sans">
+  <div class="max-w-6xl mx-auto">
+    <header class="flex items-center justify-between mb-8">
+      <div>
+        <p class="text-[#FFD700] text-xs font-semibold uppercase tracking-widest mb-1">Panel de administración</p>
+        <h1 class="text-2xl font-bold text-white">${taller}</h1>
+      </div>
+      <span class="bg-[#0D1B3E] text-gray-400 text-sm px-4 py-2 rounded-full border border-white/10">${citas.length} cita${citas.length !== 1 ? 's' : ''}</span>
+    </header>
+
+    <div class="mb-5">
+      <button onclick="toggleNuevaCita()" class="bg-[#FFD700] hover:bg-[#E6C200] text-[#060D1F] text-sm font-bold px-5 py-2.5 rounded-lg transition-colors">+ Nueva cita</button>
+      <div id="nueva-cita-form" class="hidden mt-4 bg-[#0D1B3E] border border-white/10 rounded-xl p-6 max-w-2xl">
+        <h2 class="text-base font-semibold text-white mb-5">Nueva cita</h2>
         <div class="grid grid-cols-2 gap-4">
           <div>
-            <label class="block text-xs text-gray-500 mb-1">Nombre</label>
-            <input id="nc-nombre" type="text" class="w-full border rounded px-3 py-2 text-sm">
+            <label class="block text-xs text-gray-400 mb-1.5 uppercase tracking-wide">Nombre</label>
+            <input id="nc-nombre" type="text" class="w-full bg-[#060D1F] border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-[#2563EB]">
           </div>
           <div>
-            <label class="block text-xs text-gray-500 mb-1">Teléfono</label>
-            <input id="nc-telefono" type="tel" class="w-full border rounded px-3 py-2 text-sm">
+            <label class="block text-xs text-gray-400 mb-1.5 uppercase tracking-wide">Teléfono</label>
+            <input id="nc-telefono" type="tel" class="w-full bg-[#060D1F] border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-[#2563EB]">
           </div>
           <div>
-            <label class="block text-xs text-gray-500 mb-1">Fecha</label>
-            <input id="nc-fecha" type="date" class="w-full border rounded px-3 py-2 text-sm">
+            <label class="block text-xs text-gray-400 mb-1.5 uppercase tracking-wide">Fecha</label>
+            <input id="nc-fecha" type="date" class="w-full bg-[#060D1F] border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-[#2563EB]">
           </div>
           <div>
-            <label class="block text-xs text-gray-500 mb-1">Hora</label>
-            <input id="nc-hora" type="time" class="w-full border rounded px-3 py-2 text-sm">
+            <label class="block text-xs text-gray-400 mb-1.5 uppercase tracking-wide">Hora</label>
+            <input id="nc-hora" type="time" class="w-full bg-[#060D1F] border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-[#2563EB]">
           </div>
           <div class="col-span-2">
-            <label class="block text-xs text-gray-500 mb-1">Servicio</label>
-            <select id="nc-servicio" class="w-full border rounded px-3 py-2 text-sm">
+            <label class="block text-xs text-gray-400 mb-1.5 uppercase tracking-wide">Servicio</label>
+            <select id="nc-servicio" class="w-full bg-[#060D1F] border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-[#2563EB]">
               <option value="">— Selecciona servicio —</option>
               <option value="Reparación de neumáticos">Reparación de neumáticos</option>
               <option value="Alineación y geometría">Alineación y geometría</option>
@@ -161,23 +168,24 @@ function adminHTML(citas) {
             </select>
           </div>
         </div>
-        <div class="mt-4 flex gap-2">
-          <button onclick="guardarNuevaCita()" class="bg-green-600 hover:bg-green-700 text-white text-sm px-4 py-2 rounded">Guardar cita</button>
-          <button onclick="toggleNuevaCita()" class="text-sm text-gray-500 hover:text-gray-700 px-4 py-2">Cancelar</button>
+        <div class="mt-5 flex gap-3">
+          <button onclick="guardarNuevaCita()" class="bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-sm font-medium px-5 py-2 rounded-lg transition-colors">Guardar cita</button>
+          <button onclick="toggleNuevaCita()" class="text-sm text-gray-400 hover:text-white px-4 py-2 transition-colors">Cancelar</button>
         </div>
-        <p id="nc-error" class="hidden mt-2 text-red-600 text-sm"></p>
+        <p id="nc-error" class="hidden mt-3 text-red-400 text-sm"></p>
       </div>
     </div>
-    <div class="bg-white rounded-lg shadow overflow-x-auto">
+
+    <div class="bg-[#0D1B3E] rounded-xl overflow-x-auto border border-white/5">
       <table class="w-full text-sm">
-        <thead class="bg-gray-50 text-gray-600 uppercase text-xs">
-          <tr>
-            <th class="p-3 text-left">Nombre</th>
-            <th class="p-3 text-left">Teléfono</th>
-            <th class="p-3 text-left">Fecha / Hora</th>
-            <th class="p-3 text-left">Servicio</th>
-            <th class="p-3 text-left">Estado</th>
-            <th class="p-3 text-left">Acciones</th>
+        <thead>
+          <tr class="border-b border-white/10">
+            <th class="px-4 py-3.5 text-left text-xs font-semibold text-[#FFD700] uppercase tracking-wider">Nombre</th>
+            <th class="px-4 py-3.5 text-left text-xs font-semibold text-[#FFD700] uppercase tracking-wider">Teléfono</th>
+            <th class="px-4 py-3.5 text-left text-xs font-semibold text-[#FFD700] uppercase tracking-wider">Fecha / Hora</th>
+            <th class="px-4 py-3.5 text-left text-xs font-semibold text-[#FFD700] uppercase tracking-wider">Servicio</th>
+            <th class="px-4 py-3.5 text-left text-xs font-semibold text-[#FFD700] uppercase tracking-wider">Estado</th>
+            <th class="px-4 py-3.5 text-left text-xs font-semibold text-[#FFD700] uppercase tracking-wider">Acciones</th>
           </tr>
         </thead>
         <tbody>${rows}</tbody>
