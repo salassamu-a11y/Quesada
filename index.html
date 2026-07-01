@@ -281,6 +281,7 @@
 
     /* ── Service bento card ── */
     .svc-card {
+      border-left: 4px solid rgba(255,215,0,.5);
       transition: transform 0.2s ease, box-shadow 0.2s ease, border-left 0.2s ease;
     }
     .svc-card:hover {
@@ -927,10 +928,10 @@
       </div>
 
       <!-- Columna derecha (5 cols) -->
-      <div class="md:col-span-5 flex flex-col gap-4">
+      <div class="md:col-span-5 flex flex-col justify-center gap-4">
 
         <!-- Texto card -->
-        <div class="bg-q-navy rounded-3xl p-7 flex-1 will-reveal">
+        <div class="bg-q-navy rounded-3xl p-7 will-reveal">
           <p class="text-gray-300 text-sm leading-relaxed mb-4">
             Llevamos más de 30 años siendo el taller de referencia para conductores de Mislata y alrededores. Desde el primer día, nuestro compromiso ha sido el mismo: el mejor servicio al precio más justo, sin sorpresas.
           </p>
@@ -992,12 +993,12 @@
     <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
 
       <!-- Reparación — grande (7 cols) -->
-      <div class="svc-card bento-shine md:col-span-7 bg-gradient-to-br from-[#0e1f42] to-[#060D1F] rounded-3xl p-8 border border-white/5 flex flex-col justify-between min-h-[280px] will-reveal">
+      <div class="svc-card bento-shine md:col-span-6 bg-gradient-to-br from-[#0e1f42] to-[#060D1F] rounded-3xl p-8 border border-white/5 flex flex-col justify-between min-h-[280px] will-reveal">
         <div>
           <div class="svc-icon-wrap w-12 h-12 bg-white/8 rounded-2xl flex items-center justify-center mb-6">
             <i class="fas fa-screwdriver-wrench text-q-yellow text-xl"></i>
           </div>
-          <h3 class="font-black font-barlow text-white text-2xl mb-3">Reparación</h3>
+          <h3 class="font-bold font-barlow tracking-wide text-white text-2xl mb-3">Reparación</h3>
           <p class="text-gray-400 text-sm leading-relaxed max-w-sm">
             Detección y reparación de pinchazos y daños. Evaluamos el neumático antes de cualquier intervención para garantizar tu seguridad.
           </p>
@@ -1008,12 +1009,12 @@
       </div>
 
       <!-- Alineación (5 cols) -->
-      <div class="svc-card bento-shine md:col-span-5 bg-gradient-to-br from-[#0e1f42] to-[#060D1F] rounded-3xl p-8 border border-white/5 flex flex-col justify-between will-reveal">
+      <div class="svc-card bento-shine md:col-span-6 bg-gradient-to-br from-[#0e1f42] to-[#060D1F] rounded-3xl p-8 border border-white/5 flex flex-col justify-between will-reveal">
         <div>
           <div class="svc-icon-wrap w-12 h-12 bg-white/8 rounded-2xl flex items-center justify-center mb-6">
             <i class="fas fa-ruler-combined text-q-yellow text-xl"></i>
           </div>
-          <h3 class="font-black font-barlow text-white text-xl mb-3">Alineación</h3>
+          <h3 class="font-bold font-barlow tracking-wide text-white text-xl mb-3">Alineación</h3>
           <p class="text-gray-400 text-sm leading-relaxed">
             Corrección de geometría con tecnología láser. Mayor seguridad, menor consumo y neumáticos que duran más kilómetros.
           </p>
@@ -1024,16 +1025,12 @@
       </div>
 
       <!-- Montaje (5 cols) -->
-      <div class="svc-card bento-shine md:col-span-5 bg-gradient-to-br from-[#0e1f42] to-[#060D1F] rounded-3xl p-8 border border-white/5 flex flex-col justify-between will-reveal">
+      <div class="svc-card bento-shine md:col-span-6 bg-gradient-to-br from-[#0e1f42] to-[#060D1F] rounded-3xl p-8 border border-white/5 flex flex-col justify-between will-reveal">
         <div>
           <div class="svc-icon-wrap w-12 h-12 bg-white/8 rounded-2xl flex items-center justify-center mb-6">
-            <svg class="w-6 h-6 text-q-yellow" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-              <circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/>
-              <line x1="12" y1="2" x2="12" y2="5"/><line x1="12" y1="19" x2="12" y2="22"/>
-              <line x1="2" y1="12" x2="5" y2="12"/><line x1="19" y1="12" x2="22" y2="12"/>
-            </svg>
+            <i class="fas fa-crosshairs text-q-yellow text-xl"></i>
           </div>
-          <h3 class="font-black font-barlow text-white text-xl mb-3">Montaje</h3>
+          <h3 class="font-bold font-barlow tracking-wide text-white text-xl mb-3">Montaje</h3>
           <p class="text-gray-400 text-sm leading-relaxed">
             Desmontaje y montaje profesional rápido y seguro. Amplio stock de primeras marcas para todo tipo de vehículos.
           </p>
@@ -1044,12 +1041,12 @@
       </div>
 
       <!-- Equilibrado (7 cols) -->
-      <div class="svc-card bento-shine md:col-span-7 bg-gradient-to-br from-[#0e1f42] to-[#060D1F] rounded-3xl p-8 border border-white/5 flex flex-col justify-between will-reveal">
+      <div class="svc-card bento-shine md:col-span-6 bg-gradient-to-br from-[#0e1f42] to-[#060D1F] rounded-3xl p-8 border border-white/5 flex flex-col justify-between will-reveal">
         <div>
           <div class="svc-icon-wrap w-12 h-12 bg-white/8 rounded-2xl flex items-center justify-center mb-6">
             <i class="fas fa-scale-balanced text-q-yellow text-xl"></i>
           </div>
-          <h3 class="font-black font-barlow text-white text-2xl mb-3">Equilibrado</h3>
+          <h3 class="font-bold font-barlow tracking-wide text-white text-2xl mb-3">Equilibrado</h3>
           <p class="text-gray-400 text-sm leading-relaxed max-w-sm">
             Eliminamos las vibraciones para una conducción suave y prevenimos el desgaste desigual que acorta la vida útil del neumático.
           </p>
