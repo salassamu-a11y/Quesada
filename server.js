@@ -252,29 +252,6 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // POST /cita
-  if (req.method === 'POST' && p === '/cita') {
-    const body = await parseBody(req);
-    const cita = {
-      id: uuidv4(),
-      nombre: body.nombre || '',
-      telefono: body.telefono || '',
-      fecha: body.fecha || '',
-      hora: body.hora || '',
-      servicio: body.servicio || '',
-      mensaje: body.mensaje || '',
-      estado: 'pendiente',
-      recordatorioEnviado: false,
-      creadaEn: new Date().toISOString(),
-    };
-    const citas = readCitas();
-    citas.push(cita);
-    writeCitas(citas);
-    res.writeHead(201, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ ok: true, id: cita.id }));
-    return;
-  }
-
   // Rutas /admin — requieren auth básica
   if (p.startsWith('/admin')) {
     if (!checkAuth(req)) {

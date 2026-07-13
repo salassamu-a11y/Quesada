@@ -42,20 +42,24 @@ proyecto/
 | —         | q-navy-2  | CTA banner "Tu seguridad empieza por las ruedas"             |
 | #galeria  | q-cream   | Galería 2×2 del taller                                       |
 | #resenas  | q-navy    | Tres reseñas reales de Google (Manu BR, Juan Padilla, I. Fuertes) |
-| #reserva  | q-navy-2  | Formulario inline "Reserva tu cita" → `fetch POST /cita`     |
 | #contacto | q-navy    | Info de contacto + horario + live status + mapa embebido     |
 | —         | #040916   | Footer                                                       |
 
 ## Frontend — Funcionalidades JS
 
-- **Modal de reserva** (`#booking-overlay`): calendario mensual + slots de hora + selector de servicio (botones) + nombre/teléfono/matrícula → `fetch POST /cita`. Activado por `openBookingModal()` (header, hero, contacto).
-- **Formulario sección Reserva** (`#reserva-form`): nombre, teléfono, fecha (`<input type="date">`), hora (`<select>` mañana/tarde), servicio (`<select>`), mensaje opcional → `fetch POST /cita`. Valida campos y rechaza fines de semana.
 - **Botón flotante WhatsApp** (`#wa-float`): enlace directo wa.me, esquina inferior derecha, animación de entrada.
 - **Live status taller** (`#status-pill`): muestra "Abierto/Cerrado" según horario real (L–J 8–14/15:30–20, V 8–16 continuo). Se actualiza cada minuto.
 - **Contadores animados** (`#nosotros` stats): `IntersectionObserver` + `requestAnimationFrame`, easing cúbico, se activan una sola vez al entrar en viewport.
 - **Scroll reveal** (`.will-reveal`): animación blur-in + translate al entrar en viewport.
 - **Nav activa**: Servicios | Nosotros | Taller | Reserva | Contacto (desktop y menú móvil).
 - **Animaciones GSAP + ScrollTrigger**: hero con clip-reveal, rueda-progreso de scroll, marquee reactivo a velocidad de scroll, tipografía cinética en Servicios, separadores tread. Micro-interacciones: botones magnéticos, tilt 3D en tarjetas de servicio, odómetro en contadores de stats, input matrícula estilizado.
+
+## Frontend — Detalles de maquetación
+- **Grid de servicios**: 4 cards a `md:col-span-6` (simétrico 2×2). Antes era 7/5/5/7.
+- **Títulos de servicio (h3)**: `font-bold` + `tracking-wide`. Antes `font-black` sin tracking.
+- **Icono de Montaje**: `fa-crosshairs` (Font Awesome). Antes SVG custom.
+- **`.svc-card`**: `border-left` visible en reposo (rgba amarillo .5), intensificado en hover.
+- **#nosotros**: la columna derecha (texto + stats) usa `justify-center` en vez de `flex-1` en la text-card, para eliminar espacio muerto.
 
 ## Modelo de cita (citas.json)
 ```json
@@ -76,7 +80,6 @@ proyecto/
 ## Endpoints server.js
 | Método | Ruta                              | Descripción                                    |
 |--------|-----------------------------------|------------------------------------------------|
-| POST   | /cita                             | Guarda cita nueva en citas.json (devuelve 201) |
 | GET    | /admin                            | Panel HTML con tabla de citas (auth básica)    |
 | POST   | /admin/cita/:id/estado            | Cambia estado (pendiente/confirmada/cancelada) |
 | POST   | /admin/cita/:id/recordatorio      | Envía WhatsApp manual y marca recordatorioEnviado=true |
