@@ -57,9 +57,14 @@ proyecto/
 ## Frontend — Detalles de maquetación
 - **Grid de servicios**: 4 cards a `md:col-span-6` (simétrico 2×2). Antes era 7/5/5/7.
 - **Títulos de servicio (h3)**: `font-bold` + `tracking-wide`. Antes `font-black` sin tracking.
+- **Títulos h3 de servicio**: unificados a `text-2xl` en las 4 cards. Antes mezcla `text-2xl`/`text-xl` heredada del grid asimétrico 7/5/5/7 anterior.
 - **Icono de Montaje**: `fa-crosshairs` (Font Awesome). Antes SVG custom.
 - **`.svc-card`**: `border-left` visible en reposo (rgba amarillo .5), intensificado en hover.
 - **#nosotros**: la columna derecha (texto + stats) usa `justify-center` en vez de `flex-1` en la text-card, para eliminar espacio muerto.
+
+## Favicon
+- Set completo en `imagenes/`: `nq2f-favicon.ico`, `nq2f-16.png`, `nq2f-32.png`, `nq2f-192.png`, `nq2f-apple-touch-icon.png`.
+- Declarado en `<head>` con 5 `<link>` (icon .ico `sizes="any"`, icon png 16/32/192, apple-touch-icon).
 
 ## Modelo de cita (citas.json)
 ```json
@@ -105,7 +110,7 @@ TALLER_NOMBRE=Neumáticos Quesada
 ## Estado actual
 | Área          | Estado | Notas                                                  |
 |---------------|--------|--------------------------------------------------------|
-| index.html    | ✅     | Completo — sección Reserva, modal avanzado, WA flotante |
+| index.html    | ✅     | Completo — favicon nq2f, WA flotante                    |
 | server.js     | ✅     | Completo — todos los endpoints implementados           |
 | citas.json    | ⚠️     | Se crea al guardar la primera cita                     |
 | config.json   | ❌     | No creado, no referenciado en el código                |
