@@ -141,6 +141,21 @@
       pointer-events: auto;
     }
     #wheel-progress.wp-visible:hover { transform: translateY(-3px) scale(1.06); }
+    #wheel-rotor {
+      display: block;
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      filter: drop-shadow(0 2px 6px rgba(0,0,0,.4));
+      will-change: transform;
+    }
+    #wheel-overlay {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+    }
     @media (max-width: 640px) {
       #wheel-progress { width: 46px; height: 46px; bottom: 22px; left: 18px; }
     }
@@ -1523,37 +1538,13 @@
      amarillo se rellena como indicador de progreso
 ════════════════════════════════════════════ -->
 <button id="wheel-progress" aria-label="Volver arriba" title="Volver arriba">
-  <svg viewBox="0 0 100 100" width="100%" height="100%" aria-hidden="true">
-    <!-- Cuerpo del neumático -->
-    <circle cx="50" cy="50" r="47" fill="rgba(6,13,31,.92)" stroke="rgba(255,255,255,.10)" stroke-width="1"/>
-
-    <!-- Rotor: tacos de rodadura + radios + buje (gira con el scroll) -->
-    <g id="wheel-rotor">
-      <g stroke="rgba(255,255,255,.30)" stroke-width="2.6" stroke-linecap="round">
-        <line x1="93" y1="50" x2="96.5" y2="50"/>
-        <line x1="87.2" y1="71.5" x2="90.3" y2="73.3"/>
-        <line x1="71.5" y1="87.2" x2="73.3" y2="90.3"/>
-        <line x1="50" y1="93" x2="50" y2="96.5"/>
-        <line x1="28.5" y1="87.2" x2="26.7" y2="90.3"/>
-        <line x1="12.8" y1="71.5" x2="9.7" y2="73.3"/>
-        <line x1="7" y1="50" x2="3.5" y2="50"/>
-        <line x1="12.8" y1="28.5" x2="9.7" y2="26.7"/>
-        <line x1="28.5" y1="12.8" x2="26.7" y2="9.7"/>
-        <line x1="50" y1="7" x2="50" y2="3.5"/>
-        <line x1="71.5" y1="12.8" x2="73.3" y2="9.7"/>
-        <line x1="87.2" y1="28.5" x2="90.3" y2="26.7"/>
-      </g>
-      <g stroke="#8BA8CC" stroke-width="4.5" stroke-linecap="round">
-        <line x1="50" y1="40" x2="50" y2="18"/>
-        <line x1="59.5" y1="46.9" x2="80.4" y2="40.1"/>
-        <line x1="55.9" y1="58.1" x2="68.8" y2="75.9"/>
-        <line x1="44.1" y1="58.1" x2="31.2" y2="75.9"/>
-        <line x1="40.5" y1="46.9" x2="19.6" y2="40.1"/>
-      </g>
-      <circle cx="50" cy="50" r="9.5" fill="#FFD700"/>
-      <circle cx="50" cy="50" r="3.2" fill="#060D1F"/>
-    </g>
-
+  <!-- Rueda: imagen que gira con inercia -->
+  <img id="wheel-rotor" src="imagenes/rueda-scroll.png" alt="">
+  <!-- Overlay estático sobre la imagen: brillo especular fijo + aro de progreso -->
+  <svg id="wheel-overlay" viewBox="0 0 100 100" width="100%" height="100%" aria-hidden="true">
+    <!-- Brillo especular FIJO (no rota): luz de entorno en el cuarto superior -->
+    <path d="M 13.6 29 A 42 42 0 0 1 86.4 29" fill="none"
+          stroke="#ffffff" stroke-opacity="0.15" stroke-width="4" stroke-linecap="round"/>
     <!-- Aro de progreso (estático, empieza arriba) -->
     <circle cx="50" cy="50" r="40" fill="none" stroke="rgba(255,215,0,.16)" stroke-width="3"/>
     <circle id="wheel-ring" cx="50" cy="50" r="40" fill="none" stroke="#FFD700" stroke-width="3"
@@ -1576,18 +1567,32 @@
   ring.style.strokeDasharray  = CIRC;
   ring.style.strokeDashoffset = CIRC;
 
-  gsap.set(rotor, { svgOrigin: '50 50' });
-  /* quickTo da inercia suave a la rotación sin recalcular tweens */
-  var spinTo = gsap.quickTo(rotor, 'rotation', { duration: 0.4, ease: 'power2.out' });
+  /* ── Rotación con inercia: velocidad angular + fricción ──
+     Desligada de la posición de scroll: cada scroll inyecta velocidad,
+     la fricción la disipa (giro rápido que decelera, nunca frena en seco). */
+  var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var rotation = 0, angularVel = 0, lastY = window.scrollY;
+
+  (function spinLoop() {
+    if (angularVel !== 0) {
+      rotation += angularVel;
+      angularVel *= 0.95;                              /* fricción */
+      if (Math.abs(angularVel) < 0.01) angularVel = 0; /* umbral: evita repaints */
+      rotor.style.transform = 'rotate(' + rotation.toFixed(2) + 'deg)';
+    }
+    requestAnimationFrame(spinLoop);
+  })();
 
   ScrollTrigger.create({
     trigger: document.body,
     start: 'top top',
     end: 'bottom bottom',
     onUpdate: function (self) {
-      spinTo(self.progress * 720); /* dos vueltas completas en toda la página */
+      var y = window.scrollY;
+      if (!reduceMotion) angularVel += (y - lastY) * 0.4; /* delta scroll → velocidad angular */
+      lastY = y;
       ring.style.strokeDashoffset = CIRC * (1 - self.progress);
-      wheel.classList.toggle('wp-visible', window.scrollY > 300);
+      wheel.classList.toggle('wp-visible', y > 300);
     }
   });
   wheel.classList.toggle('wp-visible', window.scrollY > 300);
