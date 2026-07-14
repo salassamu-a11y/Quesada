@@ -28,6 +28,7 @@ proyecto/
 ├── server.js         ← backend Node.js (completo)
 ├── citas.json        ← se crea automáticamente al registrar la primera cita
 ├── config.json       ← no creado, no usado en el código actual
+├── imagenes/         ← assets: favicons, fotos del taller, rueda-scroll.png (rueda-progreso, verificado: carga en producción)
 ├── .env              ← credenciales (nunca al repo)
 └── package.json
 
@@ -52,7 +53,7 @@ proyecto/
 - **Contadores animados** (`#nosotros` stats): `IntersectionObserver` + `requestAnimationFrame`, easing cúbico, se activan una sola vez al entrar en viewport.
 - **Scroll reveal** (`.will-reveal`): animación blur-in + translate al entrar en viewport.
 - **Nav activa**: Servicios | Nosotros | Taller | Reserva | Contacto (desktop y menú móvil).
-- **Animaciones GSAP + ScrollTrigger**: hero con clip-reveal, rueda-progreso de scroll, marquee reactivo a velocidad de scroll, tipografía cinética en Servicios, separadores tread. Micro-interacciones: botones magnéticos, tilt 3D en tarjetas de servicio, odómetro en contadores de stats, input matrícula estilizado.
+- **Animaciones GSAP + ScrollTrigger**: hero con clip-reveal, marquee reactivo a velocidad de scroll, tipografía cinética en Servicios, separadores tread. Micro-interacciones: botones magnéticos, tilt 3D en tarjetas de servicio, odómetro en contadores de stats, input matrícula estilizado. (Rueda-progreso de scroll documentada aparte — ver sección propia.)
 
 ## Frontend — Detalles de maquetación
 - **Grid de servicios**: 4 cards a `md:col-span-6` (simétrico 2×2). Antes era 7/5/5/7.
@@ -65,6 +66,16 @@ proyecto/
 ## Favicon
 - Set completo en `imagenes/`: `nq2f-favicon.ico`, `nq2f-16.png`, `nq2f-32.png`, `nq2f-192.png`, `nq2f-apple-touch-icon.png`.
 - Declarado en `<head>` con 5 `<link>` (icon .ico `sizes="any"`, icon png 16/32/192, apple-touch-icon).
+
+## Rueda-progreso de scroll (#wheel-progress)
+Botón "volver arriba" fijo (inferior izquierda) con forma de rueda de neumático realista.
+- **Elemento visual**: `<img id="wheel-rotor" src="imagenes/rueda-scroll.png">` (no SVG dibujado — imagen real de rueda), `border-radius:50%`, `drop-shadow` base.
+- **Overlay estático** (`#wheel-overlay`, SVG encima del img, `pointer-events:none`): arco de brillo especular fijo (no rota, simula luz de entorno) + aro de progreso `#wheel-ring` que se rellena con el scroll de la página (via `ScrollTrigger`, stroke-dashoffset).
+- **Física de rotación — velocidad + fricción** (no ligada 1:1 a la posición de scroll): cada delta de scroll inyecta velocidad angular (`WHEEL_SPIN_FACTOR = 0.13`); loop `requestAnimationFrame` permanente aplica `rotation += angularVel` con fricción `*0.95` y corta a 0 bajo umbral 0.01 (evita repaints en reposo). Resultado: gira rápido con scroll rápido y decelera suave al parar, nunca en seco.
+- **Efecto sobrecalentamiento por fricción**: variable `heat` (0→1) calculada cada frame (`heat += |angularVel| * HEAT_GAIN`, cap 1, `heat *= HEAT_DECAY` de enfriamiento continuo). Constantes calibradas: `HEAT_GAIN = 0.0005`, `HEAT_DECAY = 0.985`.
+  - Visual: `#wheel-rotor` añade un segundo `drop-shadow` rojo-naranja que crece con `heat` (blur 0→14px, verde 140→60); `#wheel-heat` (div radial-gradient rojo-naranja detrás del img, `inset:15%`) simula el disco de freno incandescente entre los radios, `opacity = heat * 0.85`.
+  - Umbral `heat < 0.03 → 0`, limpia estilos una sola vez al enfriar (flag `heatApplied`, evita repaints).
+- **`prefers-reduced-motion`**: rueda estática, sin inercia ni efecto de calor.
 
 ## Modelo de cita (citas.json)
 ```json
@@ -89,6 +100,7 @@ proyecto/
 | POST   | /admin/cita/:id/estado            | Cambia estado (pendiente/confirmada/cancelada) |
 | POST   | /admin/cita/:id/recordatorio      | Envía WhatsApp manual y marca recordatorioEnviado=true |
 | POST   | /admin/cita                       | Crea cita nueva desde el panel admin con estado=confirmada directamente (auth básica) |
+| DELETE | /admin/cita/:id                   | Borra la cita por id (splice). 404 si no existe; `{ok:true}` si borra |
 
 ## Variables de entorno (.env)
 ```
@@ -103,7 +115,7 @@ TALLER_NOMBRE=Neumáticos Quesada
 ```
 
 ## Cron job
-- Hora: 10:00 cada día
+- Hora: 19:00 cada día (`'0 19 * * *'`) → el recordatorio se envía a las 19:00 del día anterior a la cita
 - Filtra: estado=confirmada, fecha=mañana, recordatorioEnviado=false
 - Acción: envía WhatsApp y marca recordatorioEnviado=true
 
@@ -126,3 +138,4 @@ TALLER_NOMBRE=Neumáticos Quesada
 - Leer siempre citas.json con fs.readFileSync antes de escribir (evitar race conditions)
 - El panel /admin usa auth básica HTTP nativa (sin librerías)
 - Puerto: process.env.PORT || 3001
+- Nunca añadir patrones globales de assets (*.png, *.jpg, etc.) al .gitignore: los favicons PNG estuvieron rotos en producción por un *.png heredado.

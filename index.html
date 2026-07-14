@@ -325,6 +325,22 @@
     }
     .svc-card:hover .svc-icon-wrap { transform: rotate(18deg) scale(1.12); }
 
+    /* ── Brillo especular que sigue al cursor ── */
+    .svc-card::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      background: radial-gradient(circle 320px at var(--mx, 50%) var(--my, 50%),
+                  rgba(255,255,255,0.08),
+                  rgba(255,215,0,0.04) 40%,
+                  transparent 70%);
+    }
+    .svc-card:hover::after { opacity: 1; }
+
     /* ── Gallery ── */
     .gal-img  { transition: transform .6s ease; }
     .gal-wrap { overflow: hidden; }
@@ -1790,6 +1806,8 @@
       var r  = card.getBoundingClientRect();
       var px = (e.clientX - r.left) / r.width  - 0.5;
       var py = (e.clientY - r.top)  / r.height - 0.5;
+      card.style.setProperty('--mx', (e.clientX - r.left) + 'px');
+      card.style.setProperty('--my', (e.clientY - r.top)  + 'px');
       gsap.to(card, {
         rotationY: px * 6,
         rotationX: py * -6,
