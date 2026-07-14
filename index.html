@@ -210,9 +210,6 @@
       width: max-content;
       animation: marquee 32s linear infinite;
     }
-    @media (hover: hover) {
-      .marquee-track:hover { animation-play-state: paused; }
-    }
     @media (max-width: 640px) {
       .marquee-track { animation-duration: 16s; }
     }
@@ -1751,12 +1748,6 @@
         return function () { loop.kill(); loop = null; };
       }
     );
-
-    /* Pausa al pasar el ratón (replica el hover del CSS original) */
-    if (window.matchMedia('(hover: hover)').matches) {
-      track.addEventListener('mouseenter', function () { if (loop) loop.pause(); });
-      track.addEventListener('mouseleave', function () { if (loop) loop.play(); });
-    }
   }
 
   /* ── Tipografía cinética detrás de Servicios (solo desktop) ── */
