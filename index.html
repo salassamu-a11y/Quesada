@@ -686,18 +686,11 @@
         if (!v) return;
         if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
         var isMobile = window.matchMedia('(max-width: 767px)').matches;
-        var srcs = isMobile
-          ? [['videos/hero-quesada-movil.webm', 'video/webm'],
-             ['videos/hero-quesada-movil.mp4', 'video/mp4']]
-          : [['videos/hero-quesada.webm', 'video/webm'],
-             ['videos/hero-quesada.mp4', 'video/mp4']];
         v.setAttribute('poster', isMobile ? 'videos/hero-poster-movil.jpg' : 'videos/hero-poster.jpg');
-        srcs.forEach(function (s) {
-          var el = document.createElement('source');
-          el.src = s[0];
-          el.type = s[1];
-          v.appendChild(el);
-        });
+        var canWebm = v.canPlayType('video/webm; codecs="vp9"');
+        var base = isMobile ? 'videos/hero-quesada-movil' : 'videos/hero-quesada';
+        v.muted = true;               // propiedad además del atributo (quirk Safari)
+        v.src = base + (canWebm ? '.webm' : '.mp4');
         v.load();
         var p = v.play();
         if (p && p.catch) p.catch(function () {});
