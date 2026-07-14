@@ -120,6 +120,22 @@
       .hero-fallback-img { display: block; }
     }
 
+    /* ── Hero móvil: fondo de vídeo sticky a 100svh; el contenido desliza por encima.
+       Desktop (min-width:768px) queda intacto (absolute + lg:left-[42%]). ── */
+    @media (max-width: 767px) {
+      #inicio { display: block; }
+      #inicio .hero-img-wrap {
+        position: sticky;
+        inset: auto;                /* anula el inset-0 de Tailwind */
+        top: 0;
+        width: 100%;
+        height: 100vh;              /* fallback sin svh */
+        height: 100svh;
+        margin-bottom: -100vh;      /* fallback sin svh */
+        margin-bottom: -100svh;     /* no empuja el contenido */
+      }
+    }
+
     /* ── Rueda-progreso de scroll (GSAP) ──
        Solo existe bajo .js-anim; botón "volver arriba" con forma de llanta */
     #wheel-progress {
