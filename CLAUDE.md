@@ -28,10 +28,12 @@ proyecto/
 ├── server.js         ← backend Node.js (completo)
 ├── citas.json        ← se crea automáticamente al registrar la primera cita
 ├── config.json       ← no creado, no usado en el código actual
-├── imagenes/         ← assets: favicons, fotos del taller, rueda-scroll.png (rueda-progreso, verificado: carga en producción)
+├── imagenes/         ← 20 assets, todos referenciados en index.html (post-limpieza): favicons nq2f (5), logos de marca .svg (7), fotos del taller (audi/benelli/honda/jeep/michelin-taller.jpeg), logo-empresa.jpg, taller-fachada.jpeg (fallback hero), rueda-scroll.png (rueda-progreso, verificado: carga en producción)
 ├── videos/           ← hero-quesada.mp4, hero-quesada-movil.mp4, hero-poster.jpg, hero-poster-movil.jpg (ver sección Hero — vídeo de fondo)
 ├── .env              ← credenciales (nunca al repo)
 └── package.json
+
+> Nota: `taller-interior.jpeg` y `Horario.jpeg` (fotos reales del taller) se archivaron fuera del repo en `..\Quesada-archivo\` — posible uso futuro en revisión visual o slider antes/después.
 
 ## Frontend — Secciones de index.html (en orden)
 
