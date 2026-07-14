@@ -1729,8 +1729,8 @@
 
   var mm = gsap.matchMedia();
 
-  /* ── Marquee de marcas: GSAP toma el control y reacciona a la
-        velocidad del scroll (acelera + skew, vuelve solo a reposo) ── */
+  /* ── Marquee de marcas: GSAP toma el control con un loop a
+        velocidad constante (pausa al pasar el ratón) ── */
   var track = document.querySelector('.marquee-track');
   if (track) {
     var loop = null;
@@ -1757,28 +1757,6 @@
       track.addEventListener('mouseenter', function () { if (loop) loop.pause(); });
       track.addEventListener('mouseleave', function () { if (loop) loop.play(); });
     }
-
-    var calmTimer = null;
-    ScrollTrigger.create({
-      onUpdate: function (self) {
-        if (!loop || loop.paused()) return;
-        var v = self.getVelocity(); /* px/s con signo */
-        gsap.to(loop, {
-          timeScale: 1 + gsap.utils.clamp(0, 4, Math.abs(v) / 400),
-          duration: 0.3, ease: 'power2.out', overwrite: true
-        });
-        gsap.to(track, {
-          skewX: gsap.utils.clamp(-6, 6, v / 300),
-          duration: 0.3, ease: 'power2.out', overwrite: 'auto'
-        });
-        /* Sin eventos de scroll, todo vuelve a reposo */
-        clearTimeout(calmTimer);
-        calmTimer = setTimeout(function () {
-          if (loop) gsap.to(loop, { timeScale: 1, duration: 0.8, ease: 'power2.out', overwrite: true });
-          gsap.to(track, { skewX: 0, duration: 0.8, ease: 'power2.out', overwrite: 'auto' });
-        }, 180);
-      }
-    });
   }
 
   /* ── Tipografía cinética detrás de Servicios (solo desktop) ── */

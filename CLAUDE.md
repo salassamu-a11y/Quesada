@@ -29,6 +29,7 @@ proyecto/
 ├── citas.json        ← se crea automáticamente al registrar la primera cita
 ├── config.json       ← no creado, no usado en el código actual
 ├── imagenes/         ← assets: favicons, fotos del taller, rueda-scroll.png (rueda-progreso, verificado: carga en producción)
+├── videos/           ← hero-quesada.mp4, hero-quesada-movil.mp4, hero-poster.jpg, hero-poster-movil.jpg (ver sección Hero — vídeo de fondo)
 ├── .env              ← credenciales (nunca al repo)
 └── package.json
 
@@ -36,7 +37,7 @@ proyecto/
 
 | id        | Fondo     | Descripción                                                  |
 |-----------|-----------|--------------------------------------------------------------|
-| #inicio   | q-navy    | Hero cinematic split-screen — imagen: `taller-fachada.jpeg` |
+| #inicio   | q-navy    | Hero cinematic split-screen — vídeo de fondo (ver sección propia); fallback estático `taller-fachada.jpeg` |
 | —         | q-navy-2  | Marquee infinito de marcas                                   |
 | #nosotros | q-cream   | Bento grid "Sobre nosotros" + stats (4.9★, 245+ reseñas, 30+ años) |
 | #servicios| q-navy    | Bento grid asimétrico — 4 servicios (Reparación, Alineación, Montaje, Equilibrado); hover: translateY(-4px) + border-left q-yellow |
@@ -53,7 +54,7 @@ proyecto/
 - **Contadores animados** (`#nosotros` stats): `IntersectionObserver` + `requestAnimationFrame`, easing cúbico, se activan una sola vez al entrar en viewport.
 - **Scroll reveal** (`.will-reveal`): animación blur-in + translate al entrar en viewport.
 - **Nav activa**: Servicios | Nosotros | Taller | Reserva | Contacto (desktop y menú móvil).
-- **Animaciones GSAP + ScrollTrigger**: hero con clip-reveal, marquee reactivo a velocidad de scroll, tipografía cinética en Servicios, separadores tread. Micro-interacciones: botones magnéticos, tilt 3D en tarjetas de servicio, odómetro en contadores de stats, input matrícula estilizado. (Rueda-progreso de scroll documentada aparte — ver sección propia.)
+- **Animaciones GSAP + ScrollTrigger**: hero con clip-reveal, marquee a velocidad constante (loop GSAP fijo, pausa al hover; 16s móvil / 32s desktop), tipografía cinética en Servicios, separadores tread. Micro-interacciones: botones magnéticos, tilt 3D en tarjetas de servicio, odómetro en contadores de stats, input matrícula estilizado. (Rueda-progreso de scroll documentada aparte — ver sección propia.)
 
 ## Frontend — Detalles de maquetación
 - **Grid de servicios**: 4 cards a `md:col-span-6` (simétrico 2×2). Antes era 7/5/5/7.
@@ -61,11 +62,23 @@ proyecto/
 - **Títulos h3 de servicio**: unificados a `text-2xl` en las 4 cards. Antes mezcla `text-2xl`/`text-xl` heredada del grid asimétrico 7/5/5/7 anterior.
 - **Icono de Montaje**: `fa-crosshairs` (Font Awesome). Antes SVG custom.
 - **`.svc-card`**: `border-left` visible en reposo (rgba amarillo .5), intensificado en hover.
+- **Brillo especular en `.svc-card`** (sigue al cursor): pseudo-elemento `::after` (`inset:0`, `pointer-events:none`) con `radial-gradient(circle 320px at var(--mx,50%) var(--my,50%), rgba(255,255,255,.08), rgba(255,215,0,.04) 40%, transparent 70%)` — blanco con matiz q-yellow sutil. `opacity:0`→`1` solo en `:hover` (`transition opacity .3s`). Las vars `--mx`/`--my` se fijan en px desde el **mismo** handler `mousemove` del tilt 3D (líneas ~1854-1855), sin listener duplicado.
 - **#nosotros**: la columna derecha (texto + stats) usa `justify-center` en vez de `flex-1` en la text-card, para eliminar espacio muerto.
 
 ## Favicon
 - Set completo en `imagenes/`: `nq2f-favicon.ico`, `nq2f-16.png`, `nq2f-32.png`, `nq2f-192.png`, `nq2f-apple-touch-icon.png`.
 - Declarado en `<head>` con 5 `<link>` (icon .ico `sizes="any"`, icon png 16/32/192, apple-touch-icon).
+
+## Hero — vídeo de fondo (#inicio)
+`.hero-img-wrap` (dentro de `#inicio`) contiene `<video id="hero-video">` + `<img class="hero-fallback-img">` (fallback estático `taller-fachada.jpeg`, no se borra del proyecto).
+
+- **Selección de vídeo**: script inline justo tras el `<video>`, se ejecuta una sola vez al cargar (no reacciona a resize/rotación). Decide según `matchMedia('(max-width: 767px)')`: móvil → `videos/hero-quesada-movil.mp4` + poster `hero-poster-movil.jpg`; desktop → `videos/hero-quesada.mp4` + poster `hero-poster.jpg`.
+- **Solo MP4**: se probó WebM + `canPlayType` pero Safari devuelve "maybe" para vp9 y falla en reproducción real (pantalla en blanco) — se sirve siempre MP4, asignado directo a `video.src` (sin `<source>` hijos; los `.webm` se retiraron del proyecto).
+- **Fix autoplay iOS/Safari**: `video.muted = true` como propiedad (además del atributo `muted`), más `video.play()` con `.catch()` vacío tras `video.load()`.
+- **`prefers-reduced-motion`**: el script hace return temprano (no fija src/poster, cero descarga de red); CSS oculta `.hero-video` y muestra `.hero-fallback-img`.
+- **Sticky en móvil** (`max-width:767px`): `#inicio` pasa a `display:block` y `.hero-img-wrap` a `position:sticky; top:0; height:100svh` (fallback `100vh`) + `margin-bottom:-100svh`, para que el vídeo quede fijo a pantalla completa mientras el contenido del hero desliza por encima. Desktop no se toca (sigue `absolute inset-0 lg:left-[42%]`).
+- Animación GSAP de entrada (zoom-out clip-reveal) aplica sobre `.hero-img-wrap video, .hero-img-wrap img` por igual.
+- **Specs de los assets** (por si hay que regenerarlos, p. ej. con clips reales del taller): desktop 16:9 1600×900, móvil 9:16 720×1280 (recorte en ancho + bandas desenfocadas del propio vídeo), 15.3s en loop sin costura, montados a partir de 6 clips de stock.
 
 ## Rueda-progreso de scroll (#wheel-progress)
 Botón "volver arriba" fijo (inferior izquierda) con forma de rueda de neumático realista.
@@ -139,3 +152,4 @@ TALLER_NOMBRE=Neumáticos Quesada
 - El panel /admin usa auth básica HTTP nativa (sin librerías)
 - Puerto: process.env.PORT || 3001
 - Nunca añadir patrones globales de assets (*.png, *.jpg, etc.) al .gitignore: los favicons PNG estuvieron rotos en producción por un *.png heredado.
+- Vídeo en web: siempre MP4 asignado directo a `video.src` — nunca `<source>` hijos ni confiar en `canPlayType` (Safari devuelve 'maybe' para WebM/vp9 y falla en reproducción real).
