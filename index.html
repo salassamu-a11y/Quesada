@@ -699,6 +699,8 @@
           v.appendChild(el);
         });
         v.load();
+        var p = v.play();
+        if (p && p.catch) p.catch(function () {});
       })();
     </script>
     <img src="imagenes/taller-fachada.jpeg"
