@@ -659,12 +659,32 @@
 
   <!-- Hero background video (right half, gradient-masked) — img de fallback debajo -->
   <div class="hero-img-wrap absolute inset-0 lg:left-[42%]">
-    <video class="hero-video w-full h-full object-cover"
-           autoplay muted loop playsinline preload="metadata"
-           poster="videos/hero-poster.jpg">
-      <source src="videos/hero-quesada.webm" type="video/webm">
-      <source src="videos/hero-quesada.mp4" type="video/mp4">
+    <video id="hero-video" class="hero-video w-full h-full object-cover"
+           autoplay muted loop playsinline preload="metadata">
     </video>
+    <script>
+      /* Hero: elige vídeo vertical (móvil) u horizontal (desktop) UNA sola vez al
+         cargar. No reacciona a resize/rotación. reduced-motion se gestiona en CSS. */
+      (function () {
+        var v = document.getElementById('hero-video');
+        if (!v) return;
+        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+        var isMobile = window.matchMedia('(max-width: 767px)').matches;
+        var srcs = isMobile
+          ? [['videos/hero-quesada-movil.webm', 'video/webm'],
+             ['videos/hero-quesada-movil.mp4', 'video/mp4']]
+          : [['videos/hero-quesada.webm', 'video/webm'],
+             ['videos/hero-quesada.mp4', 'video/mp4']];
+        v.setAttribute('poster', isMobile ? 'videos/hero-poster-movil.jpg' : 'videos/hero-poster.jpg');
+        srcs.forEach(function (s) {
+          var el = document.createElement('source');
+          el.src = s[0];
+          el.type = s[1];
+          v.appendChild(el);
+        });
+        v.load();
+      })();
+    </script>
     <img src="imagenes/taller-fachada.jpeg"
          alt="Fachada taller Neumáticos Quesada"
          fetchpriority="high" decoding="async"
