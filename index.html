@@ -112,6 +112,14 @@
     .js-anim .hero-eyebrow-line { transform: scaleX(0); transform-origin: left center; }
     .js-anim .hero-img-wrap { clip-path: inset(0% 0% 0% 100%); }
 
+    /* ── Hero: vídeo por defecto; imagen fija si el usuario pide reduced-motion ── */
+    .hero-video { display: block; }
+    .hero-fallback-img { display: none; }
+    @media (prefers-reduced-motion: reduce) {
+      .hero-video { display: none; }
+      .hero-fallback-img { display: block; }
+    }
+
     /* ── Rueda-progreso de scroll (GSAP) ──
        Solo existe bajo .js-anim; botón "volver arriba" con forma de llanta */
     #wheel-progress {
@@ -649,11 +657,18 @@
   <!-- Grid texture overlay -->
   <div class="absolute inset-0 grid-texture opacity-100 pointer-events-none"></div>
 
-  <!-- Hero background image (right half, gradient-masked) -->
+  <!-- Hero background video (right half, gradient-masked) — img de fallback debajo -->
   <div class="hero-img-wrap absolute inset-0 lg:left-[42%]">
+    <video class="hero-video w-full h-full object-cover"
+           autoplay muted loop playsinline preload="metadata"
+           poster="videos/hero-poster.jpg">
+      <source src="videos/hero-quesada.webm" type="video/webm">
+      <source src="videos/hero-quesada.mp4" type="video/mp4">
+    </video>
     <img src="imagenes/taller-fachada.jpeg"
          alt="Fachada taller Neumáticos Quesada"
-         fetchpriority="high" decoding="async" class="w-full h-full object-cover">
+         fetchpriority="high" decoding="async"
+         class="hero-fallback-img w-full h-full object-cover">
   </div>
 
   <!-- Bottom vignette -->
@@ -1399,7 +1414,7 @@
   tl
     // La imagen entra barriendo de derecha a izquierda, con zoom-out sutil
     .to('.hero-img-wrap', { clipPath: 'inset(0% 0% 0% 0%)', duration: 1.15, ease: 'power3.inOut' }, 0)
-    .from('.hero-img-wrap img', { scale: 1.14, duration: 1.7, ease: 'power2.out' }, 0)
+    .from('.hero-img-wrap video, .hero-img-wrap img', { scale: 1.14, duration: 1.7, ease: 'power2.out' }, 0)
     // Titular: cada línea emerge de su máscara, escalonado
     .to('.hero-line', { y: 0, duration: 0.95, stagger: 0.13 }, 0.3)
     // La línea amarilla del eyebrow se dibuja
