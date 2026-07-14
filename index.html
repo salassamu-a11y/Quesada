@@ -143,18 +143,34 @@
     #wheel-progress.wp-visible:hover { transform: translateY(-3px) scale(1.06); }
     #wheel-rotor {
       display: block;
+      position: relative;   /* para z-index sobre el disco de calor */
+      z-index: 1;
       width: 100%;
       height: 100%;
       border-radius: 50%;
       filter: drop-shadow(0 2px 6px rgba(0,0,0,.4));
-      will-change: transform;
+      will-change: transform, filter;
     }
     #wheel-overlay {
       position: absolute;
       inset: 0;
       width: 100%;
       height: 100%;
+      z-index: 2;           /* por encima del img */
       pointer-events: none;
+    }
+    /* Disco de freno incandescente: detrás del rotor, visible entre radios */
+    #wheel-heat {
+      position: absolute;
+      inset: 15%;
+      border-radius: 50%;
+      z-index: 0;           /* por debajo del img (z-index:1) */
+      pointer-events: none;
+      opacity: 0;
+      background: radial-gradient(circle,
+                    rgba(255,120,20,.95) 0%,
+                    rgba(255,40,0,.6) 55%,
+                    rgba(180,0,0,0) 80%);
     }
     @media (max-width: 640px) {
       #wheel-progress { width: 46px; height: 46px; bottom: 22px; left: 18px; }
@@ -1538,6 +1554,8 @@
      amarillo se rellena como indicador de progreso
 ════════════════════════════════════════════ -->
 <button id="wheel-progress" aria-label="Volver arriba" title="Volver arriba">
+  <!-- Disco de freno incandescente (detrás del rotor) -->
+  <div id="wheel-heat"></div>
   <!-- Rueda: imagen que gira con inercia -->
   <img id="wheel-rotor" src="imagenes/rueda-scroll.png" alt="">
   <!-- Overlay estático sobre la imagen: brillo especular fijo + aro de progreso -->
@@ -1561,7 +1579,14 @@
   var wheel = document.getElementById('wheel-progress');
   var rotor = document.getElementById('wheel-rotor');
   var ring  = document.getElementById('wheel-ring');
-  if (!wheel || !rotor || !ring) return;
+  var heatDisc = document.getElementById('wheel-heat');
+  if (!wheel || !rotor || !ring || !heatDisc) return;
+
+  /* ── Knobs de calibración de la rueda ── */
+  var WHEEL_SPIN_FACTOR = 0.13; /* delta scroll → velocidad angular (antes 0.4) */
+  var HEAT_GAIN  = 0.008;       /* cuánto sube el calor por velocidad */
+  var HEAT_DECAY = 0.985;       /* enfriamiento por frame */
+  var BASE_SHADOW = 'drop-shadow(0 2px 6px rgba(0,0,0,.4))';
 
   var CIRC = 2 * Math.PI * 40; /* perímetro del aro r=40 */
   ring.style.strokeDasharray  = CIRC;
@@ -1572,6 +1597,25 @@
      la fricción la disipa (giro rápido que decelera, nunca frena en seco). */
   var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   var rotation = 0, angularVel = 0, lastY = window.scrollY;
+  var heat = 0, heatApplied = false;
+
+  /* Interpola el efecto de sobrecalentamiento con heat (0→1) */
+  function applyHeat(h) {
+    if (h === 0) {
+      if (heatApplied) {                 /* limpia una sola vez al enfriar */
+        rotor.style.filter = BASE_SHADOW;
+        heatDisc.style.opacity = '0';
+        heatApplied = false;
+      }
+      return;
+    }
+    heatApplied = true;
+    var blur = (h * 14).toFixed(1);       /* XX: 0 → 14px */
+    var green = Math.round(140 - h * 80); /* YY: 140 → 60 (rojo más profundo) */
+    rotor.style.filter = BASE_SHADOW +
+      ' drop-shadow(0 0 ' + blur + 'px rgba(255,' + green + ',0,' + h.toFixed(3) + '))';
+    heatDisc.style.opacity = (h * 0.85).toFixed(3);
+  }
 
   (function spinLoop() {
     if (angularVel !== 0) {
@@ -1580,6 +1624,15 @@
       if (Math.abs(angularVel) < 0.01) angularVel = 0; /* umbral: evita repaints */
       rotor.style.transform = 'rotate(' + rotation.toFixed(2) + 'deg)';
     }
+
+    if (!reduceMotion) {                  /* sin efecto de calor si reduce-motion */
+      heat += Math.abs(angularVel) * HEAT_GAIN;
+      if (heat > 1) heat = 1;
+      heat *= HEAT_DECAY;                 /* enfriamiento */
+      if (heat < 0.03) heat = 0;          /* umbral: evita repaints */
+      applyHeat(heat);
+    }
+
     requestAnimationFrame(spinLoop);
   })();
 
@@ -1589,7 +1642,7 @@
     end: 'bottom bottom',
     onUpdate: function (self) {
       var y = window.scrollY;
-      if (!reduceMotion) angularVel += (y - lastY) * 0.4; /* delta scroll → velocidad angular */
+      if (!reduceMotion) angularVel += (y - lastY) * WHEEL_SPIN_FACTOR; /* delta scroll → velocidad angular */
       lastY = y;
       ring.style.strokeDashoffset = CIRC * (1 - self.progress);
       wheel.classList.toggle('wp-visible', y > 300);
