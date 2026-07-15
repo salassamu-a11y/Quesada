@@ -213,6 +213,15 @@
     @media (max-width: 640px) {
       .marquee-track { animation-duration: 16s; }
     }
+    .marquee-logo {
+      height: 36px;
+      width: auto;
+      flex-shrink: 0;
+      filter: brightness(0) invert(1);   /* logo en blanco puro */
+      opacity: .55;
+      transition: opacity .3s;
+    }
+    .marquee-logo:hover { opacity: 1; }
 
     /* ── Tipografía cinética (fondo de Servicios, GSAP scrub) ──
        Banda discreta alineada con la cabecera de la sección,
@@ -756,65 +765,37 @@
     <div class="marquee-track select-none" aria-hidden="true">
       <!-- Copy 1 -->
       <div class="flex items-center gap-6 px-6">
-        <div class="flex-shrink-0 bg-white rounded px-3 flex items-center justify-center" style="height:40px">
-          <img src="imagenes/logo-michelin.svg" height="32" style="height:32px;width:auto" alt="Michelin">
-        </div>
-        <span class="w-1 h-1 bg-q-yellow rounded-full flex-shrink-0 opacity-60"></span>
-        <div class="flex-shrink-0 bg-white rounded px-3 flex items-center justify-center" style="height:40px">
-          <img src="imagenes/logo-bridgestone.svg" height="32" style="height:32px;width:auto" alt="Bridgestone">
-        </div>
-        <span class="w-1 h-1 bg-q-yellow rounded-full flex-shrink-0 opacity-60"></span>
-        <div class="flex-shrink-0 bg-white rounded px-3 flex items-center justify-center" style="height:40px">
-          <img src="imagenes/logo-continental.svg" height="32" style="height:32px;width:auto" alt="Continental">
-        </div>
-        <span class="w-1 h-1 bg-q-yellow rounded-full flex-shrink-0 opacity-60"></span>
-        <div class="flex-shrink-0 bg-white rounded px-3 flex items-center justify-center" style="height:40px">
-          <img src="imagenes/logo-pirelli.svg" height="32" style="height:32px;width:auto" alt="Pirelli">
-        </div>
-        <span class="w-1 h-1 bg-q-yellow rounded-full flex-shrink-0 opacity-60"></span>
-        <div class="flex-shrink-0 bg-white rounded px-3 flex items-center justify-center" style="height:40px">
-          <img src="imagenes/logo-goodyear.svg" height="32" style="height:32px;width:auto" alt="Goodyear">
-        </div>
-        <span class="w-1 h-1 bg-q-yellow rounded-full flex-shrink-0 opacity-60"></span>
-        <div class="flex-shrink-0 bg-white rounded px-3 flex items-center justify-center" style="height:40px">
-          <img src="imagenes/logo-dunlop.svg" height="32" style="height:32px;width:auto" alt="Dunlop">
-        </div>
-        <span class="w-1 h-1 bg-q-yellow rounded-full flex-shrink-0 opacity-60"></span>
-        <div class="flex-shrink-0 bg-white rounded px-3 flex items-center justify-center" style="height:40px">
-          <img src="imagenes/logo-hankook.svg" height="32" style="height:32px;width:auto" alt="Hankook">
-        </div>
-        <span class="w-1 h-1 bg-q-yellow rounded-full flex-shrink-0 opacity-60"></span>
+        <img class="marquee-logo" src="imagenes/logo-michelin.svg" alt="Michelin">
+        <span class="w-1 h-1 bg-q-yellow rounded-full flex-shrink-0 opacity-30"></span>
+        <img class="marquee-logo" src="imagenes/logo-bridgestone.svg" alt="Bridgestone">
+        <span class="w-1 h-1 bg-q-yellow rounded-full flex-shrink-0 opacity-30"></span>
+        <img class="marquee-logo" src="imagenes/logo-continental.svg" alt="Continental">
+        <span class="w-1 h-1 bg-q-yellow rounded-full flex-shrink-0 opacity-30"></span>
+        <img class="marquee-logo" src="imagenes/logo-pirelli.svg" alt="Pirelli">
+        <span class="w-1 h-1 bg-q-yellow rounded-full flex-shrink-0 opacity-30"></span>
+        <img class="marquee-logo" src="imagenes/logo-goodyear.svg" alt="Goodyear">
+        <span class="w-1 h-1 bg-q-yellow rounded-full flex-shrink-0 opacity-30"></span>
+        <img class="marquee-logo" src="imagenes/logo-dunlop.svg" alt="Dunlop">
+        <span class="w-1 h-1 bg-q-yellow rounded-full flex-shrink-0 opacity-30"></span>
+        <img class="marquee-logo" src="imagenes/logo-hankook.svg" alt="Hankook">
+        <span class="w-1 h-1 bg-q-yellow rounded-full flex-shrink-0 opacity-30"></span>
       </div>
       <!-- Copy 2 (duplicate for seamless loop) -->
       <div class="flex items-center gap-6 px-6">
-        <div class="flex-shrink-0 bg-white rounded px-3 flex items-center justify-center" style="height:40px">
-          <img src="imagenes/logo-michelin.svg" height="32" style="height:32px;width:auto" alt="Michelin">
-        </div>
-        <span class="w-1 h-1 bg-q-yellow rounded-full flex-shrink-0 opacity-60"></span>
-        <div class="flex-shrink-0 bg-white rounded px-3 flex items-center justify-center" style="height:40px">
-          <img src="imagenes/logo-bridgestone.svg" height="32" style="height:32px;width:auto" alt="Bridgestone">
-        </div>
-        <span class="w-1 h-1 bg-q-yellow rounded-full flex-shrink-0 opacity-60"></span>
-        <div class="flex-shrink-0 bg-white rounded px-3 flex items-center justify-center" style="height:40px">
-          <img src="imagenes/logo-continental.svg" height="32" style="height:32px;width:auto" alt="Continental">
-        </div>
-        <span class="w-1 h-1 bg-q-yellow rounded-full flex-shrink-0 opacity-60"></span>
-        <div class="flex-shrink-0 bg-white rounded px-3 flex items-center justify-center" style="height:40px">
-          <img src="imagenes/logo-pirelli.svg" height="32" style="height:32px;width:auto" alt="Pirelli">
-        </div>
-        <span class="w-1 h-1 bg-q-yellow rounded-full flex-shrink-0 opacity-60"></span>
-        <div class="flex-shrink-0 bg-white rounded px-3 flex items-center justify-center" style="height:40px">
-          <img src="imagenes/logo-goodyear.svg" height="32" style="height:32px;width:auto" alt="Goodyear">
-        </div>
-        <span class="w-1 h-1 bg-q-yellow rounded-full flex-shrink-0 opacity-60"></span>
-        <div class="flex-shrink-0 bg-white rounded px-3 flex items-center justify-center" style="height:40px">
-          <img src="imagenes/logo-dunlop.svg" height="32" style="height:32px;width:auto" alt="Dunlop">
-        </div>
-        <span class="w-1 h-1 bg-q-yellow rounded-full flex-shrink-0 opacity-60"></span>
-        <div class="flex-shrink-0 bg-white rounded px-3 flex items-center justify-center" style="height:40px">
-          <img src="imagenes/logo-hankook.svg" height="32" style="height:32px;width:auto" alt="Hankook">
-        </div>
-        <span class="w-1 h-1 bg-q-yellow rounded-full flex-shrink-0 opacity-60"></span>
+        <img class="marquee-logo" src="imagenes/logo-michelin.svg" alt="Michelin">
+        <span class="w-1 h-1 bg-q-yellow rounded-full flex-shrink-0 opacity-30"></span>
+        <img class="marquee-logo" src="imagenes/logo-bridgestone.svg" alt="Bridgestone">
+        <span class="w-1 h-1 bg-q-yellow rounded-full flex-shrink-0 opacity-30"></span>
+        <img class="marquee-logo" src="imagenes/logo-continental.svg" alt="Continental">
+        <span class="w-1 h-1 bg-q-yellow rounded-full flex-shrink-0 opacity-30"></span>
+        <img class="marquee-logo" src="imagenes/logo-pirelli.svg" alt="Pirelli">
+        <span class="w-1 h-1 bg-q-yellow rounded-full flex-shrink-0 opacity-30"></span>
+        <img class="marquee-logo" src="imagenes/logo-goodyear.svg" alt="Goodyear">
+        <span class="w-1 h-1 bg-q-yellow rounded-full flex-shrink-0 opacity-30"></span>
+        <img class="marquee-logo" src="imagenes/logo-dunlop.svg" alt="Dunlop">
+        <span class="w-1 h-1 bg-q-yellow rounded-full flex-shrink-0 opacity-30"></span>
+        <img class="marquee-logo" src="imagenes/logo-hankook.svg" alt="Hankook">
+        <span class="w-1 h-1 bg-q-yellow rounded-full flex-shrink-0 opacity-30"></span>
       </div>
     </div>
   </div>
