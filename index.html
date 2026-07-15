@@ -249,30 +249,13 @@
       line-height: 1;
       letter-spacing: .04em;
       text-transform: uppercase;
-      color: rgba(255,255,255,.022);
+      color: rgba(255,255,255,.08);
     }
     @supports (-webkit-text-stroke: 1px black) {
       .kinetic-text {
         color: transparent;
-        -webkit-text-stroke: 1px rgba(255,255,255,.055);
+        -webkit-text-stroke: 1px rgba(255,255,255,.13);
       }
-    }
-
-    /* ── Separadores tread (huella de neumático) ──
-       Banda cream con tacos diagonales navy; el track es más ancho
-       que el viewport para permitir el parallax horizontal con GSAP */
-    .tread-divider {
-      height: 28px;
-      background: #F5F0E8;
-      overflow: hidden;
-      pointer-events: none;
-    }
-    .tread-track {
-      height: 100%;
-      width: calc(100% + 240px);
-      margin-left: -120px;
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='22' height='28'%3E%3Cpath d='M8 0h8L12 28H4Z' fill='%23060D1F' fill-opacity='.10'/%3E%3C/svg%3E");
-      background-repeat: repeat;
     }
 
     /* ── Botones magnéticos (GSAP gestiona el transform) ──
@@ -802,10 +785,6 @@
 </section>
 
 
-<!-- Separador huella de neumático -->
-<div class="tread-divider" aria-hidden="true"><div class="tread-track"></div></div>
-
-
 <!-- ════════════════════════════════════════════
      SECCIÓN 3 — SOBRE NOSOTROS (Bento Grid, fondo claro)
 ════════════════════════════════════════════ -->
@@ -866,10 +845,6 @@
     </div>
   </div>
 </section>
-
-
-<!-- Separador huella de neumático -->
-<div class="tread-divider" aria-hidden="true"><div class="tread-track"></div></div>
 
 
 <!-- ════════════════════════════════════════════
@@ -1117,10 +1092,6 @@
 </section>
 
 
-<!-- Separador huella de neumático -->
-<div class="tread-divider" aria-hidden="true"><div class="tread-track"></div></div>
-
-
 <!-- ════════════════════════════════════════════
      SECCIÓN 6 — GALERÍA
 ════════════════════════════════════════════ -->
@@ -1176,10 +1147,6 @@
     </div>
   </div>
 </section>
-
-
-<!-- Separador huella de neumático -->
-<div class="tread-divider" aria-hidden="true"><div class="tread-track"></div></div>
 
 
 <!-- ════════════════════════════════════════════
@@ -1739,20 +1706,6 @@
       ease: 'none',
       scrollTrigger: {
         trigger: '#servicios',
-        start: 'top bottom',
-        end: 'bottom top',
-        scrub: 1
-      }
-    });
-  });
-
-  /* ── Separadores tread: parallax horizontal sutil, dirección alterna ── */
-  gsap.utils.toArray('.tread-track').forEach(function (track, i) {
-    gsap.fromTo(track, { x: 0 }, {
-      x: i % 2 === 0 ? 110 : -110,
-      ease: 'none',
-      scrollTrigger: {
-        trigger: track.parentNode,
         start: 'top bottom',
         end: 'bottom top',
         scrub: 1
