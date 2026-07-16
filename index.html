@@ -366,6 +366,18 @@
     }
     .svc-card:hover::after { opacity: 1; }
 
+    /* En táctil (sin hover real) la card debe ser estática: sin los :hover
+       que elevan/inclinan el enlace y le roban el primer tap. */
+    @media (hover: none) {
+      .svc-card:hover {
+        transform: none;
+        box-shadow: none;
+        border-left: 4px solid rgba(255,215,0,.5) !important;
+      }
+      .svc-card:hover .svc-icon-wrap { transform: none; }
+      .svc-card:hover::after { opacity: 0; }
+    }
+
     /* ── Gallery ── */
     .gal-img  { transition: transform .6s ease; }
     .gal-wrap { overflow: hidden; }
@@ -1743,41 +1755,45 @@
   });
 
   /* ── Tilt 3D sutil en tarjetas de servicio ── */
-  document.querySelectorAll('.svc-card').forEach(function (card) {
-    gsap.set(card, { transformPerspective: 900 });
+  /* Solo en dispositivos con puntero fino y hover real (desktop): en táctil
+     el tilt/brillo mueve el enlace bajo el dedo y roba el primer tap. */
+  if (window.matchMedia && matchMedia('(hover: hover) and (pointer: fine)').matches) {
+    document.querySelectorAll('.svc-card').forEach(function (card) {
+      gsap.set(card, { transformPerspective: 900 });
 
-    card.addEventListener('mouseenter', function () {
-      /* aparta el transform de la transición CSS mientras GSAP manda
-         (la transición de .svc-card/.will-reveal lo suavizaría con lag) */
-      card.style.transitionProperty = 'opacity, box-shadow, border-left, border-color';
-    });
+      card.addEventListener('mouseenter', function () {
+        /* aparta el transform de la transición CSS mientras GSAP manda
+           (la transición de .svc-card/.will-reveal lo suavizaría con lag) */
+        card.style.transitionProperty = 'opacity, box-shadow, border-left, border-color';
+      });
 
-    card.addEventListener('mousemove', function (e) {
-      var r  = card.getBoundingClientRect();
-      var px = (e.clientX - r.left) / r.width  - 0.5;
-      var py = (e.clientY - r.top)  / r.height - 0.5;
-      card.style.setProperty('--mx', (e.clientX - r.left) + 'px');
-      card.style.setProperty('--my', (e.clientY - r.top)  + 'px');
-      gsap.to(card, {
-        rotationY: px * 6,
-        rotationX: py * -6,
-        y: -4,
-        duration: 0.5, ease: 'power2.out', overwrite: 'auto'
+      card.addEventListener('mousemove', function (e) {
+        var r  = card.getBoundingClientRect();
+        var px = (e.clientX - r.left) / r.width  - 0.5;
+        var py = (e.clientY - r.top)  / r.height - 0.5;
+        card.style.setProperty('--mx', (e.clientX - r.left) + 'px');
+        card.style.setProperty('--my', (e.clientY - r.top)  + 'px');
+        gsap.to(card, {
+          rotationY: px * 6,
+          rotationX: py * -6,
+          y: -4,
+          duration: 0.5, ease: 'power2.out', overwrite: 'auto'
+        });
+      });
+
+      card.addEventListener('mouseleave', function () {
+        gsap.to(card, {
+          rotationX: 0, rotationY: 0, y: 0,
+          duration: 0.55, ease: 'power3.out', overwrite: 'auto',
+          onComplete: function () {
+            /* devuelve el control del transform al CSS (.will-reveal) */
+            gsap.set(card, { clearProps: 'transform' });
+            card.style.transitionProperty = '';
+          }
+        });
       });
     });
-
-    card.addEventListener('mouseleave', function () {
-      gsap.to(card, {
-        rotationX: 0, rotationY: 0, y: 0,
-        duration: 0.55, ease: 'power3.out', overwrite: 'auto',
-        onComplete: function () {
-          /* devuelve el control del transform al CSS (.will-reveal) */
-          gsap.set(card, { clearProps: 'transform' });
-          card.style.transitionProperty = '';
-        }
-      });
-    });
-  });
+  }
 })();
 </script>
 
