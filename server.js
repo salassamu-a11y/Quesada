@@ -7,17 +7,46 @@ const twilio = require('twilio');
 const cron = require('node-cron');
 
 const PORT = process.env.PORT || 3001;
-const CITAS_FILE = path.join(__dirname, 'citas.json');
+const DATA_DIR = process.env.DATA_DIR || __dirname;
+const CITAS_PATH = path.join(DATA_DIR, 'citas.json');
 
 const twilioClient = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
 
+// Red de seguridad de proceso. Una rejection asíncrona suelta (p. ej. un await
+// que lanza dentro del handler HTTP) es local a esa petición y no corrompe el
+// estado global: loggeamos y seguimos vivos para no tirar la web pública.
+process.on('unhandledRejection', (reason) => {
+  console.error('[process] unhandledRejection:', reason instanceof Error ? reason.stack : reason);
+});
+// Una excepción no capturada deja el proceso en estado indefinido: loggeamos el
+// stack y salimos limpio para que Render reinicie. El disparador persistente del
+// bucle de reinicios (JSON corrupto) ya lo neutraliza readCitas.
+process.on('uncaughtException', (err) => {
+  console.error('[process] uncaughtException:', err.stack || err.message);
+  process.exit(1);
+});
+
 function readCitas() {
-  if (!fs.existsSync(CITAS_FILE)) return [];
-  return JSON.parse(fs.readFileSync(CITAS_FILE, 'utf8'));
+  if (!fs.existsSync(CITAS_PATH)) return [];
+  try {
+    return JSON.parse(fs.readFileSync(CITAS_PATH, 'utf8'));
+  } catch (err) {
+    console.error(`[citas] citas.json ilegible o corrupto: ${err.message}`);
+    try {
+      const backup = `${CITAS_PATH}.corrupt-${Date.now()}`;
+      fs.renameSync(CITAS_PATH, backup);
+      console.error(`[citas] Archivo corrupto preservado en ${backup}`);
+    } catch (renameErr) {
+      console.error(`[citas] No se pudo preservar el archivo corrupto: ${renameErr.message}`);
+    }
+    return [];
+  }
 }
 
 function writeCitas(citas) {
-  fs.writeFileSync(CITAS_FILE, JSON.stringify(citas, null, 2));
+  const tmp = `${CITAS_PATH}.tmp`;
+  fs.writeFileSync(tmp, JSON.stringify(citas, null, 2));
+  fs.renameSync(tmp, CITAS_PATH);
 }
 
 function parseBody(req) {
