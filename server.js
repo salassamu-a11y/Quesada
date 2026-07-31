@@ -113,7 +113,7 @@ cron.schedule('0 19 * * *', async () => {
 
   if (pendientes.length > 0) writeCitas(citas);
   console.log(`[cron] Recordatorios enviados: ${pendientes.length}`);
-});
+}, { timezone: 'Europe/Madrid' });
 
 function adminHTML(citas) {
   const estadoBadge = e =>
