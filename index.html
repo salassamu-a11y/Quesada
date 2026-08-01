@@ -208,8 +208,9 @@
                     rgba(255,40,0,.6) 55%,
                     rgba(180,0,0,0) 80%);
     }
-    @media (max-width: 640px) {
-      #wheel-progress { width: 46px; height: 46px; bottom: 22px; left: 18px; }
+    /* Móvil: rueda oculta (el JS tampoco se inicializa — ver su script) */
+    @media (max-width: 767px) {
+      .js-anim #wheel-progress { display: none; }
     }
 
     /* ── Infinite marquee ── */
@@ -583,6 +584,25 @@
       pointer-events: none;
     }
 
+    /* ── Float en móvil: más compacto y diferido hasta pasar el hero ── */
+    @media (max-width: 767px) {
+      .wa-float-inner { padding: 10px 14px 10px 12px; gap: 8px; }
+      .wa-float-icon  { width: 26px; height: 26px; }
+      /* .wa-defer la añade el JS: sin JS se conserva la animación de entrada original */
+      #wa-float.wa-defer {
+        animation: none;
+        opacity: 0;
+        transform: translateY(20px) scale(.88);
+        pointer-events: none;
+        transition: opacity .35s ease, transform .35s ease;
+      }
+      #wa-float.wa-defer.wa-show {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+        pointer-events: auto;
+      }
+    }
+
     /* ── Botón WhatsApp dentro del modal ── */
     .wa-modal-btn {
       background: rgba(6,13,31,.55);
@@ -717,7 +737,7 @@
   <!-- Bottom vignette -->
   <div class="absolute bottom-0 inset-x-0 h-40 bg-gradient-to-t from-q-navy to-transparent z-10 pointer-events-none"></div>
 
-  <div class="relative z-20 max-w-7xl mx-auto px-6 lg:px-10 pt-28 pb-20 w-full">
+  <div class="relative z-20 max-w-7xl mx-auto px-6 lg:px-10 pt-28 pb-10 md:pb-20 w-full">
     <div class="max-w-[600px]">
 
       <div class="hero-fade inline-flex items-center gap-2.5 text-q-yellow text-[11px] font-bold tracking-[.22em] uppercase mb-7">
@@ -897,9 +917,9 @@
     <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
 
       <!-- Reparación — grande (7 cols) -->
-      <div class="svc-card bento-shine md:col-span-6 bg-gradient-to-br from-[#0e1f42] to-[#060D1F] rounded-3xl p-8 border border-white/5 flex flex-col justify-between min-h-[280px] will-reveal">
+      <div class="svc-card bento-shine md:col-span-6 bg-gradient-to-br from-[#0e1f42] to-[#060D1F] rounded-3xl p-8 border border-white/5 flex flex-col justify-between md:min-h-[280px] will-reveal">
         <div>
-          <div class="svc-icon-wrap w-12 h-12 bg-white/8 rounded-2xl flex items-center justify-center mb-6">
+          <div class="svc-icon-wrap w-12 h-12 bg-white/8 rounded-2xl flex items-center justify-center mb-4 md:mb-6">
             <i class="fas fa-screwdriver-wrench text-q-yellow text-xl"></i>
           </div>
           <h3 class="font-bold font-barlow tracking-wide text-white text-2xl mb-3">Reparación</h3>
@@ -907,7 +927,7 @@
             Detección y reparación de pinchazos y daños. Evaluamos el neumático antes de cualquier intervención para garantizar tu seguridad.
           </p>
         </div>
-        <a href="#contacto" class="inline-flex items-center gap-2 text-q-yellow text-sm font-bold hover:gap-3 transition-all mt-6 group">
+        <a href="#contacto" class="inline-flex items-center gap-2 text-q-yellow text-sm font-bold hover:gap-3 transition-all mt-4 md:mt-6 group">
           Solicitar servicio <i class="fas fa-arrow-right text-xs group-hover:translate-x-1 transition-transform"></i>
         </a>
       </div>
@@ -915,7 +935,7 @@
       <!-- Alineación (5 cols) -->
       <div class="svc-card bento-shine md:col-span-6 bg-gradient-to-br from-[#0e1f42] to-[#060D1F] rounded-3xl p-8 border border-white/5 flex flex-col justify-between will-reveal">
         <div>
-          <div class="svc-icon-wrap w-12 h-12 bg-white/8 rounded-2xl flex items-center justify-center mb-6">
+          <div class="svc-icon-wrap w-12 h-12 bg-white/8 rounded-2xl flex items-center justify-center mb-4 md:mb-6">
             <i class="fas fa-ruler-combined text-q-yellow text-xl"></i>
           </div>
           <h3 class="font-bold font-barlow tracking-wide text-white text-2xl mb-3">Alineación</h3>
@@ -923,7 +943,7 @@
             Corrección de geometría con tecnología láser. Mayor seguridad, menor consumo y neumáticos que duran más kilómetros.
           </p>
         </div>
-        <a href="#contacto" class="inline-flex items-center gap-2 text-q-yellow text-sm font-bold hover:gap-3 transition-all mt-6 group">
+        <a href="#contacto" class="inline-flex items-center gap-2 text-q-yellow text-sm font-bold hover:gap-3 transition-all mt-4 md:mt-6 group">
           Solicitar servicio <i class="fas fa-arrow-right text-xs group-hover:translate-x-1 transition-transform"></i>
         </a>
       </div>
@@ -931,7 +951,7 @@
       <!-- Montaje (5 cols) -->
       <div class="svc-card bento-shine md:col-span-6 bg-gradient-to-br from-[#0e1f42] to-[#060D1F] rounded-3xl p-8 border border-white/5 flex flex-col justify-between will-reveal">
         <div>
-          <div class="svc-icon-wrap w-12 h-12 bg-white/8 rounded-2xl flex items-center justify-center mb-6">
+          <div class="svc-icon-wrap w-12 h-12 bg-white/8 rounded-2xl flex items-center justify-center mb-4 md:mb-6">
             <i class="fas fa-crosshairs text-q-yellow text-xl"></i>
           </div>
           <h3 class="font-bold font-barlow tracking-wide text-white text-2xl mb-3">Montaje</h3>
@@ -939,7 +959,7 @@
             Desmontaje y montaje profesional rápido y seguro. Amplio stock de primeras marcas para todo tipo de vehículos.
           </p>
         </div>
-        <a href="#contacto" class="inline-flex items-center gap-2 text-q-yellow text-sm font-bold hover:gap-3 transition-all mt-6 group">
+        <a href="#contacto" class="inline-flex items-center gap-2 text-q-yellow text-sm font-bold hover:gap-3 transition-all mt-4 md:mt-6 group">
           Solicitar servicio <i class="fas fa-arrow-right text-xs group-hover:translate-x-1 transition-transform"></i>
         </a>
       </div>
@@ -947,7 +967,7 @@
       <!-- Equilibrado (7 cols) -->
       <div class="svc-card bento-shine md:col-span-6 bg-gradient-to-br from-[#0e1f42] to-[#060D1F] rounded-3xl p-8 border border-white/5 flex flex-col justify-between will-reveal">
         <div>
-          <div class="svc-icon-wrap w-12 h-12 bg-white/8 rounded-2xl flex items-center justify-center mb-6">
+          <div class="svc-icon-wrap w-12 h-12 bg-white/8 rounded-2xl flex items-center justify-center mb-4 md:mb-6">
             <i class="fas fa-scale-balanced text-q-yellow text-xl"></i>
           </div>
           <h3 class="font-bold font-barlow tracking-wide text-white text-2xl mb-3">Equilibrado</h3>
@@ -955,13 +975,13 @@
             Eliminamos las vibraciones para una conducción suave y prevenimos el desgaste desigual que acorta la vida útil del neumático.
           </p>
         </div>
-        <a href="#contacto" class="inline-flex items-center gap-2 text-q-yellow text-sm font-bold hover:gap-3 transition-all mt-6 group">
+        <a href="#contacto" class="inline-flex items-center gap-2 text-q-yellow text-sm font-bold hover:gap-3 transition-all mt-4 md:mt-6 group">
           Solicitar servicio <i class="fas fa-arrow-right text-xs group-hover:translate-x-1 transition-transform"></i>
         </a>
       </div>
 
       <!-- Válvulas TPMS y codificadas — ancho completo (12 cols), horizontal en desktop -->
-      <div class="svc-card bento-shine md:col-span-12 bg-gradient-to-br from-[#0e1f42] to-[#060D1F] rounded-3xl p-8 border border-white/5 flex flex-col md:flex-row md:items-center gap-6 will-reveal">
+      <div class="svc-card bento-shine md:col-span-12 bg-gradient-to-br from-[#0e1f42] to-[#060D1F] rounded-3xl p-8 border border-white/5 flex flex-col md:flex-row md:items-center gap-4 md:gap-6 will-reveal">
         <div class="svc-icon-wrap w-12 h-12 bg-white/8 rounded-2xl flex items-center justify-center shrink-0">
           <i class="fas fa-gauge-high text-q-yellow text-xl"></i>
         </div>
@@ -987,7 +1007,7 @@
 <!-- ════════════════════════════════════════════
      SECCIÓN 5B — RESEÑAS GOOGLE
 ════════════════════════════════════════════ -->
-<section id="resenas" class="bg-q-navy py-20 lg:py-24">
+<section id="resenas" class="bg-q-navy py-20 lg:py-24 scroll-mt-20 md:scroll-mt-0">
   <div class="max-w-7xl mx-auto px-6 lg:px-10">
 
     <!-- Cabecera -->
@@ -1110,6 +1130,8 @@
          alt="Michelin Pilot Sport 5 montado en Neumáticos Quesada"
          loading="lazy" decoding="async" class="w-full h-full object-cover opacity-45">
     <div class="absolute inset-0 bg-gradient-to-r from-q-navy-2 via-q-navy-2/55 to-transparent"></div>
+    <!-- Refuerzo de overlay solo móvil: contraste cómodo del párrafo gris sobre la foto -->
+    <div class="absolute inset-0 bg-q-navy-2/60 md:hidden"></div>
   </div>
 
   <div class="relative max-w-7xl mx-auto px-6 lg:px-10 py-20 lg:py-28">
@@ -1238,7 +1260,7 @@
         </div>
 
         <!-- Teléfono + Email -->
-        <div class="grid grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div class="flex items-start gap-3 bg-white/4 border border-white/8 p-5 rounded-2xl hover:bg-white/7 transition-colors">
             <div class="w-10 h-10 flex-shrink-0 bg-q-yellow rounded-xl flex items-center justify-center">
               <i class="fas fa-phone text-q-navy text-sm"></i>
@@ -1254,7 +1276,7 @@
             </div>
             <div>
               <p class="text-[10px] font-bold tracking-[.18em] uppercase text-gray-500 mb-0.5">Email</p>
-              <a href="mailto:neucergon@hotmail.com" class="font-semibold text-white hover:text-q-yellow transition-colors text-xs break-all">neucergon@hotmail.com</a>
+              <a href="mailto:neucergon@hotmail.com" class="font-semibold text-white hover:text-q-yellow transition-colors text-xs break-words">neucergon@hotmail.com</a>
             </div>
           </div>
         </div>
@@ -1616,6 +1638,10 @@
   if (!window.gsap || !window.ScrollTrigger) return;
   if (!document.documentElement.classList.contains('js-anim')) return;
 
+  /* Móvil: la rueda está oculta por CSS — no pagamos física ni ScrollTrigger.
+     Decisión única al cargar (mismo patrón que el vídeo del hero). */
+  if (window.matchMedia('(max-width: 767px)').matches) return;
+
   var wheel = document.getElementById('wheel-progress');
   var rotor = document.getElementById('wheel-rotor');
   var ring  = document.getElementById('wheel-ring');
@@ -1838,6 +1864,18 @@
     var url = 'https://wa.me/' + WA_NUMBER + '?text=' + encodeURIComponent(msg);
     window.location.href = url;
   };
+
+  /* ── Móvil: el float aparece solo cuando el hero sale del viewport ── */
+  (function () {
+    if (!window.matchMedia('(max-width: 767px)').matches) return;
+    var float = document.getElementById('wa-float');
+    var hero  = document.getElementById('inicio');
+    if (!float || !hero || !('IntersectionObserver' in window)) return;
+    float.classList.add('wa-defer');
+    new IntersectionObserver(function (entries) {
+      float.classList.toggle('wa-show', !entries[0].isIntersecting);
+    }).observe(hero);
+  })();
 
 })();
 
