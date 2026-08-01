@@ -78,6 +78,13 @@ proyecto/
 - **Kickers de sección**: patrón unificado por alineación — centrados (Servicios/Galería/Contacto/Reseñas) llevan raya `w-5 h-px` a ambos lados del texto; alineados a la izquierda (Hero/Nosotros) llevan raya solo a la izquierda. Reseñas se corrigió a este patrón (antes `<p>` plano sin rayas).
 - **Footer**: enlace "Ver en Google Maps" eliminado de la barra inferior (colisionaba con `#wa-float`, ambos en la esquina inferior derecha); la barra queda solo con el copyright. El enlace sigue en la columna "General" → "Reseñas en Google" (misma URL `g.co/kgs/uhA6gAq`) y en la tarjeta de `#contacto`.
 - **`#resenas` h2**: "4.9 sobre 5 *en Google.*" ("en Google." en itálica q-yellow, mismo patrón que el CTA "¿Listo para ponerte *en marcha?*"). Sustituye a "Reseñas reales"; se eliminó el subtítulo con icono G + "Reseñas verificadas de Google" por redundante.
+- **Rueda-progreso en móvil** (`#wheel-progress`, `<768px`): oculta por completo (`.js-anim #wheel-progress { display:none }`) y el JS de física/ScrollTrigger corta con `return` temprano bajo el mismo breakpoint — cero coste de física ni listeners en móvil. Antes solo se encogía (46px) a `≤640px`.
+- **Botón flotante WhatsApp diferido en móvil** (`<768px`): permanece oculto (clase `.wa-defer`) hasta que el hero (`#inicio`) sale del viewport, vía `IntersectionObserver`; entonces gana `.wa-show` (fade + slide-up). Sin JS conserva la animación de entrada original. Además más compacto en móvil (icono 26px, padding reducido).
+- **Cards de servicio compactas en móvil**: `min-h-[280px]` de la card de Reparación pasa a solo-desktop (`md:min-h-[280px]`); márgenes internos (icono→título, CTA) reducidos en móvil (`mb-4`/`mt-4` vs `mb-6`/`mt-6` desktop); card TPMS con `gap-4` en móvil vs `gap-6` desktop.
+- **Hero en móvil**: padding inferior del contenido reducido (`pb-10` vs `pb-20` desktop).
+- **CTA banner "Tu seguridad..."**: overlay adicional `bg-q-navy-2/60` solo en móvil (`md:hidden`) para mejorar el contraste del texto sobre la foto de fondo.
+- **`#contacto` — tarjetas teléfono/email**: grid pasa de 2 columnas fijas a 1 columna en móvil (`grid-cols-1 md:grid-cols-2`); email usa `break-words` en vez de `break-all` (evita cortes agresivos en pantallas anchas).
+- **`#resenas`**: `scroll-mt-20` en móvil para que el ancla de navegación no quede tapada por el header fijo (`md:scroll-mt-0` en desktop, sin header fijo que lo requiera).
 
 ## Favicon
 - Set completo en `imagenes/`: `nq2f-favicon.ico`, `nq2f-16.png`, `nq2f-32.png`, `nq2f-192.png`, `nq2f-apple-touch-icon.png`.
@@ -128,14 +135,41 @@ Botón "volver arriba" fijo (inferior izquierda) con forma de rueda de neumátic
 | Método | Ruta                              | Descripción                                    |
 |--------|-----------------------------------|------------------------------------------------|
 | GET    | /admin                            | Panel HTML con tabla de citas (auth básica)    |
-| POST   | /admin/cita/:id/estado            | Cambia estado (pendiente/confirmada/cancelada) |
-| POST   | /admin/cita/:id/recordatorio      | Envía WhatsApp manual y marca recordatorioEnviado=true |
-| POST   | /admin/cita                       | Crea cita nueva desde el panel admin con estado=confirmada directamente (auth básica) |
+| POST   | /admin/cita/:id/estado            | Cambia estado (pendiente/confirmada/cancelada). 400 si body inválido o estado no válido; 404 si la cita no existe |
+| POST   | /admin/cita/:id/recordatorio      | Envía WhatsApp manual y marca recordatorioEnviado=true. 404 si no existe; 500 con mensaje genérico si Twilio falla (detalle solo en log, teléfonos enmascarados) |
+| POST   | /admin/cita                       | Crea cita nueva desde el panel admin con estado=confirmada directamente (auth básica). 400 si body inválido o falla `validarCita` (mensaje del campo concreto) |
 | DELETE | /admin/cita/:id                   | Borra la cita por id (splice). 404 si no existe; `{ok:true}` si borra |
+
+Respuestas de error comunes a todas las rutas `/admin`:
+- **401** sin/con credenciales incorrectas (auth básica)
+- **429** IP bloqueada por rate-limit (5 fallos de auth en 15 min → 15 min de bloqueo)
+- **403** POST/DELETE con `Origin`/`Referer` que no coincide con el host (anti-CSRF)
+- **413** body > 10 KB (rutas POST con `parseBody`)
+
+## Persistencia y resiliencia (server.js) — sesión A
+- **`DATA_DIR` configurable**: `const DATA_DIR = process.env.DATA_DIR || __dirname`; `citas.json` vive en `DATA_DIR/citas.json`. **CRÍTICO para Render**: hay que configurar `DATA_DIR` apuntando al disco persistente (p. ej. `/var/data`), porque el filesystem del servicio es efímero y sin ello las citas se pierden en cada deploy/reinicio. En local no hace falta (fallback `__dirname`).
+- **`readCitas` a prueba de corrupción**: si `citas.json` no parsea, lo renombra a `citas.json.corrupt-<timestamp>` (preserva el archivo para forense) y devuelve `[]` — evita el bucle de reinicios por JSON corrupto.
+- **`writeCitas` atómico**: escribe a `citas.json.tmp` y luego `fs.renameSync` al destino — nunca queda un citas.json a medio escribir si el proceso muere.
+- **Handlers globales de proceso**: `unhandledRejection` → loggea y sigue vivo (una rejection suelta es local a una petición, no tira la web pública); `uncaughtException` → loggea el stack y `process.exit(1)` para que Render reinicie limpio.
+
+## Seguridad — panel /admin (server.js)
+- **Auth básica en tiempo constante**: `checkAuth` compara usuario/contraseña hasheando ambos lados con SHA-256 y comparando con `crypto.timingSafeEqual` (`safeEqual`), evita timing attacks y filtrar la longitud real de las credenciales.
+- **Rate-limit de intentos por IP**: 5 fallos en 15 min → bloqueo de 15 min (`AUTH_MAX_FAILS`/`AUTH_WINDOW_MS`/`AUTH_BLOCK_MS`, respuesta 429 mientras dure). Estado en memoria (`Map`, se pierde al reiniciar el proceso), con barrido horario que purga entradas expiradas. IP real vía `getClientIp` (primer valor de `x-forwarded-for` — fiable solo detrás del proxy de Render; fallback `remoteAddress` en local).
+- **Log de intentos fallidos**: IP + timestamp en `console.warn`, nunca las credenciales probadas.
+- **Anti-CSRF**: `isSameOrigin` exige que `Origin` (o `Referer`) coincida con el host propio en toda petición POST/DELETE bajo `/admin`; sin ninguna cabecera (curl, herramientas API) se permite. Petición cross-origin desde navegador → 403.
+- **Anti-XSS en el panel**: `escapeHtml` escapa todo dato variable (`nombre`, `telefono`, `fecha`, `hora`, `servicio`, `estado`, `id`, `TALLER_NOMBRE`) antes de interpolarlo en `adminHTML`.
+- **Validación de entrada** (`validarCita`, `POST /admin/cita`): nombre obligatorio (≤100 car.), teléfono móvil español (`^[67]\d{8}` tras limpiar prefijo/espacios/guiones), fecha `YYYY-MM-DD` con calendario real, hora `HH:MM` válida, servicio ≤100 car. — primer campo inválido → 400 con mensaje específico. `POST /admin/cita/:id/estado` valida que el estado sea `pendiente|confirmada|cancelada` → 400 si no.
+- **`parseBody` estricto**: JSON que no sea un objeto (array, primitivo, inválido) resuelve `null` → 400 "Cuerpo de la petición inválido", en vez de `{}` silencioso.
+- **Tope de tamaño de body**: `MAX_BODY_BYTES = 10 KB`; si se supera, `parseBody` resuelve el sentinel `BODY_TOO_LARGE` y el caller responde 413.
+- **Errores genéricos al cliente**: `POST /admin/cita/:id/recordatorio` ya no devuelve `err.message` de Twilio en la respuesta (mensaje genérico "No se pudo enviar el recordatorio"); el detalle real se loggea en servidor con `maskPhones()`.
+- **Teléfonos enmascarados en logs**: `maskPhones()` sustituye cualquier número de teléfono en un texto de log por `***XX` (últimos 2 dígitos), aplicado a los errores de Twilio (cron y envío manual) antes de loggear.
+- **Cabeceras de seguridad** (`setSecurityHeaders`, todas las respuestas): `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer`, `Strict-Transport-Security: max-age=31536000; includeSubDomains`.
+- **Panel — opción TPMS**: el select de servicio del formulario "nueva cita" (`POST /admin/cita`) incluye ahora "Válvulas TPMS y codificadas", en línea con el 5.º servicio de la web pública.
 
 ## Variables de entorno (.env)
 ```
 PORT=3001
+DATA_DIR=          # opcional en local; en Render OBLIGATORIO → ruta del disco persistente (p. ej. /var/data)
 ADMIN_USER=
 ADMIN_PASS=
 TWILIO_ACCOUNT_SID=
@@ -146,7 +180,7 @@ TALLER_NOMBRE=Neumáticos Quesada
 ```
 
 ## Cron job
-- Hora: 19:00 cada día (`'0 19 * * *'`) → el recordatorio se envía a las 19:00 del día anterior a la cita
+- Hora: 19:00 cada día (`'0 19 * * *'`, timezone `Europe/Madrid` fijado explícitamente en `cron.schedule`) → el recordatorio se envía a las 19:00 del día anterior a la cita
 - Filtra: estado=confirmada, fecha=mañana, recordatorioEnviado=false
 - Acción: envía WhatsApp y marca recordatorioEnviado=true
 
