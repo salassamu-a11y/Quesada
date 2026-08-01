@@ -50,11 +50,29 @@ function writeCitas(citas) {
   fs.renameSync(tmp, CITAS_PATH);
 }
 
+// Tope de body (#10): 10 KB sobra para cualquier formulario del panel.
+// Sentinel que parseBody resuelve al superarlo; el caller responde 413.
+const MAX_BODY_BYTES = 10 * 1024;
+const BODY_TOO_LARGE = Symbol('body-too-large');
+
 function parseBody(req) {
   return new Promise((resolve, reject) => {
     let raw = '';
-    req.on('data', chunk => { raw += chunk; });
+    let received = 0;
+    let tooLarge = false;
+    req.on('data', chunk => {
+      if (tooLarge) return;
+      received += chunk.length;
+      if (received > MAX_BODY_BYTES) {
+        tooLarge = true;
+        raw = '';
+        resolve(BODY_TOO_LARGE);
+        return;
+      }
+      raw += chunk;
+    });
     req.on('end', () => {
+      if (tooLarge) return;
       const ct = req.headers['content-type'] || '';
       if (ct.includes('application/x-www-form-urlencoded')) {
         const params = new URLSearchParams(raw);
@@ -168,6 +186,16 @@ setInterval(() => {
   }
 }, 60 * 60 * 1000).unref();
 
+// Enmascara teléfonos en textos de log (#12): los errores de Twilio incluyen
+// el número de destino en err.message. Deja solo los 2 últimos dígitos para
+// poder correlacionar con la cita sin exponer el número completo.
+function maskPhones(text) {
+  return String(text).replace(/(?:whatsapp:)?\+?\d[\d\s\-]{7,}\d/g, m => {
+    const digits = m.replace(/\D/g, '');
+    return `***${digits.slice(-2)}`;
+  });
+}
+
 async function sendWhatsApp(telefono, mensaje) {
   const clean = telefono.replace(/[\s\-]/g, '').replace(/^(\+34|34)/, '');
   return twilioClient.messages.create({
@@ -200,7 +228,7 @@ cron.schedule('0 19 * * *', async () => {
       await sendWhatsApp(cita.telefono, buildReminderText(cita));
       cita.recordatorioEnviado = true;
     } catch (err) {
-      console.error(`Error recordatorio ${cita.id}:`, err.message);
+      console.error(`Error recordatorio ${cita.id}:`, maskPhones(err.message));
     }
   }
 
@@ -402,7 +430,19 @@ function adminHTML(citas) {
 </html>`;
 }
 
+// Cabeceras de seguridad para TODAS las respuestas (#9). Se fijan con
+// setHeader antes de cualquier writeHead: nosniff evita el sniffing de
+// MIME, DENY impide embeber el panel en iframes, no-referrer no filtra
+// URLs internas y HSTS fuerza HTTPS en Render (inocuo en local HTTP).
+function setSecurityHeaders(res) {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('Referrer-Policy', 'no-referrer');
+  res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+}
+
 const server = http.createServer(async (req, res) => {
+  setSecurityHeaders(res);
   const url = new URL(req.url, `http://${req.headers.host}`);
   const p = url.pathname;
 
@@ -460,6 +500,11 @@ const server = http.createServer(async (req, res) => {
     // POST /admin/cita — nueva cita con estado confirmada (Vicky ya cerró con el cliente)
     if (req.method === 'POST' && p === '/admin/cita') {
       const body = await parseBody(req);
+      if (body === BODY_TOO_LARGE) {
+        res.writeHead(413, { 'Content-Type': 'application/json', 'Connection': 'close' });
+        res.end(JSON.stringify({ ok: false, error: 'Cuerpo demasiado grande' }));
+        return;
+      }
       if (!body) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ ok: false, error: 'Cuerpo de la petición inválido' }));
@@ -495,6 +540,11 @@ const server = http.createServer(async (req, res) => {
     const estadoMatch = p.match(/^\/admin\/cita\/([^/]+)\/estado$/);
     if (req.method === 'POST' && estadoMatch) {
       const body = await parseBody(req);
+      if (body === BODY_TOO_LARGE) {
+        res.writeHead(413, { 'Content-Type': 'application/json', 'Connection': 'close' });
+        res.end(JSON.stringify({ ok: false, error: 'Cuerpo demasiado grande' }));
+        return;
+      }
       if (!body) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ ok: false, error: 'Cuerpo de la petición inválido' }));
@@ -554,7 +604,7 @@ const server = http.createServer(async (req, res) => {
         res.writeHead(302, { Location: '/admin' });
         res.end();
       } catch (err) {
-        console.error(`[recordatorio] Error al enviar WhatsApp para cita ${cita.id}:`, err.message);
+        console.error(`[recordatorio] Error al enviar WhatsApp para cita ${cita.id}:`, maskPhones(err.message));
         res.writeHead(500, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ ok: false, error: 'No se pudo enviar el recordatorio' }));
       }
