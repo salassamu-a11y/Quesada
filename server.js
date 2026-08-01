@@ -1,4 +1,5 @@
 require('dotenv').config();
+const crypto = require('crypto');
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
@@ -68,12 +69,85 @@ function parseBody(req) {
   });
 }
 
+// Comparación en tiempo constante: se hashea cada lado con SHA-256 y se
+// comparan los hashes con timingSafeEqual. Hashear ambos lados garantiza
+// buffers del mismo tamaño (requisito de timingSafeEqual) y no filtra la
+// longitud real de las credenciales.
+function safeEqual(a, b) {
+  const ha = crypto.createHash('sha256').update(String(a)).digest();
+  const hb = crypto.createHash('sha256').update(String(b)).digest();
+  return crypto.timingSafeEqual(ha, hb);
+}
+
 function checkAuth(req) {
+  if (!process.env.ADMIN_USER || !process.env.ADMIN_PASS) return false;
   const header = req.headers['authorization'];
   if (!header || !header.startsWith('Basic ')) return false;
-  const [user, pass] = Buffer.from(header.slice(6), 'base64').toString().split(':');
-  return user === process.env.ADMIN_USER && pass === process.env.ADMIN_PASS;
+  const decoded = Buffer.from(header.slice(6), 'base64').toString();
+  const sep = decoded.indexOf(':');
+  if (sep === -1) return false;
+  const user = decoded.slice(0, sep);
+  const pass = decoded.slice(sep + 1);
+  const userOk = safeEqual(user, process.env.ADMIN_USER);
+  const passOk = safeEqual(pass, process.env.ADMIN_PASS);
+  return userOk && passOk;
 }
+
+// Rate-limit de auth por IP: 5 fallos en 15 min → bloqueo de 15 min.
+// En memoria (Map); se pierde al reiniciar el proceso, suficiente como
+// freno a fuerza bruta contra /admin.
+const AUTH_MAX_FAILS = 5;
+const AUTH_WINDOW_MS = 15 * 60 * 1000;
+const AUTH_BLOCK_MS = 15 * 60 * 1000;
+const authAttempts = new Map(); // ip → { fails, windowStart, blockedUntil }
+
+// En Render el proceso corre detrás de proxy: remoteAddress sería siempre la
+// IP del proxy. La IP real del cliente llega como primer valor de la cabecera
+// x-forwarded-for; remoteAddress queda de fallback para ejecución local.
+// OJO: x-forwarded-for solo es confiable detrás del proxy de Render (él la
+// sobrescribe); si algún día el server corre expuesto sin proxy, un cliente
+// podría falsearla y habría que revisar esta función.
+function getClientIp(req) {
+  const xff = req.headers['x-forwarded-for'];
+  if (xff) return xff.split(',')[0].trim();
+  return req.socket.remoteAddress || 'desconocida';
+}
+
+function isBlocked(ip) {
+  const rec = authAttempts.get(ip);
+  return !!rec && rec.blockedUntil > Date.now();
+}
+
+// Devuelve true si este fallo acaba de activar el bloqueo de la IP.
+function registerAuthFail(ip) {
+  const now = Date.now();
+  let rec = authAttempts.get(ip);
+  if (!rec || now - rec.windowStart > AUTH_WINDOW_MS) {
+    rec = { fails: 0, windowStart: now, blockedUntil: 0 };
+    authAttempts.set(ip, rec);
+  }
+  rec.fails += 1;
+  if (rec.fails === AUTH_MAX_FAILS) {
+    rec.blockedUntil = now + AUTH_BLOCK_MS;
+    return true;
+  }
+  return false;
+}
+
+function clearAuthFails(ip) {
+  authAttempts.delete(ip);
+}
+
+// Barrido horario: purga entradas con ventana y bloqueo ya expirados para
+// que el Map no crezca sin límite. unref() para no retener el proceso.
+setInterval(() => {
+  const now = Date.now();
+  for (const [ip, rec] of authAttempts) {
+    if (rec.blockedUntil < now && now - rec.windowStart > AUTH_WINDOW_MS) {
+      authAttempts.delete(ip);
+    }
+  }
+}, 60 * 60 * 1000).unref();
 
 async function sendWhatsApp(telefono, mensaje) {
   const clean = telefono.replace(/[\s\-]/g, '').replace(/^(\+34|34)/, '');
@@ -283,11 +357,26 @@ const server = http.createServer(async (req, res) => {
 
   // Rutas /admin — requieren auth básica
   if (p.startsWith('/admin')) {
+    const ip = getClientIp(req);
+    if (isBlocked(ip)) {
+      res.writeHead(429, { 'Content-Type': 'text/plain; charset=utf-8' });
+      res.end('Demasiados intentos. Inténtalo de nuevo más tarde.');
+      return;
+    }
     if (!checkAuth(req)) {
+      const hasCreds = (req.headers['authorization'] || '').startsWith('Basic ');
+      // Se loggea IP y timestamp, nunca las credenciales probadas.
+      if (hasCreds) {
+        console.warn(`[auth] ${new Date().toISOString()} — intento fallido en /admin desde ${ip}`);
+        if (registerAuthFail(ip)) {
+          console.warn(`[auth] ${new Date().toISOString()} — IP ${ip} bloqueada ${AUTH_BLOCK_MS / 60000} min tras ${AUTH_MAX_FAILS} fallos`);
+        }
+      }
       res.writeHead(401, { 'WWW-Authenticate': 'Basic realm="Admin"', 'Content-Type': 'text/plain' });
       res.end('Acceso no autorizado');
       return;
     }
+    clearAuthFails(ip);
 
     // GET /admin
     if (req.method === 'GET' && p === '/admin') {
