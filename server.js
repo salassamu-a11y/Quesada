@@ -62,7 +62,13 @@ function parseBody(req) {
         for (const [k, v] of params) obj[k] = v;
         resolve(obj);
       } else {
-        try { resolve(JSON.parse(raw)); } catch { resolve({}); }
+        // Estricto: si no parsea como objeto JSON, null → el caller responde 400.
+        try {
+          const parsed = JSON.parse(raw);
+          resolve(typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed) ? parsed : null);
+        } catch {
+          resolve(null);
+        }
       }
     });
     req.on('error', reject);
@@ -91,6 +97,19 @@ function checkAuth(req) {
   const userOk = safeEqual(user, process.env.ADMIN_USER);
   const passOk = safeEqual(pass, process.env.ADMIN_PASS);
   return userOk && passOk;
+}
+
+// Anti-CSRF: si el navegador envía Origin (o Referer), debe coincidir con el
+// propio host. Sin ninguna de las dos (curl, herramientas API) se permite:
+// el objetivo es bloquear peticiones cross-origin desde navegador.
+function isSameOrigin(req) {
+  const origin = req.headers.origin || req.headers.referer;
+  if (!origin) return true;
+  try {
+    return new URL(origin).host === req.headers.host;
+  } catch {
+    return false;
+  }
 }
 
 // Rate-limit de auth por IP: 5 fallos en 15 min → bloqueo de 15 min.
@@ -189,6 +208,47 @@ cron.schedule('0 19 * * *', async () => {
   console.log(`[cron] Recordatorios enviados: ${pendientes.length}`);
 }, { timezone: 'Europe/Madrid' });
 
+// Escapa datos variables antes de interpolarlos en el HTML del panel (anti-XSS).
+function escapeHtml(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+// Validación de entrada del panel admin (#7). Devuelve el mensaje de error
+// del primer campo inválido, o null si todo es correcto.
+function validarCita(body) {
+  const nombre = typeof body.nombre === 'string' ? body.nombre.trim() : '';
+  if (!nombre) return 'El nombre es obligatorio';
+  if (nombre.length > 100) return 'El nombre no puede superar los 100 caracteres';
+
+  const tel = typeof body.telefono === 'string'
+    ? body.telefono.replace(/[\s\-]/g, '').replace(/^(\+34|34)/, '')
+    : '';
+  if (!/^[67]\d{8}$/.test(tel)) return 'El teléfono debe ser un móvil español (9 dígitos, empieza por 6 o 7)';
+
+  const fecha = typeof body.fecha === 'string' ? body.fecha : '';
+  const fm = fecha.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!fm) return 'La fecha debe tener formato YYYY-MM-DD';
+  const y = Number(fm[1]), mo = Number(fm[2]), d = Number(fm[3]);
+  const dt = new Date(y, mo - 1, d);
+  if (dt.getFullYear() !== y || dt.getMonth() !== mo - 1 || dt.getDate() !== d) {
+    return 'La fecha no existe en el calendario';
+  }
+
+  const hora = typeof body.hora === 'string' ? body.hora : '';
+  if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(hora)) return 'La hora debe tener formato HH:MM válido';
+
+  if (typeof body.servicio === 'string' && body.servicio.length > 100) {
+    return 'El servicio no puede superar los 100 caracteres';
+  }
+
+  return null;
+}
+
 function adminHTML(citas) {
   const estadoBadge = e =>
     e === 'confirmada' ? 'bg-green-900/50 text-green-400 border border-green-700/50' :
@@ -197,31 +257,34 @@ function adminHTML(citas) {
 
   const rows = citas.length === 0
     ? '<tr><td colspan="6" class="px-4 py-8 text-center text-gray-500">Sin citas registradas</td></tr>'
-    : citas.map(c => `
+    : citas.map(c => {
+      const id = escapeHtml(c.id);
+      return `
       <tr class="border-b border-white/5 hover:bg-white/5 transition-colors">
-        <td class="px-4 py-3 text-white font-medium">${c.nombre}</td>
-        <td class="px-4 py-3 text-gray-300">${c.telefono}</td>
-        <td class="px-4 py-3 text-gray-300 whitespace-nowrap">${c.fecha} ${c.hora}</td>
-        <td class="px-4 py-3 text-gray-300">${c.servicio}</td>
+        <td class="px-4 py-3 text-white font-medium">${escapeHtml(c.nombre)}</td>
+        <td class="px-4 py-3 text-gray-300">${escapeHtml(c.telefono)}</td>
+        <td class="px-4 py-3 text-gray-300 whitespace-nowrap">${escapeHtml(c.fecha)} ${escapeHtml(c.hora)}</td>
+        <td class="px-4 py-3 text-gray-300">${escapeHtml(c.servicio)}</td>
         <td class="px-4 py-3">
-          <span class="px-2 py-1 rounded-full text-xs font-medium ${estadoBadge(c.estado)}">${c.estado}</span>
+          <span class="px-2 py-1 rounded-full text-xs font-medium ${estadoBadge(c.estado)}">${escapeHtml(c.estado)}</span>
         </td>
         <td class="px-4 py-3 flex items-center gap-2">
-          <form method="post" action="/admin/cita/${c.id}/estado" class="inline">
+          <form method="post" action="/admin/cita/${id}/estado" class="inline">
             <select name="estado" onchange="this.form.submit()" class="text-xs bg-[#060D1F] border border-white/10 text-gray-300 rounded-lg px-2 py-1.5 cursor-pointer focus:outline-none focus:border-[#2563EB]">
               <option ${c.estado === 'pendiente'   ? 'selected' : ''}>pendiente</option>
               <option ${c.estado === 'confirmada'  ? 'selected' : ''}>confirmada</option>
               <option ${c.estado === 'cancelada'   ? 'selected' : ''}>cancelada</option>
             </select>
           </form>
-          <form method="post" action="/admin/cita/${c.id}/recordatorio" class="inline">
+          <form method="post" action="/admin/cita/${id}/recordatorio" class="inline">
             <button class="text-xs bg-[#2563EB] hover:bg-[#1D4ED8] text-white px-3 py-1.5 rounded-lg transition-colors font-medium">WhatsApp</button>
           </form>
-          <button onclick="eliminarCita('${c.id}')" class="text-xs bg-red-900/50 hover:bg-red-800/60 text-red-400 border border-red-700/50 px-3 py-1.5 rounded-lg transition-colors font-medium">Eliminar</button>
+          <button onclick="eliminarCita('${id}')" class="text-xs bg-red-900/50 hover:bg-red-800/60 text-red-400 border border-red-700/50 px-3 py-1.5 rounded-lg transition-colors font-medium">Eliminar</button>
         </td>
-      </tr>`).join('');
+      </tr>`;
+    }).join('');
 
-  const taller = process.env.TALLER_NOMBRE || 'Panel de Citas';
+  const taller = escapeHtml(process.env.TALLER_NOMBRE || 'Panel de Citas');
   return `<!DOCTYPE html>
 <html lang="es">
 <head>
@@ -269,6 +332,7 @@ function adminHTML(citas) {
               <option value="Alineación y geometría">Alineación y geometría</option>
               <option value="Montaje de neumáticos">Montaje de neumáticos</option>
               <option value="Equilibrado de ruedas">Equilibrado de ruedas</option>
+              <option value="Válvulas TPMS y codificadas">Válvulas TPMS y codificadas</option>
             </select>
           </div>
         </div>
@@ -378,6 +442,13 @@ const server = http.createServer(async (req, res) => {
     }
     clearAuthFails(ip);
 
+    // Anti-CSRF: POST/DELETE con Origin/Referer ajeno → 403.
+    if ((req.method === 'POST' || req.method === 'DELETE') && !isSameOrigin(req)) {
+      res.writeHead(403, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: false, error: 'Origen no permitido' }));
+      return;
+    }
+
     // GET /admin
     if (req.method === 'GET' && p === '/admin') {
       const citas = readCitas();
@@ -389,6 +460,17 @@ const server = http.createServer(async (req, res) => {
     // POST /admin/cita — nueva cita con estado confirmada (Vicky ya cerró con el cliente)
     if (req.method === 'POST' && p === '/admin/cita') {
       const body = await parseBody(req);
+      if (!body) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: false, error: 'Cuerpo de la petición inválido' }));
+        return;
+      }
+      const errorValidacion = validarCita(body);
+      if (errorValidacion) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: false, error: errorValidacion }));
+        return;
+      }
       const cita = {
         id: uuidv4(),
         nombre: body.nombre || '',
@@ -413,6 +495,11 @@ const server = http.createServer(async (req, res) => {
     const estadoMatch = p.match(/^\/admin\/cita\/([^/]+)\/estado$/);
     if (req.method === 'POST' && estadoMatch) {
       const body = await parseBody(req);
+      if (!body) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: false, error: 'Cuerpo de la petición inválido' }));
+        return;
+      }
       const citas = readCitas();
       const cita = citas.find(c => c.id === estadoMatch[1]);
       if (!cita) {
@@ -421,7 +508,12 @@ const server = http.createServer(async (req, res) => {
         return;
       }
       const validos = ['pendiente', 'confirmada', 'cancelada'];
-      if (validos.includes(body.estado)) cita.estado = body.estado;
+      if (!validos.includes(body.estado)) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: false, error: 'Estado inválido: debe ser pendiente, confirmada o cancelada' }));
+        return;
+      }
+      cita.estado = body.estado;
       writeCitas(citas);
       res.writeHead(302, { Location: '/admin' });
       res.end();
@@ -462,8 +554,9 @@ const server = http.createServer(async (req, res) => {
         res.writeHead(302, { Location: '/admin' });
         res.end();
       } catch (err) {
+        console.error(`[recordatorio] Error al enviar WhatsApp para cita ${cita.id}:`, err.message);
         res.writeHead(500, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ ok: false, error: err.message }));
+        res.end(JSON.stringify({ ok: false, error: 'No se pudo enviar el recordatorio' }));
       }
       return;
     }
