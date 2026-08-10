@@ -914,7 +914,7 @@
         </a>
 
         <!-- WHATSAPP: Botón header desktop -->
-        <a href="https://wa.me/34637621880?text=Hola%2C%20me%20gustar%C3%ADa%20solicitar%20informaci%C3%B3n%20o%20pedir%20cita%20en%20Neum%C3%A1ticos%20Quesada.%20%C2%BFPodr%C3%ADais%20ayudarme%3F%20Gracias."
+        <a href="https://wa.me/34963593087?text=Hola%2C%20me%20gustar%C3%ADa%20solicitar%20informaci%C3%B3n%20o%20pedir%20cita%20en%20Neum%C3%A1ticos%20Quesada.%20%C2%BFPodr%C3%ADais%20ayudarme%3F%20Gracias."
           target="_blank" rel="noopener noreferrer" aria-label="Contactar por WhatsApp"
           class="wa-btn hidden lg:inline-flex items-center gap-2 text-sm font-semibold px-4 py-2.5 rounded-lg"
           style="border:1px solid rgba(37,211,102,.20); background:rgba(6,13,31,.5); color:rgba(220,252,231,.85); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px)">
@@ -949,7 +949,7 @@
           <i class="fas fa-phone text-xs"></i> 963 593 087
         </a>
         <!-- WHATSAPP: Botón menú móvil -->
-        <a href="https://wa.me/34637621880?text=Hola%2C%20me%20gustar%C3%ADa%20solicitar%20informaci%C3%B3n%20o%20pedir%20cita%20en%20Neum%C3%A1ticos%20Quesada.%20%C2%BFPodr%C3%ADais%20ayudarme%3F%20Gracias."
+        <a href="https://wa.me/34963593087?text=Hola%2C%20me%20gustar%C3%ADa%20solicitar%20informaci%C3%B3n%20o%20pedir%20cita%20en%20Neum%C3%A1ticos%20Quesada.%20%C2%BFPodr%C3%ADais%20ayudarme%3F%20Gracias."
           target="_blank" rel="noopener noreferrer" onclick="closeMenu()"
           class="wa-btn flex items-center gap-2 justify-center text-sm font-semibold px-4 py-3 rounded-lg mt-2"
           style="border:1px solid rgba(37,211,102,.18); background:rgba(37,211,102,.04); color:rgba(220,252,231,.88)">
@@ -1568,7 +1568,7 @@
             <i class="fas fa-phone text-sm"></i> 963 593 087
           </a>
           <!-- WHATSAPP: Botón sección contacto -->
-          <a href="https://wa.me/34637621880?text=Hola%2C%20me%20gustar%C3%ADa%20solicitar%20informaci%C3%B3n%20o%20pedir%20cita%20en%20Neum%C3%A1ticos%20Quesada.%20%C2%BFPodr%C3%ADais%20ayudarme%3F%20Gracias."
+          <a href="https://wa.me/34963593087?text=Hola%2C%20me%20gustar%C3%ADa%20solicitar%20informaci%C3%B3n%20o%20pedir%20cita%20en%20Neum%C3%A1ticos%20Quesada.%20%C2%BFPodr%C3%ADais%20ayudarme%3F%20Gracias."
             target="_blank" rel="noopener noreferrer"
             class="magnetic wa-btn inline-flex items-center gap-2.5 font-bold text-lg px-10 py-4 rounded-xl"
             style="border:1px solid rgba(37,211,102,.22); background:rgba(6,13,31,.5); color:rgba(220,252,231,.88); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px)">
@@ -2021,7 +2021,7 @@
      Esquina inferior derecha, siempre visible
 ════════════════════════════════════════════ -->
   <div id="wa-float" role="complementary" aria-label="Contactar por WhatsApp">
-    <a href="https://wa.me/34637621880?text=Hola%2C%20me%20gustar%C3%ADa%20solicitar%20informaci%C3%B3n%20o%20pedir%20cita%20en%20Neum%C3%A1ticos%20Quesada.%20%C2%BFPodr%C3%ADais%20ayudarme%3F%20Gracias."
+    <a href="https://wa.me/34963593087?text=Hola%2C%20me%20gustar%C3%ADa%20solicitar%20informaci%C3%B3n%20o%20pedir%20cita%20en%20Neum%C3%A1ticos%20Quesada.%20%C2%BFPodr%C3%ADais%20ayudarme%3F%20Gracias."
       target="_blank" rel="noopener noreferrer" class="wa-float-inner" aria-label="Abrir WhatsApp">
       <span
         style="position:absolute;inset:0;border-radius:100px;backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);pointer-events:none;z-index:0"></span>
@@ -2291,7 +2291,15 @@
     (function () {
       'use strict';
 
-      var WA_NUMBER = '34637621880';
+      /* Número de WhatsApp del taller (fijo 963 59 30 87, verificado
+         en WhatsApp Business). Formato wa.me: prefijo + número, sin "+"
+         ni espacios.
+         OJO: este número aparece también, escrito literal, en los href
+         wa.me de las líneas 917, 952, 1571 y 2024. Si cambia, hay que
+         actualizarlo en LOS CINCO SITIOS.
+         Deliberadamente NO se inyecta por JS: los CTA de WhatsApp deben
+         funcionar aunque el JS falle. */
+      var WA_NUMBER = '34963593087';
 
       /* ── waOpen(service): abre WhatsApp con mensaje contextual ── */
       window.waOpen = function (service) {
