@@ -1,15 +1,18 @@
 ﻿<!DOCTYPE html>
 <html lang="es">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Neumáticos Quesada — Taller especialista en cambio, montaje, alineación y equilibrado de neumáticos en Mislata, Valencia. ☎ 963 593 087">
+  <meta name="description"
+    content="Neumáticos Quesada — Taller especialista en cambio, montaje, alineación y equilibrado de neumáticos en Mislata, Valencia. ☎ 963 593 087">
   <link rel="canonical" href="https://neumaticosquesada.com/">
   <!-- Open Graph -->
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Neumáticos Quesada">
   <meta property="og:title" content="Neumáticos Quesada — Especialistas en neumáticos en Mislata, Valencia">
-  <meta property="og:description" content="Montaje, alineación, equilibrado y reparación de neumáticos. Más de 30 años en Mislata. 4.9★ en Google.">
+  <meta property="og:description"
+    content="Montaje, alineación, equilibrado y reparación de neumáticos. Más de 30 años en Mislata. 4.9★ en Google.">
   <meta property="og:url" content="https://neumaticosquesada.com/">
   <meta property="og:image" content="https://neumaticosquesada.com/imagenes/og-image.jpg">
   <meta property="og:image:width" content="1200">
@@ -24,17 +27,17 @@
       theme: {
         extend: {
           colors: {
-            'q-blue':      '#2563EB',
-            'q-blue-d':    '#1D4ED8',
+            'q-blue': '#2563EB',
+            'q-blue-d': '#1D4ED8',
             'q-blue-pale': '#EFF6FF',
-            'q-yellow':    '#FFD700',
-            'q-yellow-d':  '#E6C200',
-            'q-navy':      '#060D1F',
-            'q-navy-2':    '#0D1B3E',
-            'q-cream':     '#F4F6F9',
+            'q-yellow': '#FFD700',
+            'q-yellow-d': '#E6C200',
+            'q-navy': '#060D1F',
+            'q-navy-2': '#0D1B3E',
+            'q-cream': '#F4F6F9',
           },
           fontFamily: {
-            sans: ['Inter','system-ui','-apple-system','sans-serif'],
+            sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
             'barlow': ['Barlow Condensed', 'sans-serif'],
           },
         }
@@ -43,22 +46,31 @@
   </script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,700;1,800;1,900&display=swap" rel="stylesheet">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,700;1,800;1,900&display=swap"
+    rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700;800;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
   <!-- Activa estados iniciales de animación GSAP solo si el usuario no pide reduced-motion.
        Si GSAP no carga, la clase se retira al final del body y la web queda como antes. -->
   <script>
-    (function () {
-      var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
-      if (!reduce) document.documentElement.classList.add('js-anim');
-    })();
+      (function () {
+        var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+        if (!reduce) document.documentElement.classList.add('js-anim');
+      })();
   </script>
 
   <style>
-    html { scroll-behavior: smooth; }
-    body { font-family: 'Inter', sans-serif; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
 
     /* ── iOS SVH viewport fix ── */
     #inicio {
@@ -71,30 +83,45 @@
       cursor: pointer;
       touch-action: manipulation;
     }
-    #mob-menu a, #mob-menu button {
+
+    #mob-menu a,
+    #mob-menu button {
       touch-action: manipulation;
     }
 
     /* ── Glassmorphism nav ── */
     .hdr-glass {
-      background: rgba(6,13,31,0.72);
+      background: rgba(6, 13, 31, 0.72);
       backdrop-filter: blur(20px);
       -webkit-backdrop-filter: blur(20px);
-      border-bottom: 1px solid rgba(255,255,255,0.06);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
     }
+
     .hdr-scrolled {
-      background: rgba(6,13,31,0.94);
-      box-shadow: 0 8px 32px rgba(0,0,0,.5);
+      background: rgba(6, 13, 31, 0.94);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, .5);
     }
 
     /* Nav underline yellow */
-    .nav-link { position: relative; padding-bottom: 2px; }
+    .nav-link {
+      position: relative;
+      padding-bottom: 2px;
+    }
+
     .nav-link::after {
-      content: ''; position: absolute; bottom: 0; left: 0;
-      width: 0; height: 2px; background: #FFD700;
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 0;
+      height: 2px;
+      background: #FFD700;
       transition: width .25s ease;
     }
-    .nav-link:hover::after { width: 100%; }
+
+    .nav-link:hover::after {
+      width: 100%;
+    }
 
     /* ── Hero: gradient mask left-over-image ── */
     .hero-img-wrap::after {
@@ -102,11 +129,11 @@
       position: absolute;
       inset: 0;
       background: linear-gradient(90deg,
-        #060D1F 0%,
-        #060D1F 8%,
-        rgba(6,13,31,.75) 35%,
-        rgba(6,13,31,.25) 60%,
-        transparent 80%);
+          #060D1F 0%,
+          #060D1F 8%,
+          rgba(6, 13, 31, .75) 35%,
+          rgba(6, 13, 31, .25) 60%,
+          transparent 80%);
       pointer-events: none;
     }
 
@@ -119,33 +146,68 @@
       padding: 0.12em 0;
       margin: -0.12em 0;
     }
-    .hero-line { display: block; }
-    .js-anim .hero-line { transform: translateY(118%); }
-    .js-anim .hero-fade { opacity: 0; transform: translateY(18px); }
-    .js-anim .hero-eyebrow-line { transform: scaleX(0); transform-origin: left center; }
-    .js-anim .hero-img-wrap { clip-path: inset(0% 0% 0% 100%); }
+
+    .hero-line {
+      display: block;
+    }
+
+    .js-anim .hero-line {
+      transform: translateY(118%);
+    }
+
+    .js-anim .hero-fade {
+      opacity: 0;
+      transform: translateY(18px);
+    }
+
+    .js-anim .hero-eyebrow-line {
+      transform: scaleX(0);
+      transform-origin: left center;
+    }
+
+    .js-anim .hero-img-wrap {
+      clip-path: inset(0% 0% 0% 100%);
+    }
 
     /* ── Hero: vídeo por defecto; imagen fija si el usuario pide reduced-motion ── */
-    .hero-video { display: block; }
-    .hero-fallback-img { display: none; }
+    .hero-video {
+      display: block;
+    }
+
+    .hero-fallback-img {
+      display: none;
+    }
+
     @media (prefers-reduced-motion: reduce) {
-      .hero-video { display: none; }
-      .hero-fallback-img { display: block; }
+      .hero-video {
+        display: none;
+      }
+
+      .hero-fallback-img {
+        display: block;
+      }
     }
 
     /* ── Hero móvil: fondo de vídeo sticky a 100svh; el contenido desliza por encima.
        Desktop (min-width:768px) queda intacto (absolute + lg:left-[42%]). ── */
     @media (max-width: 767px) {
-      #inicio { display: block; }
+      #inicio {
+        display: block;
+      }
+
       #inicio .hero-img-wrap {
         position: sticky;
-        inset: auto;                /* anula el inset-0 de Tailwind */
+        inset: auto;
+        /* anula el inset-0 de Tailwind */
         top: 0;
         width: 100%;
-        height: 100vh;              /* fallback sin svh */
+        height: 100vh;
+        /* fallback sin svh */
         height: 100svh;
-        margin-bottom: -100vh;      /* fallback sin svh */
-        margin-bottom: -100svh;     /* no empuja el contenido */
+        margin-bottom: -100vh;
+        /* fallback sin svh */
+        margin-bottom: -100svh;
+        /* no empuja el contenido */
       }
     }
 
@@ -156,7 +218,8 @@
       position: fixed;
       bottom: 28px;
       left: 28px;
-      z-index: 9980; /* bajo el modal (9999) y el float de WhatsApp (9990) */
+      z-index: 9980;
+      /* bajo el modal (9999) y el float de WhatsApp (9990) */
       width: 60px;
       height: 60px;
       padding: 0;
@@ -168,74 +231,104 @@
       transform: translateY(16px);
       transition: opacity .35s ease, transform .35s ease, visibility .35s ease;
       pointer-events: none;
-      filter: drop-shadow(0 6px 18px rgba(0,0,0,.45));
+      filter: drop-shadow(0 6px 18px rgba(0, 0, 0, .45));
     }
-    .js-anim #wheel-progress { display: block; }
+
+    .js-anim #wheel-progress {
+      display: block;
+    }
+
     #wheel-progress.wp-visible {
       opacity: 1;
       visibility: visible;
       transform: translateY(0);
       pointer-events: auto;
     }
-    #wheel-progress.wp-visible:hover { transform: translateY(-3px) scale(1.06); }
+
+    #wheel-progress.wp-visible:hover {
+      transform: translateY(-3px) scale(1.06);
+    }
+
     #wheel-rotor {
       display: block;
-      position: relative;   /* para z-index sobre el disco de calor */
+      position: relative;
+      /* para z-index sobre el disco de calor */
       z-index: 1;
       width: 100%;
       height: 100%;
       border-radius: 50%;
-      filter: drop-shadow(0 2px 6px rgba(0,0,0,.4));
+      filter: drop-shadow(0 2px 6px rgba(0, 0, 0, .4));
       will-change: transform, filter;
     }
+
     #wheel-overlay {
       position: absolute;
       inset: 0;
       width: 100%;
       height: 100%;
-      z-index: 2;           /* por encima del img */
+      z-index: 2;
+      /* por encima del img */
       pointer-events: none;
     }
+
     /* Disco de freno incandescente: detrás del rotor, visible entre radios */
     #wheel-heat {
       position: absolute;
       inset: 15%;
       border-radius: 50%;
-      z-index: 0;           /* por debajo del img (z-index:1) */
+      z-index: 0;
+      /* por debajo del img (z-index:1) */
       pointer-events: none;
       opacity: 0;
       background: radial-gradient(circle,
-                    rgba(255,120,20,.95) 0%,
-                    rgba(255,40,0,.6) 55%,
-                    rgba(180,0,0,0) 80%);
+          rgba(255, 120, 20, .95) 0%,
+          rgba(255, 40, 0, .6) 55%,
+          rgba(180, 0, 0, 0) 80%);
     }
+
     /* Móvil: rueda oculta (el JS tampoco se inicializa — ver su script) */
     @media (max-width: 767px) {
-      .js-anim #wheel-progress { display: none; }
+      .js-anim #wheel-progress {
+        display: none;
+      }
     }
 
     /* ── Infinite marquee ── */
     @keyframes marquee {
-      from { transform: translateX(0); }
-      to   { transform: translateX(-50%); }
+      from {
+        transform: translateX(0);
+      }
+
+      to {
+        transform: translateX(-50%);
+      }
     }
+
     .marquee-track {
       display: flex;
       width: max-content;
       animation: marquee 32s linear infinite;
     }
+
     @media (max-width: 640px) {
-      .marquee-track { animation-duration: 16s; }
+      .marquee-track {
+        animation-duration: 16s;
+      }
     }
+
     .marquee-logo {
       height: 36px;
       width: auto;
       flex-shrink: 0;
-      filter: brightness(0) invert(1);   /* logo en blanco puro */
+      filter: brightness(0) invert(1);
+      /* logo en blanco puro */
       opacity: .55;
       transition: opacity .3s;
     }
-    .marquee-logo:hover { opacity: 1; }
+
+    .marquee-logo:hover {
+      opacity: 1;
+    }
 
     /* ── Tipografía cinética (fondo de Servicios, GSAP scrub) ──
        Banda discreta alineada con la cabecera de la sección,
@@ -247,12 +340,17 @@
       top: clamp(4.5rem, 7vw, 6.5rem);
       pointer-events: none;
       user-select: none;
-      display: none; /* solo desktop, ver media query */
+      display: none;
+      /* solo desktop, ver media query */
       z-index: 0;
     }
+
     @media (min-width: 768px) {
-      .js-anim .kinetic-strip { display: block; }
+      .js-anim .kinetic-strip {
+        display: block;
+      }
     }
+
     .kinetic-text {
       display: block;
       white-space: nowrap;
@@ -263,12 +361,13 @@
       line-height: 1;
       letter-spacing: .04em;
       text-transform: uppercase;
-      color: rgba(255,255,255,.08);
+      color: rgba(255, 255, 255, .08);
     }
+
     @supports (-webkit-text-stroke: 1px black) {
       .kinetic-text {
         color: transparent;
-        -webkit-text-stroke: 1px rgba(255,255,255,.13);
+        -webkit-text-stroke: 1px rgba(255, 255, 255, .13);
       }
     }
 
@@ -279,20 +378,36 @@
     }
 
     /* ── Odómetro de stats (Nosotros) ── */
-    .odo { display: inline-flex; vertical-align: -0.18em; }
+    .odo {
+      display: inline-flex;
+      vertical-align: -0.18em;
+    }
+
     .odo-digit {
       position: relative;
       display: inline-block;
       height: 1em;
       overflow: hidden;
     }
-    .odo-sizer { visibility: hidden; }
+
+    .odo-sizer {
+      visibility: hidden;
+    }
+
     .odo-reel {
       position: absolute;
-      top: 0; left: 0; width: 100%;
+      top: 0;
+      left: 0;
+      width: 100%;
       will-change: transform;
     }
-    .odo-reel > span { display: block; height: 1em; line-height: 1; text-align: center; }
+
+    .odo-reel>span {
+      display: block;
+      height: 1em;
+      line-height: 1;
+      text-align: center;
+    }
 
     /* ── Matrícula española (input del modal) ── */
     .plate-wrap {
@@ -300,13 +415,15 @@
       align-items: stretch;
       border-radius: 12px;
       overflow: hidden;
-      border: 1px solid rgba(255,255,255,.14);
+      border: 1px solid rgba(255, 255, 255, .14);
       transition: border-color .2s ease, box-shadow .2s ease;
     }
+
     .plate-wrap:focus-within {
-      border-color: rgba(255,215,0,.48);
-      box-shadow: 0 0 0 3px rgba(255,215,0,.10);
+      border-color: rgba(255, 215, 0, .48);
+      box-shadow: 0 0 0 3px rgba(255, 215, 0, .10);
     }
+
     .plate-band {
       display: flex;
       flex-direction: column;
@@ -321,7 +438,12 @@
       font-size: 12px;
       line-height: 1;
     }
-    .plate-star { color: #FFD700; font-size: 9px; }
+
+    .plate-star {
+      color: #FFD700;
+      font-size: 9px;
+    }
+
     .plate-input {
       flex: 1;
       min-width: 0;
@@ -335,22 +457,32 @@
       text-transform: uppercase;
       padding: 11px 14px;
     }
-    .plate-input::placeholder { color: #9CA3AF; font-weight: 600; letter-spacing: .1em; }
+
+    .plate-input::placeholder {
+      color: #9CA3AF;
+      font-weight: 600;
+      letter-spacing: .1em;
+    }
 
     /* ── Service bento card ── */
     .svc-card {
-      border-left: 4px solid rgba(255,215,0,.5);
+      border-left: 4px solid rgba(255, 215, 0, .5);
       transition: transform 0.2s ease, box-shadow 0.2s ease, border-left 0.2s ease;
     }
+
     .svc-card:hover {
       transform: translateY(-4px);
-      box-shadow: 0 24px 64px rgba(0,0,0,.45);
+      box-shadow: 0 24px 64px rgba(0, 0, 0, .45);
       border-left: 4px solid #FFD700 !important;
     }
+
     .svc-icon-wrap {
-      transition: transform .45s cubic-bezier(.34,1.56,.64,1);
+      transition: transform .45s cubic-bezier(.34, 1.56, .64, 1);
     }
-    .svc-card:hover .svc-icon-wrap { transform: rotate(18deg) scale(1.12); }
+
+    .svc-card:hover .svc-icon-wrap {
+      transform: rotate(18deg) scale(1.12);
+    }
 
     /* ── Brillo especular que sigue al cursor ── */
     .svc-card::after {
@@ -362,11 +494,14 @@
       opacity: 0;
       transition: opacity 0.3s ease;
       background: radial-gradient(circle 320px at var(--mx, 50%) var(--my, 50%),
-                  rgba(255,255,255,0.08),
-                  rgba(255,215,0,0.04) 40%,
-                  transparent 70%);
+          rgba(255, 255, 255, 0.08),
+          rgba(255, 215, 0, 0.04) 40%,
+          transparent 70%);
     }
-    .svc-card:hover::after { opacity: 1; }
+
+    .svc-card:hover::after {
+      opacity: 1;
+    }
 
     /* En táctil (sin hover real) la card debe ser estática: sin los :hover
        que elevan/inclinan el enlace y le roban el primer tap. */
@@ -374,27 +509,48 @@
       .svc-card:hover {
         transform: none;
         box-shadow: none;
-        border-left: 4px solid rgba(255,215,0,.5) !important;
+        border-left: 4px solid rgba(255, 215, 0, .5) !important;
       }
-      .svc-card:hover .svc-icon-wrap { transform: none; }
-      .svc-card:hover::after { opacity: 0; }
+
+      .svc-card:hover .svc-icon-wrap {
+        transform: none;
+      }
+
+      .svc-card:hover::after {
+        opacity: 0;
+      }
     }
 
     /* ── Gallery ── */
-    .gal-img  { transition: transform .6s ease; }
-    .gal-wrap { overflow: hidden; }
-    .gal-wrap:hover .gal-img { transform: scale(1.07); }
-    .gal-caption { transition: transform .35s ease; }
-    .gal-wrap:hover .gal-caption { transform: translateY(0) !important; }
+    .gal-img {
+      transition: transform .6s ease;
+    }
+
+    .gal-wrap {
+      overflow: hidden;
+    }
+
+    .gal-wrap:hover .gal-img {
+      transform: scale(1.07);
+    }
+
+    .gal-caption {
+      transition: transform .35s ease;
+    }
+
+    .gal-wrap:hover .gal-caption {
+      transform: translateY(0) !important;
+    }
 
     /* ── Blur-in Scroll Reveal ── */
     .will-reveal {
       opacity: 0;
       transform: translateY(28px);
       transition:
-        opacity  .85s cubic-bezier(.16,1,.3,1),
-        transform .85s cubic-bezier(.16,1,.3,1);
+        opacity .85s cubic-bezier(.16, 1, .3, 1),
+        transform .85s cubic-bezier(.16, 1, .3, 1);
     }
+
     .will-reveal.is-revealed {
       opacity: 1;
       transform: translateY(0);
@@ -402,7 +558,11 @@
     }
 
     /* ── Yellow glow on CTA buttons ── */
-    .btn-yellow { position: relative; overflow: visible; }
+    .btn-yellow {
+      position: relative;
+      overflow: visible;
+    }
+
     .btn-yellow::after {
       content: '';
       position: absolute;
@@ -414,7 +574,10 @@
       transition: opacity .3s ease;
       z-index: -1;
     }
-    .btn-yellow:hover::after { opacity: .35; }
+
+    .btn-yellow:hover::after {
+      opacity: .35;
+    }
 
     /* ── Gradient text ── */
     .text-gradient {
@@ -426,29 +589,48 @@
     }
 
     /* ── Bento card ambient shine ── */
-    .bento-shine { position: relative; overflow: hidden; }
+    .bento-shine {
+      position: relative;
+      overflow: hidden;
+    }
+
     .bento-shine::before {
       content: '';
       position: absolute;
       inset: -80%;
-      background: conic-gradient(from 0deg, transparent 0deg, rgba(255,255,255,.025) 60deg, transparent 120deg);
+      background: conic-gradient(from 0deg, transparent 0deg, rgba(255, 255, 255, .025) 60deg, transparent 120deg);
       animation: spin-slow 14s linear infinite;
       pointer-events: none;
     }
-    @keyframes spin-slow { to { transform: rotate(360deg); } }
+
+    @keyframes spin-slow {
+      to {
+        transform: rotate(360deg);
+      }
+    }
 
     /* ── Live status pulse ── */
     @keyframes live-pulse {
-      0%   { transform: scale(.85); opacity: .9; }
-      100% { transform: scale(2.4); opacity: 0; }
+      0% {
+        transform: scale(.85);
+        opacity: .9;
+      }
+
+      100% {
+        transform: scale(2.4);
+        opacity: 0;
+      }
     }
-    .live-ring { animation: live-pulse 1.9s ease-out infinite; }
+
+    .live-ring {
+      animation: live-pulse 1.9s ease-out infinite;
+    }
 
     /* ── Subtle grid texture ── */
     .grid-texture {
       background-image:
-        linear-gradient(rgba(255,255,255,.04) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(255,255,255,.04) 1px, transparent 1px);
+        linear-gradient(rgba(255, 255, 255, .04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, .04) 1px, transparent 1px);
       background-size: 44px 44px;
     }
 
@@ -458,7 +640,8 @@
         position: relative;
         padding-top: 75%;
       }
-      .gal-wrap > * {
+
+      .gal-wrap>* {
         position: absolute;
         inset: 0;
       }
@@ -466,10 +649,21 @@
 
     /* FIX 3: fallback gap para flexbox en Safari < 14.1 */
     @supports not (gap: 0px) {
-      .nav-link + .nav-link       { margin-left: 2rem; }
-      .hero-ctas > * + *          { margin-left: 0.75rem; }
-      .wa-float-inner             { gap: 0; }
-      .wa-float-inner > * + *     { margin-left: 10px; }
+      .nav-link+.nav-link {
+        margin-left: 2rem;
+      }
+
+      .hero-ctas>*+* {
+        margin-left: 0.75rem;
+      }
+
+      .wa-float-inner {
+        gap: 0;
+      }
+
+      .wa-float-inner>*+* {
+        margin-left: 10px;
+      }
     }
 
     /* ════════════════════════════════════════════
@@ -480,32 +674,43 @@
     .wa-btn {
       position: relative;
       overflow: hidden;
-      transition: all .28s cubic-bezier(.16,1,.3,1);
+      transition: all .28s cubic-bezier(.16, 1, .3, 1);
     }
+
     .wa-btn::before {
       content: '';
       position: absolute;
       inset: 0;
-      background: linear-gradient(135deg, rgba(37,211,102,.10) 0%, rgba(18,140,126,.05) 100%);
+      background: linear-gradient(135deg, rgba(37, 211, 102, .10) 0%, rgba(18, 140, 126, .05) 100%);
       opacity: 0;
       transition: opacity .28s ease;
       border-radius: inherit;
       pointer-events: none;
     }
-    .wa-btn:hover::before { opacity: 1; }
+
+    .wa-btn:hover::before {
+      opacity: 1;
+    }
+
     .wa-btn::after {
       content: '';
       position: absolute;
       inset: -3px;
       border-radius: inherit;
-      background: rgba(37,211,102,.18);
+      background: rgba(37, 211, 102, .18);
       opacity: 0;
       filter: blur(14px);
       transition: opacity .3s ease;
       z-index: -1;
     }
-    .wa-btn:hover::after { opacity: .7; }
-    .wa-btn:active { transform: scale(.97) !important; }
+
+    .wa-btn:hover::after {
+      opacity: .7;
+    }
+
+    .wa-btn:active {
+      transform: scale(.97) !important;
+    }
 
     /* ── Botón flotante ── */
     #wa-float {
@@ -515,10 +720,14 @@
       z-index: 9990;
       opacity: 0;
       transform: translateY(20px) scale(.88);
-      animation: wa-float-in .65s cubic-bezier(.16,1,.3,1) 1.5s forwards;
+      animation: wa-float-in .65s cubic-bezier(.16, 1, .3, 1) 1.5s forwards;
     }
+
     @keyframes wa-float-in {
-      to { opacity: 1; transform: translateY(0) scale(1); }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
     }
 
     .wa-float-inner {
@@ -527,11 +736,11 @@
       gap: 10px;
       padding: 12px 18px 12px 14px;
       border-radius: 100px;
-      background: rgba(6,13,31,.90);
-      border: 1px solid rgba(37,211,102,.22);
-      box-shadow: 0 8px 28px rgba(0,0,0,.45), 0 2px 8px rgba(0,0,0,.3);
+      background: rgba(6, 13, 31, .90);
+      border: 1px solid rgba(37, 211, 102, .22);
+      box-shadow: 0 8px 28px rgba(0, 0, 0, .45), 0 2px 8px rgba(0, 0, 0, .3);
       cursor: pointer;
-      transition: all .28s cubic-bezier(.16,1,.3,1);
+      transition: all .28s cubic-bezier(.16, 1, .3, 1);
       white-space: nowrap;
       position: relative;
       overflow: hidden;
@@ -539,24 +748,35 @@
     }
 
     /* FIX 4: contenido de .wa-float-inner por encima del span de blur */
-    .wa-float-inner > * { position: relative; z-index: 1; }
+    .wa-float-inner>* {
+      position: relative;
+      z-index: 1;
+    }
+
     .wa-float-inner::before {
       content: '';
       position: absolute;
       inset: 0;
       border-radius: inherit;
-      background: linear-gradient(135deg, rgba(37,211,102,.09) 0%, transparent 55%);
+      background: linear-gradient(135deg, rgba(37, 211, 102, .09) 0%, transparent 55%);
       opacity: 0;
       transition: opacity .28s ease;
       pointer-events: none;
     }
-    .wa-float-inner:hover::before { opacity: 1; }
+
+    .wa-float-inner:hover::before {
+      opacity: 1;
+    }
+
     .wa-float-inner:hover {
-      border-color: rgba(37,211,102,.42);
-      box-shadow: 0 14px 40px rgba(0,0,0,.55), 0 0 28px rgba(37,211,102,.15);
+      border-color: rgba(37, 211, 102, .42);
+      box-shadow: 0 14px 40px rgba(0, 0, 0, .55), 0 0 28px rgba(37, 211, 102, .15);
       transform: translateY(-3px);
     }
-    .wa-float-inner:active { transform: translateY(0) scale(.96); }
+
+    .wa-float-inner:active {
+      transform: translateY(0) scale(.96);
+    }
 
     /* ── Icono circular del float con pulso ── */
     .wa-float-icon {
@@ -568,27 +788,44 @@
       align-items: center;
       justify-content: center;
       border-radius: 50%;
-      background: rgba(37,211,102,.15);
-      border: 1px solid rgba(37,211,102,.28);
+      background: rgba(37, 211, 102, .15);
+      border: 1px solid rgba(37, 211, 102, .28);
     }
+
     @keyframes wa-ring-pulse {
-      0%   { transform: scale(1); opacity: .5; }
-      100% { transform: scale(2.2); opacity: 0; }
+      0% {
+        transform: scale(1);
+        opacity: .5;
+      }
+
+      100% {
+        transform: scale(2.2);
+        opacity: 0;
+      }
     }
+
     .wa-float-icon::before {
       content: '';
       position: absolute;
       inset: -3px;
       border-radius: 50%;
-      border: 1px solid rgba(37,211,102,.36);
+      border: 1px solid rgba(37, 211, 102, .36);
       animation: wa-ring-pulse 2.5s ease-out infinite;
       pointer-events: none;
     }
 
     /* ── Float en móvil: más compacto y diferido hasta pasar el hero ── */
     @media (max-width: 767px) {
-      .wa-float-inner { padding: 10px 14px 10px 12px; gap: 8px; }
-      .wa-float-icon  { width: 26px; height: 26px; }
+      .wa-float-inner {
+        padding: 10px 14px 10px 12px;
+        gap: 8px;
+      }
+
+      .wa-float-icon {
+        width: 26px;
+        height: 26px;
+      }
+
       /* .wa-defer la añade el JS: sin JS se conserva la animación de entrada original */
       #wa-float.wa-defer {
         animation: none;
@@ -597,6 +834,7 @@
         pointer-events: none;
         transition: opacity .35s ease, transform .35s ease;
       }
+
       #wa-float.wa-defer.wa-show {
         opacity: 1;
         transform: translateY(0) scale(1);
@@ -606,26 +844,31 @@
 
     /* ── Botón WhatsApp dentro del modal ── */
     .wa-modal-btn {
-      background: rgba(6,13,31,.55);
-      border: 1px solid rgba(37,211,102,.20);
-      transition: all .25s cubic-bezier(.16,1,.3,1);
+      background: rgba(6, 13, 31, .55);
+      border: 1px solid rgba(37, 211, 102, .20);
+      transition: all .25s cubic-bezier(.16, 1, .3, 1);
       position: relative;
       overflow: hidden;
     }
+
     .wa-modal-btn::before {
       content: '';
       position: absolute;
       inset: 0;
-      background: linear-gradient(135deg, rgba(37,211,102,.10) 0%, rgba(18,140,126,.04) 100%);
+      background: linear-gradient(135deg, rgba(37, 211, 102, .10) 0%, rgba(18, 140, 126, .04) 100%);
       opacity: 0;
       transition: opacity .25s ease;
       border-radius: inherit;
       pointer-events: none;
     }
-    .wa-modal-btn:hover::before { opacity: 1; }
+
+    .wa-modal-btn:hover::before {
+      opacity: 1;
+    }
+
     .wa-modal-btn:hover {
-      border-color: rgba(37,211,102,.48);
-      box-shadow: 0 0 0 3px rgba(37,211,102,.07);
+      border-color: rgba(37, 211, 102, .48);
+      box-shadow: 0 0 0 3px rgba(37, 211, 102, .07);
     }
   </style>
   <link rel="icon" href="imagenes/nq2f-favicon.ico" sizes="any">
@@ -637,1345 +880,1541 @@
 
 <body class="bg-q-navy text-white antialiased">
 
+  <!-- Banner cierre por vacaciones: oculto por defecto, lo muestra el JS si enVacaciones() -->
+  <div id="vac-banner" style="display:none"
+    class="fixed top-0 inset-x-0 z-[60] bg-q-yellow text-q-navy text-center font-bold text-sm leading-snug px-4 py-2.5">
+  </div>
 
-<!-- ════════════════════════════════════════════
+  <!-- ════════════════════════════════════════════
      HEADER — glassmorphism fijo
 ════════════════════════════════════════════ -->
-<header id="hdr" class="fixed top-0 inset-x-0 z-50 hdr-glass transition-all duration-300">
-  <div class="max-w-7xl mx-auto px-6 lg:px-10 flex items-center justify-between h-16 lg:h-20">
+  <header id="hdr" class="fixed top-0 inset-x-0 z-50 hdr-glass transition-all duration-300">
+    <div class="max-w-7xl mx-auto px-6 lg:px-10 flex items-center justify-between h-16 lg:h-20">
 
-    <a href="#inicio" class="flex-shrink-0 hover:opacity-90 transition-opacity">
-      <img src="imagenes/logo_quesada_navy.png" alt="Neumáticos Quesada" decoding="async" class="h-12 w-auto object-contain block">
-    </a>
-
-    <nav class="hidden md:flex items-center gap-8">
-      <a href="#servicios" class="nav-link text-sm font-medium text-gray-300 hover:text-white transition-colors">Servicios</a>
-      <a href="#nosotros"  class="nav-link text-sm font-medium text-gray-300 hover:text-white transition-colors">Nosotros</a>
-      <a href="#galeria"   class="nav-link text-sm font-medium text-gray-300 hover:text-white transition-colors">Taller</a>
-      <a href="#contacto"  class="nav-link text-sm font-medium text-gray-300 hover:text-white transition-colors">Contacto</a>
-    </nav>
-
-    <div class="flex items-center gap-3">
-      <a href="tel:963593087"
-         class="hidden sm:inline-flex items-center gap-2 bg-q-yellow hover:bg-q-yellow-d text-q-navy text-sm font-bold px-5 py-2.5 rounded-lg transition-colors btn-yellow">
-        <i class="fas fa-phone text-[11px]"></i> 963 593 087
+      <a href="#inicio" class="flex-shrink-0 hover:opacity-90 transition-opacity">
+        <img src="imagenes/logo_quesada_navy.png" alt="Neumáticos Quesada" decoding="async"
+          class="h-12 w-auto object-contain block">
       </a>
 
-      <!-- WHATSAPP: Botón header desktop -->
-      <a href="https://wa.me/34637621880?text=Hola%2C%20me%20gustar%C3%ADa%20solicitar%20informaci%C3%B3n%20o%20pedir%20cita%20en%20Neum%C3%A1ticos%20Quesada.%20%C2%BFPodr%C3%ADais%20ayudarme%3F%20Gracias." target="_blank" rel="noopener noreferrer" aria-label="Contactar por WhatsApp"
-         class="wa-btn hidden lg:inline-flex items-center gap-2 text-sm font-semibold px-4 py-2.5 rounded-lg"
-         style="border:1px solid rgba(37,211,102,.20); background:rgba(6,13,31,.5); color:rgba(220,252,231,.85); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px)">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" style="flex-shrink:0; color:rgba(37,211,102,.9)"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
-        WhatsApp
-      </a>
-
-      <button id="burger" aria-label="Abrir menú"
-              class="md:hidden w-9 h-9 flex items-center justify-center rounded-lg text-gray-300 hover:bg-white/10 transition-colors">
-        <i id="burger-icon" class="fas fa-bars"></i>
-      </button>
-    </div>
-  </div>
-
-  <!-- Mobile menu -->
-  <div id="mob-menu" class="hidden md:hidden border-t border-white/10">
-    <div class="max-w-7xl mx-auto px-6 py-4 space-y-1">
-      <a href="#servicios" onclick="closeMenu()" class="block text-sm font-medium text-gray-300 hover:bg-white/8 px-4 py-3 rounded-lg transition-colors">Servicios</a>
-      <a href="#nosotros"  onclick="closeMenu()" class="block text-sm font-medium text-gray-300 hover:bg-white/8 px-4 py-3 rounded-lg transition-colors">Nosotros</a>
-      <a href="#galeria"   onclick="closeMenu()" class="block text-sm font-medium text-gray-300 hover:bg-white/8 px-4 py-3 rounded-lg transition-colors">Taller</a>
-      <a href="#contacto"  onclick="closeMenu()" class="block text-sm font-medium text-gray-300 hover:bg-white/8 px-4 py-3 rounded-lg transition-colors">Contacto</a>
-      <a href="tel:963593087"
-         class="flex items-center gap-2 justify-center bg-q-yellow text-q-navy text-sm font-bold px-4 py-3 rounded-lg mt-2 transition-colors hover:bg-q-yellow-d">
-        <i class="fas fa-phone text-xs"></i> 963 593 087
-      </a>
-      <!-- WHATSAPP: Botón menú móvil -->
-      <a href="https://wa.me/34637621880?text=Hola%2C%20me%20gustar%C3%ADa%20solicitar%20informaci%C3%B3n%20o%20pedir%20cita%20en%20Neum%C3%A1ticos%20Quesada.%20%C2%BFPodr%C3%ADais%20ayudarme%3F%20Gracias." target="_blank" rel="noopener noreferrer" onclick="closeMenu()"
-         class="wa-btn flex items-center gap-2 justify-center text-sm font-semibold px-4 py-3 rounded-lg mt-2"
-         style="border:1px solid rgba(37,211,102,.18); background:rgba(37,211,102,.04); color:rgba(220,252,231,.88)">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style="flex-shrink:0; color:rgba(37,211,102,.9)"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
-        Reservar por WhatsApp
-      </a>
-    </div>
-  </div>
-</header>
-
-
-<!-- ════════════════════════════════════════════
-     SECCIÓN 1 — HERO cinematic split-screen
-════════════════════════════════════════════ -->
-<section id="inicio" class="relative bg-q-navy flex items-center overflow-hidden">
-
-  <!-- Grid texture overlay -->
-  <div class="absolute inset-0 grid-texture opacity-100 pointer-events-none"></div>
-
-  <!-- Hero background video (right half, gradient-masked) — img de fallback debajo -->
-  <div class="hero-img-wrap absolute inset-0 lg:left-[42%]">
-    <video id="hero-video" class="hero-video w-full h-full object-cover"
-           autoplay muted loop playsinline preload="metadata">
-    </video>
-    <script>
-      /* Hero: elige vídeo vertical (móvil) u horizontal (desktop) UNA sola vez al
-         cargar. No reacciona a resize/rotación. reduced-motion se gestiona en CSS. */
-      (function () {
-        var v = document.getElementById('hero-video');
-        if (!v) return;
-        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-        var isMobile = window.matchMedia('(max-width: 767px)').matches;
-        v.setAttribute('poster', isMobile ? 'videos/hero-poster-movil.jpg' : 'videos/hero-poster.jpg');
-        var base = isMobile ? 'videos/hero-quesada-movil' : 'videos/hero-quesada';
-        v.muted = true;
-        v.src = base + '.mp4';
-        v.load();
-        var p = v.play();
-        if (p && p.catch) p.catch(function () {});
-      })();
-    </script>
-    <img src="imagenes/taller-fachada.jpeg"
-         alt="Fachada taller Neumáticos Quesada"
-         fetchpriority="high" decoding="async"
-         class="hero-fallback-img w-full h-full object-cover">
-  </div>
-
-  <!-- Bottom vignette -->
-  <div class="absolute bottom-0 inset-x-0 h-40 bg-gradient-to-t from-q-navy to-transparent z-10 pointer-events-none"></div>
-
-  <div class="relative z-20 max-w-7xl mx-auto px-6 lg:px-10 pt-28 pb-10 md:pb-20 w-full">
-    <div class="max-w-[600px]">
-
-      <div class="hero-fade inline-flex items-center gap-2.5 text-q-yellow text-[11px] font-bold tracking-[.22em] uppercase mb-7">
-        <span class="hero-eyebrow-line w-6 h-px bg-q-yellow"></span>
-        Mislata &middot; Valencia &middot; Desde 1994
-      </div>
-
-      <h1 class="text-[2.8rem] sm:text-[3rem] lg:text-[3.35rem] font-black font-barlow leading-[1.0] mb-7">
-        <span class="hero-mask"><span class="hero-line text-white">Especialistas en neumáticos.</span></span>
-        <span class="hero-mask"><span class="hero-line italic text-q-yellow">Y todo lo que les rodea.</span></span>
-      </h1>
-
-      <p class="hero-fade text-gray-400 text-lg leading-relaxed mb-10 max-w-md">
-        Cambio, montaje, alineación y equilibrado profesional. Más de 30 años cuidando las ruedas de Mislata y alrededores con las mejores marcas del mercado.
-      </p>
-
-      <div class="hero-ctas hero-fade flex flex-wrap gap-4">
+      <nav class="hidden md:flex items-center gap-8">
+        <a href="#servicios"
+          class="nav-link text-sm font-medium text-gray-300 hover:text-white transition-colors">Servicios</a>
+        <a href="#nosotros"
+          class="nav-link text-sm font-medium text-gray-300 hover:text-white transition-colors">Nosotros</a>
+        <a href="#galeria"
+          class="nav-link text-sm font-medium text-gray-300 hover:text-white transition-colors">Taller</a>
         <a href="#contacto"
-           class="magnetic inline-flex items-center gap-2.5 bg-q-yellow hover:bg-q-yellow-d text-q-navy font-bold text-[15px] px-8 py-4 rounded-xl transition-all btn-yellow">
-          Solicita presupuesto gratis
-          <i class="fas fa-arrow-right text-xs"></i>
-        </a>
-      </div>
+          class="nav-link text-sm font-medium text-gray-300 hover:text-white transition-colors">Contacto</a>
+      </nav>
 
-      <!-- Social proof -->
-      <div class="hero-fade mt-10 pt-8 border-t border-white/10 flex items-center gap-4 flex-wrap">
-        <div class="flex gap-0.5">
-          <i class="fas fa-star text-q-yellow text-sm"></i>
-          <i class="fas fa-star text-q-yellow text-sm"></i>
-          <i class="fas fa-star text-q-yellow text-sm"></i>
-          <i class="fas fa-star text-q-yellow text-sm"></i>
-          <i class="fas fa-star text-q-yellow text-sm"></i>
-        </div>
-        <span class="font-bold text-white text-sm">4.9 / 5</span>
-        <span class="text-gray-600 text-sm">&middot;</span>
-        <span class="text-gray-400 text-sm">245 reseñas en Google Maps</span>
-      </div>
-
-    </div>
-  </div>
-</section>
-
-
-<!-- ════════════════════════════════════════════
-     MARCAS — Infinite Marquee
-════════════════════════════════════════════ -->
-<section class="bg-q-navy-2 border-y border-white/5 overflow-hidden py-5">
-  <div class="relative">
-    <div class="absolute inset-y-0 left-0 w-28 bg-gradient-to-r from-q-navy-2 to-transparent z-10 pointer-events-none"></div>
-    <div class="absolute inset-y-0 right-0 w-28 bg-gradient-to-l from-q-navy-2 to-transparent z-10 pointer-events-none"></div>
-
-    <div class="marquee-track select-none" aria-hidden="true">
-      <!-- Copy 1 -->
-      <div class="flex items-center gap-6 px-6">
-        <img class="marquee-logo" src="imagenes/logo-michelin.svg" alt="Michelin">
-        <span class="w-1 h-1 bg-q-yellow rounded-full flex-shrink-0 opacity-30"></span>
-        <img class="marquee-logo" src="imagenes/logo-bridgestone.svg" alt="Bridgestone">
-        <span class="w-1 h-1 bg-q-yellow rounded-full flex-shrink-0 opacity-30"></span>
-        <img class="marquee-logo" src="imagenes/logo-continental.svg" alt="Continental">
-        <span class="w-1 h-1 bg-q-yellow rounded-full flex-shrink-0 opacity-30"></span>
-        <img class="marquee-logo" src="imagenes/logo-pirelli.svg" alt="Pirelli">
-        <span class="w-1 h-1 bg-q-yellow rounded-full flex-shrink-0 opacity-30"></span>
-        <img class="marquee-logo" src="imagenes/logo-goodyear.svg" alt="Goodyear">
-        <span class="w-1 h-1 bg-q-yellow rounded-full flex-shrink-0 opacity-30"></span>
-        <img class="marquee-logo" src="imagenes/logo-dunlop.svg" alt="Dunlop">
-        <span class="w-1 h-1 bg-q-yellow rounded-full flex-shrink-0 opacity-30"></span>
-        <img class="marquee-logo" src="imagenes/logo-hankook.svg" alt="Hankook">
-        <span class="w-1 h-1 bg-q-yellow rounded-full flex-shrink-0 opacity-30"></span>
-      </div>
-      <!-- Copy 2 (duplicate for seamless loop) -->
-      <div class="flex items-center gap-6 px-6">
-        <img class="marquee-logo" src="imagenes/logo-michelin.svg" alt="Michelin">
-        <span class="w-1 h-1 bg-q-yellow rounded-full flex-shrink-0 opacity-30"></span>
-        <img class="marquee-logo" src="imagenes/logo-bridgestone.svg" alt="Bridgestone">
-        <span class="w-1 h-1 bg-q-yellow rounded-full flex-shrink-0 opacity-30"></span>
-        <img class="marquee-logo" src="imagenes/logo-continental.svg" alt="Continental">
-        <span class="w-1 h-1 bg-q-yellow rounded-full flex-shrink-0 opacity-30"></span>
-        <img class="marquee-logo" src="imagenes/logo-pirelli.svg" alt="Pirelli">
-        <span class="w-1 h-1 bg-q-yellow rounded-full flex-shrink-0 opacity-30"></span>
-        <img class="marquee-logo" src="imagenes/logo-goodyear.svg" alt="Goodyear">
-        <span class="w-1 h-1 bg-q-yellow rounded-full flex-shrink-0 opacity-30"></span>
-        <img class="marquee-logo" src="imagenes/logo-dunlop.svg" alt="Dunlop">
-        <span class="w-1 h-1 bg-q-yellow rounded-full flex-shrink-0 opacity-30"></span>
-        <img class="marquee-logo" src="imagenes/logo-hankook.svg" alt="Hankook">
-        <span class="w-1 h-1 bg-q-yellow rounded-full flex-shrink-0 opacity-30"></span>
-      </div>
-    </div>
-  </div>
-</section>
-
-
-<!-- ════════════════════════════════════════════
-     SECCIÓN 3 — SOBRE NOSOTROS (Bento Grid, fondo claro)
-════════════════════════════════════════════ -->
-<section id="nosotros" class="bg-q-cream py-20 lg:py-28">
-  <div class="max-w-7xl mx-auto px-6 lg:px-10">
-
-    <div class="mb-12 will-reveal">
-      <div class="inline-flex items-center gap-2 text-q-blue text-[11px] font-bold tracking-[.2em] uppercase mb-4">
-        <span class="w-5 h-px bg-q-blue"></span>
-        Sobre nosotros
-      </div>
-      <h2 class="text-4xl sm:text-[3.25rem] font-black font-barlow italic text-q-navy leading-[1.05]">
-        Somos Neumáticos<br>Quesada.
-      </h2>
-    </div>
-
-    <!-- Bento grid: 12 columnas -->
-    <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
-
-      <!-- Foto grande (7 cols) -->
-      <div class="md:col-span-7 rounded-3xl overflow-hidden aspect-[4/3] shadow-lg will-reveal">
-        <img src="imagenes/audi-taller.jpeg"
-             alt="Audi SQ7 en el taller Neumáticos Quesada"
-             loading="lazy" decoding="async" class="w-full h-full object-cover">
-      </div>
-
-      <!-- Columna derecha (5 cols) -->
-      <div class="md:col-span-5 flex flex-col justify-center gap-4">
-
-        <!-- Texto card -->
-        <div class="bg-q-navy rounded-3xl p-7 will-reveal">
-          <p class="text-gray-300 text-sm leading-relaxed mb-4">
-            Llevamos más de 30 años siendo el taller de referencia para conductores de Mislata y alrededores. Desde el primer día, nuestro compromiso ha sido el mismo: el mejor servicio al precio más justo, sin sorpresas.
-          </p>
-          <p class="text-gray-300 text-sm leading-relaxed">
-            Trabajamos todo tipo de vehículos —coches, motos, furgonetas y 4x4— con equipos de última generación y el asesoramiento personalizado que cada cliente merece.
-          </p>
-        </div>
-
-        <!-- Stats row -->
-        <div class="grid grid-cols-3 gap-3 will-reveal">
-          <div class="bg-q-yellow rounded-2xl p-5 text-center">
-            <p class="text-2xl font-black text-q-navy leading-none" data-count="4.9" data-decimals="1" data-duration="1500">4.9<span class="text-lg">★</span></p>
-            <p class="text-q-navy/60 text-[10px] font-bold uppercase tracking-wide mt-1.5">Google</p>
-          </div>
-          <div class="bg-q-navy rounded-2xl p-5 text-center">
-            <p class="text-2xl font-black text-white leading-none" data-count="245" data-duration="2000">245<span class="text-q-yellow text-base">+</span></p>
-            <p class="text-gray-500 text-[10px] font-bold uppercase tracking-wide mt-1.5">Reseñas</p>
-          </div>
-          <div class="bg-white rounded-2xl p-5 text-center shadow-sm">
-            <p class="text-2xl font-black text-q-navy leading-none" data-count="30" data-duration="1500">30<span class="text-q-blue text-base">+</span></p>
-            <p class="text-gray-400 text-[10px] font-bold uppercase tracking-wide mt-1.5">Años</p>
-          </div>
-        </div>
-
-      </div>
-
-    </div>
-  </div>
-</section>
-
-
-<!-- ════════════════════════════════════════════
-     SECCIÓN 4 — SERVICIOS (Bento Grid oscuro)
-════════════════════════════════════════════ -->
-<section id="servicios" class="relative overflow-hidden bg-q-navy py-20 lg:py-28">
-
-  <!-- Tipografía cinética de fondo (se desplaza con el scroll, GSAP) -->
-  <div class="kinetic-strip" aria-hidden="true">
-    <span class="kinetic-text">Montaje &mdash; Equilibrado &mdash; Alineación &mdash; Reparación &mdash; Montaje &mdash; Equilibrado &mdash; Alineación &mdash; Reparación &mdash;</span>
-  </div>
-
-  <div class="relative max-w-7xl mx-auto px-6 lg:px-10">
-
-    <div class="text-center mb-14 will-reveal">
-      <div class="inline-flex items-center gap-2 text-q-yellow text-[11px] font-bold tracking-[.2em] uppercase mb-4">
-        <span class="w-5 h-px bg-q-yellow"></span>
-        Servicios
-        <span class="w-5 h-px bg-q-yellow"></span>
-      </div>
-      <h2 class="text-4xl sm:text-[3.25rem] font-black font-barlow text-white mb-3">Nuestros servicios</h2>
-      <p class="text-gray-500 text-lg">Todo lo que tu vehículo necesita, en un solo taller.</p>
-    </div>
-
-    <!-- Bento asimétrico -->
-    <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
-
-      <!-- Reparación — grande (7 cols) -->
-      <div class="svc-card bento-shine md:col-span-6 bg-gradient-to-br from-[#0e1f42] to-[#060D1F] rounded-3xl p-8 border border-white/5 flex flex-col justify-between md:min-h-[280px] will-reveal">
-        <div>
-          <div class="svc-icon-wrap w-12 h-12 bg-white/8 rounded-2xl flex items-center justify-center mb-4 md:mb-6">
-            <i class="fas fa-screwdriver-wrench text-q-yellow text-xl"></i>
-          </div>
-          <h3 class="font-bold font-barlow tracking-wide text-white text-2xl mb-3">Reparación</h3>
-          <p class="text-gray-400 text-sm leading-relaxed max-w-sm">
-            Detección y reparación de pinchazos y daños. Evaluamos el neumático antes de cualquier intervención para garantizar tu seguridad.
-          </p>
-        </div>
-        <a href="#contacto" class="inline-flex items-center gap-2 text-q-yellow text-sm font-bold hover:gap-3 transition-all mt-4 md:mt-6 group">
-          Solicitar servicio <i class="fas fa-arrow-right text-xs group-hover:translate-x-1 transition-transform"></i>
-        </a>
-      </div>
-
-      <!-- Alineación (5 cols) -->
-      <div class="svc-card bento-shine md:col-span-6 bg-gradient-to-br from-[#0e1f42] to-[#060D1F] rounded-3xl p-8 border border-white/5 flex flex-col justify-between will-reveal">
-        <div>
-          <div class="svc-icon-wrap w-12 h-12 bg-white/8 rounded-2xl flex items-center justify-center mb-4 md:mb-6">
-            <i class="fas fa-ruler-combined text-q-yellow text-xl"></i>
-          </div>
-          <h3 class="font-bold font-barlow tracking-wide text-white text-2xl mb-3">Alineación</h3>
-          <p class="text-gray-400 text-sm leading-relaxed">
-            Corrección de geometría con tecnología láser. Mayor seguridad, menor consumo y neumáticos que duran más kilómetros.
-          </p>
-        </div>
-        <a href="#contacto" class="inline-flex items-center gap-2 text-q-yellow text-sm font-bold hover:gap-3 transition-all mt-4 md:mt-6 group">
-          Solicitar servicio <i class="fas fa-arrow-right text-xs group-hover:translate-x-1 transition-transform"></i>
-        </a>
-      </div>
-
-      <!-- Montaje (5 cols) -->
-      <div class="svc-card bento-shine md:col-span-6 bg-gradient-to-br from-[#0e1f42] to-[#060D1F] rounded-3xl p-8 border border-white/5 flex flex-col justify-between will-reveal">
-        <div>
-          <div class="svc-icon-wrap w-12 h-12 bg-white/8 rounded-2xl flex items-center justify-center mb-4 md:mb-6">
-            <i class="fas fa-crosshairs text-q-yellow text-xl"></i>
-          </div>
-          <h3 class="font-bold font-barlow tracking-wide text-white text-2xl mb-3">Montaje</h3>
-          <p class="text-gray-400 text-sm leading-relaxed">
-            Desmontaje y montaje profesional rápido y seguro. Amplio stock de primeras marcas para todo tipo de vehículos.
-          </p>
-        </div>
-        <a href="#contacto" class="inline-flex items-center gap-2 text-q-yellow text-sm font-bold hover:gap-3 transition-all mt-4 md:mt-6 group">
-          Solicitar servicio <i class="fas fa-arrow-right text-xs group-hover:translate-x-1 transition-transform"></i>
-        </a>
-      </div>
-
-      <!-- Equilibrado (7 cols) -->
-      <div class="svc-card bento-shine md:col-span-6 bg-gradient-to-br from-[#0e1f42] to-[#060D1F] rounded-3xl p-8 border border-white/5 flex flex-col justify-between will-reveal">
-        <div>
-          <div class="svc-icon-wrap w-12 h-12 bg-white/8 rounded-2xl flex items-center justify-center mb-4 md:mb-6">
-            <i class="fas fa-scale-balanced text-q-yellow text-xl"></i>
-          </div>
-          <h3 class="font-bold font-barlow tracking-wide text-white text-2xl mb-3">Equilibrado</h3>
-          <p class="text-gray-400 text-sm leading-relaxed max-w-sm">
-            Eliminamos las vibraciones para una conducción suave y prevenimos el desgaste desigual que acorta la vida útil del neumático.
-          </p>
-        </div>
-        <a href="#contacto" class="inline-flex items-center gap-2 text-q-yellow text-sm font-bold hover:gap-3 transition-all mt-4 md:mt-6 group">
-          Solicitar servicio <i class="fas fa-arrow-right text-xs group-hover:translate-x-1 transition-transform"></i>
-        </a>
-      </div>
-
-      <!-- Válvulas TPMS y codificadas — ancho completo (12 cols), horizontal en desktop -->
-      <div class="svc-card bento-shine md:col-span-12 bg-gradient-to-br from-[#0e1f42] to-[#060D1F] rounded-3xl p-8 border border-white/5 flex flex-col md:flex-row md:items-center gap-4 md:gap-6 will-reveal">
-        <div class="svc-icon-wrap w-12 h-12 bg-white/8 rounded-2xl flex items-center justify-center shrink-0">
-          <i class="fas fa-gauge-high text-q-yellow text-xl"></i>
-        </div>
-        <div class="flex-1">
-          <div class="flex items-center gap-3 mb-3">
-            <h3 class="font-bold font-barlow tracking-wide text-white text-2xl">Válvulas TPMS y codificadas</h3>
-            <span class="bg-q-yellow text-q-navy text-[10px] font-bold tracking-wider uppercase rounded-full px-2 py-0.5">Nuevo</span>
-          </div>
-          <p class="text-gray-400 text-sm leading-relaxed">
-            Sustitución y programación de sensores de presión de neumáticos. Si tu testigo de presión está encendido o has cambiado de ruedas, revisamos, reemplazamos y codificamos la válvula para tu vehículo.
-          </p>
-        </div>
-        <a href="#contacto" class="inline-flex items-center gap-2 text-q-yellow text-sm font-bold hover:gap-3 transition-all shrink-0 group">
-          Solicitar servicio <i class="fas fa-arrow-right text-xs group-hover:translate-x-1 transition-transform"></i>
-        </a>
-      </div>
-
-    </div>
-  </div>
-</section>
-
-
-<!-- ════════════════════════════════════════════
-     SECCIÓN 5B — RESEÑAS GOOGLE
-════════════════════════════════════════════ -->
-<section id="resenas" class="bg-q-navy py-20 lg:py-24 scroll-mt-20 md:scroll-mt-0">
-  <div class="max-w-7xl mx-auto px-6 lg:px-10">
-
-    <!-- Cabecera -->
-    <div class="text-center mb-14 will-reveal">
-      <div class="inline-flex items-center gap-2 text-q-yellow text-[11px] font-bold tracking-[.2em] uppercase mb-4">
-        <span class="w-5 h-px bg-q-yellow"></span>
-        Lo que dicen nuestros clientes
-        <span class="w-5 h-px bg-q-yellow"></span>
-      </div>
-      <h2 class="text-4xl sm:text-[3rem] font-black font-barlow text-white">4.9 sobre 5 <span class="italic text-q-yellow">en Google.</span></h2>
-    </div>
-
-    <!-- Tarjetas -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-
-      <!-- Reseña 1 -->
-      <article class="will-reveal bg-white/4 border border-white/10 rounded-2xl p-7 flex flex-col gap-5 hover:border-q-yellow/30 hover:bg-white/6 transition-all duration-300">
-        <div class="flex items-start justify-between gap-3">
-          <div class="flex gap-0.5" aria-label="5 estrellas">
-            <i class="fas fa-star text-q-yellow text-sm"></i>
-            <i class="fas fa-star text-q-yellow text-sm"></i>
-            <i class="fas fa-star text-q-yellow text-sm"></i>
-            <i class="fas fa-star text-q-yellow text-sm"></i>
-            <i class="fas fa-star text-q-yellow text-sm"></i>
-          </div>
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="w-4 h-4 shrink-0 opacity-60 mt-0.5" aria-label="Google">
-            <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-            <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-            <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
-            <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
-          </svg>
-        </div>
-        <blockquote class="text-gray-300 text-[0.95rem] leading-relaxed flex-1">
-          "Buen servicio y buena relación calidad precio, tengo dos vehículos y los llevo allí siempre que toca cambiar neumáticos."
-        </blockquote>
-        <footer class="flex items-center gap-3 pt-2 border-t border-white/8">
-          <div class="w-9 h-9 rounded-full bg-q-yellow/15 flex items-center justify-center shrink-0">
-            <span class="text-q-yellow font-bold text-sm">M</span>
-          </div>
-          <div>
-            <p class="text-white text-sm font-semibold leading-none mb-1">Manu BR</p>
-            <p class="text-gray-500 text-xs flex items-center gap-1"><i class="fas fa-map-marker-alt text-[10px]"></i> Local Guide</p>
-          </div>
-        </footer>
-      </article>
-
-      <!-- Reseña 2 -->
-      <article class="will-reveal bg-white/4 border border-white/10 rounded-2xl p-7 flex flex-col gap-5 hover:border-q-yellow/30 hover:bg-white/6 transition-all duration-300">
-        <div class="flex items-start justify-between gap-3">
-          <div class="flex gap-0.5" aria-label="5 estrellas">
-            <i class="fas fa-star text-q-yellow text-sm"></i>
-            <i class="fas fa-star text-q-yellow text-sm"></i>
-            <i class="fas fa-star text-q-yellow text-sm"></i>
-            <i class="fas fa-star text-q-yellow text-sm"></i>
-            <i class="fas fa-star text-q-yellow text-sm"></i>
-          </div>
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="w-4 h-4 shrink-0 opacity-60 mt-0.5" aria-label="Google">
-            <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-            <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-            <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
-            <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
-          </svg>
-        </div>
-        <blockquote class="text-gray-300 text-[0.95rem] leading-relaxed flex-1">
-          "Experiencia de 10. Fui por un pinchazo en mi Jeep, me informaron que no tenían hueco pero harían todo lo posible. Menos de dos horas ya estaba arreglado. Así da gusto."
-        </blockquote>
-        <footer class="flex items-center gap-3 pt-2 border-t border-white/8">
-          <div class="w-9 h-9 rounded-full bg-q-yellow/15 flex items-center justify-center shrink-0">
-            <span class="text-q-yellow font-bold text-sm">J</span>
-          </div>
-          <div>
-            <p class="text-white text-sm font-semibold leading-none mb-1">Juan Padilla</p>
-            <p class="text-gray-500 text-xs flex items-center gap-1"><i class="fas fa-map-marker-alt text-[10px]"></i> Local Guide</p>
-          </div>
-        </footer>
-      </article>
-
-      <!-- Reseña 3 -->
-      <article class="will-reveal bg-white/4 border border-white/10 rounded-2xl p-7 flex flex-col gap-5 hover:border-q-yellow/30 hover:bg-white/6 transition-all duration-300">
-        <div class="flex items-start justify-between gap-3">
-          <div class="flex gap-0.5" aria-label="5 estrellas">
-            <i class="fas fa-star text-q-yellow text-sm"></i>
-            <i class="fas fa-star text-q-yellow text-sm"></i>
-            <i class="fas fa-star text-q-yellow text-sm"></i>
-            <i class="fas fa-star text-q-yellow text-sm"></i>
-            <i class="fas fa-star text-q-yellow text-sm"></i>
-          </div>
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="w-4 h-4 shrink-0 opacity-60 mt-0.5" aria-label="Google">
-            <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-            <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-            <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
-            <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
-          </svg>
-        </div>
-        <blockquote class="text-gray-300 text-[0.95rem] leading-relaxed flex-1">
-          "Fantástico taller de neumáticos. Han sido rápidos, amables, con una perfecta atención al cliente. Sinceramente son personas de 10."
-        </blockquote>
-        <footer class="flex items-center gap-3 pt-2 border-t border-white/8">
-          <div class="w-9 h-9 rounded-full bg-q-yellow/15 flex items-center justify-center shrink-0">
-            <span class="text-q-yellow font-bold text-sm">I</span>
-          </div>
-          <div>
-            <p class="text-white text-sm font-semibold leading-none mb-1">I. Fuertes</p>
-            <p class="text-gray-500 text-xs flex items-center gap-1"><i class="fas fa-map-marker-alt text-[10px]"></i> Local Guide</p>
-          </div>
-        </footer>
-      </article>
-
-    </div>
-  </div>
-</section>
-
-
-<!-- ════════════════════════════════════════════
-     SECCIÓN 5 — CTA BANNER
-════════════════════════════════════════════ -->
-<section class="bg-q-navy-2 overflow-hidden relative border-y border-white/5">
-  <div class="absolute inset-y-0 right-0 w-full lg:w-1/2">
-    <img src="imagenes/michelin-taller.jpeg"
-         alt="Michelin Pilot Sport 5 montado en Neumáticos Quesada"
-         loading="lazy" decoding="async" class="w-full h-full object-cover opacity-45">
-    <div class="absolute inset-0 bg-gradient-to-r from-q-navy-2 via-q-navy-2/55 to-transparent"></div>
-    <!-- Refuerzo de overlay solo móvil: contraste cómodo del párrafo gris sobre la foto -->
-    <div class="absolute inset-0 bg-q-navy-2/60 md:hidden"></div>
-  </div>
-
-  <div class="relative max-w-7xl mx-auto px-6 lg:px-10 py-20 lg:py-28">
-    <div class="max-w-xl will-reveal">
-      <p class="text-q-yellow text-[11px] font-bold tracking-[.22em] uppercase mb-4">Confía en los expertos.</p>
-      <h2 class="text-4xl sm:text-5xl font-black font-barlow text-white leading-tight mb-6">
-        Tu seguridad empieza<br><span class="italic text-q-yellow">por las ruedas.</span>
-      </h2>
-      <p class="text-gray-400 text-base leading-relaxed mb-8">
-        Llevamos más de tres décadas garantizando que cada vehículo sale en las mejores condiciones. Precio justo, garantía real y el trato cercano que mereces.
-      </p>
-      <a href="tel:963593087"
-         class="magnetic inline-flex items-center gap-2.5 bg-q-yellow hover:bg-q-yellow-d text-q-navy font-bold px-8 py-4 rounded-xl transition-all btn-yellow">
-        <i class="fas fa-phone text-sm"></i> Llámanos ahora
-      </a>
-    </div>
-  </div>
-</section>
-
-
-<!-- ════════════════════════════════════════════
-     SECCIÓN 6 — GALERÍA
-════════════════════════════════════════════ -->
-<section id="galeria" class="bg-q-cream py-20 lg:py-28">
-  <div class="max-w-7xl mx-auto px-6 lg:px-10">
-
-    <div class="text-center mb-14 will-reveal">
-      <div class="inline-flex items-center gap-2 text-q-blue text-[11px] font-bold tracking-[.2em] uppercase mb-4">
-        <span class="w-5 h-px bg-q-blue"></span>
-        Galería
-        <span class="w-5 h-px bg-q-blue"></span>
-      </div>
-      <h2 class="text-4xl sm:text-[3.25rem] font-black font-barlow text-q-navy mb-3 leading-tight">
-        Nuestro trabajo<br><span class="italic">habla por nosotros</span>
-      </h2>
-      <p class="text-gray-500 text-lg">Cada vehículo que entra, sale a punto.</p>
-    </div>
-
-    <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
-
-      <div class="gal-wrap rounded-3xl overflow-hidden aspect-[4/3] relative shadow-md will-reveal">
-        <img src="imagenes/audi-taller.jpeg"
-             alt="Audi SQ7 sobre elevador para alineación" loading="lazy" decoding="async" class="gal-img w-full h-full object-cover">
-        <div class="gal-caption absolute bottom-0 inset-x-0 translate-y-full bg-gradient-to-t from-black/80 via-black/40 to-transparent p-5">
-          <p class="text-white font-bold text-sm">Alineación y equilibrado &middot; Audi SQ7</p>
-        </div>
-      </div>
-
-      <div class="gal-wrap rounded-3xl overflow-hidden aspect-[4/3] relative shadow-md will-reveal">
-        <img src="imagenes/jeep-taller.jpeg"
-             alt="Alineación Jeep Willys" loading="lazy" decoding="async" class="gal-img w-full h-full object-cover">
-        <div class="gal-caption absolute bottom-0 inset-x-0 translate-y-full bg-gradient-to-t from-black/80 via-black/40 to-transparent p-5">
-          <p class="text-white font-bold text-sm">Alineación Jeep Willys</p>
-        </div>
-      </div>
-
-      <div class="gal-wrap rounded-3xl overflow-hidden aspect-[4/3] relative shadow-md will-reveal">
-        <img src="imagenes/benelli-taller.jpeg"
-             alt="Benelli TRK en el taller — también para motos" loading="lazy" decoding="async" class="gal-img w-full h-full object-cover">
-        <div class="gal-caption absolute bottom-0 inset-x-0 translate-y-full bg-gradient-to-t from-black/80 via-black/40 to-transparent p-5">
-          <p class="text-white font-bold text-sm">Motos también &middot; Benelli TRK</p>
-        </div>
-      </div>
-
-      <div class="gal-wrap rounded-3xl overflow-hidden aspect-[4/3] relative shadow-md will-reveal">
-        <img src="imagenes/honda-taller.jpeg"
-             alt="Pinchazo reparado Honda CBR 600 RR" loading="lazy" decoding="async" class="gal-img w-full h-full object-cover">
-        <div class="gal-caption absolute bottom-0 inset-x-0 translate-y-full bg-gradient-to-t from-black/80 via-black/40 to-transparent p-5">
-          <p class="text-white font-bold text-sm">Pinchazo reparado Honda CBR 600 RR</p>
-        </div>
-      </div>
-
-    </div>
-  </div>
-</section>
-
-
-<!-- ════════════════════════════════════════════
-     SECCIÓN 7 — CONTACTO
-════════════════════════════════════════════ -->
-<section id="contacto" class="bg-q-navy py-20 lg:py-28">
-  <div class="max-w-7xl mx-auto px-6 lg:px-10">
-
-    <div class="text-center mb-16 will-reveal">
-      <div class="inline-flex items-center gap-2 text-q-yellow text-[11px] font-bold tracking-[.2em] uppercase mb-4">
-        <span class="w-5 h-px bg-q-yellow"></span>
-        Contacto
-        <span class="w-5 h-px bg-q-yellow"></span>
-      </div>
-      <h2 class="text-4xl sm:text-[3.25rem] font-black font-barlow text-white mb-3 leading-tight">
-        ¿Listo para ponerte<br><span class="italic text-q-yellow">en marcha?</span>
-      </h2>
-      <p class="text-gray-500 text-lg max-w-lg mx-auto mt-4 mb-8">
-        Llámanos o pásate por el taller. Estamos de lunes a viernes en Mislata, Valencia.
-      </p>
-      <!-- Botones contacto: teléfono + WhatsApp -->
-      <div class="flex flex-wrap items-center justify-center gap-4">
+      <div class="flex items-center gap-3">
         <a href="tel:963593087"
-           class="magnetic inline-flex items-center gap-2.5 bg-q-yellow hover:bg-q-yellow-d text-q-navy font-bold text-lg px-10 py-4 rounded-xl transition-all btn-yellow">
-          <i class="fas fa-phone text-sm"></i> 963 593 087
+          class="hidden sm:inline-flex items-center gap-2 bg-q-yellow hover:bg-q-yellow-d text-q-navy text-sm font-bold px-5 py-2.5 rounded-lg transition-colors btn-yellow">
+          <i class="fas fa-phone text-[11px]"></i> 963 593 087
         </a>
-        <!-- WHATSAPP: Botón sección contacto -->
-        <a href="https://wa.me/34637621880?text=Hola%2C%20me%20gustar%C3%ADa%20solicitar%20informaci%C3%B3n%20o%20pedir%20cita%20en%20Neum%C3%A1ticos%20Quesada.%20%C2%BFPodr%C3%ADais%20ayudarme%3F%20Gracias." target="_blank" rel="noopener noreferrer"
-           class="magnetic wa-btn inline-flex items-center gap-2.5 font-bold text-lg px-10 py-4 rounded-xl"
-           style="border:1px solid rgba(37,211,102,.22); background:rgba(6,13,31,.5); color:rgba(220,252,231,.88); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px)">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" style="flex-shrink:0; color:rgba(37,211,102,.9)"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
+
+        <!-- WHATSAPP: Botón header desktop -->
+        <a href="https://wa.me/34637621880?text=Hola%2C%20me%20gustar%C3%ADa%20solicitar%20informaci%C3%B3n%20o%20pedir%20cita%20en%20Neum%C3%A1ticos%20Quesada.%20%C2%BFPodr%C3%ADais%20ayudarme%3F%20Gracias."
+          target="_blank" rel="noopener noreferrer" aria-label="Contactar por WhatsApp"
+          class="wa-btn hidden lg:inline-flex items-center gap-2 text-sm font-semibold px-4 py-2.5 rounded-lg"
+          style="border:1px solid rgba(37,211,102,.20); background:rgba(6,13,31,.5); color:rgba(220,252,231,.85); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px)">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"
+            style="flex-shrink:0; color:rgba(37,211,102,.9)">
+            <path
+              d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z" />
+          </svg>
           WhatsApp
         </a>
+
+        <button id="burger" aria-label="Abrir menú"
+          class="md:hidden w-9 h-9 flex items-center justify-center rounded-lg text-gray-300 hover:bg-white/10 transition-colors">
+          <i id="burger-icon" class="fas fa-bars"></i>
+        </button>
       </div>
     </div>
 
-    <div class="grid lg:grid-cols-2 gap-8">
-
-      <div class="space-y-4 will-reveal">
-
-        <!-- Dirección -->
-        <div class="flex items-start gap-4 bg-white/4 border border-white/8 p-5 rounded-2xl hover:bg-white/7 transition-colors">
-          <div class="w-10 h-10 flex-shrink-0 bg-q-yellow rounded-xl flex items-center justify-center">
-            <i class="fas fa-location-dot text-q-navy text-sm"></i>
-          </div>
-          <div>
-            <p class="text-[10px] font-bold tracking-[.18em] uppercase text-gray-500 mb-0.5">Dirección</p>
-            <p class="font-semibold text-white">C/ del Cardenal Benlloch, 67, bajo</p>
-            <p class="text-gray-400 text-sm">46920 Mislata, Valencia</p>
-          </div>
-        </div>
-
-        <!-- Teléfono + Email -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div class="flex items-start gap-3 bg-white/4 border border-white/8 p-5 rounded-2xl hover:bg-white/7 transition-colors">
-            <div class="w-10 h-10 flex-shrink-0 bg-q-yellow rounded-xl flex items-center justify-center">
-              <i class="fas fa-phone text-q-navy text-sm"></i>
-            </div>
-            <div>
-              <p class="text-[10px] font-bold tracking-[.18em] uppercase text-gray-500 mb-0.5">Teléfono</p>
-              <a href="tel:963593087" class="font-semibold text-white hover:text-q-yellow transition-colors text-sm">963 593 087</a>
-            </div>
-          </div>
-          <div class="flex items-start gap-3 bg-white/4 border border-white/8 p-5 rounded-2xl hover:bg-white/7 transition-colors">
-            <div class="w-10 h-10 flex-shrink-0 bg-q-yellow rounded-xl flex items-center justify-center">
-              <i class="fas fa-envelope text-q-navy text-sm"></i>
-            </div>
-            <div>
-              <p class="text-[10px] font-bold tracking-[.18em] uppercase text-gray-500 mb-0.5">Email</p>
-              <a href="mailto:neucergon@hotmail.com" class="font-semibold text-white hover:text-q-yellow transition-colors text-xs break-words">neucergon@hotmail.com</a>
-            </div>
-          </div>
-        </div>
-
-        <!-- Horario con Live Status integrado -->
-        <div class="bg-white/4 border border-white/8 p-6 rounded-2xl">
-          <div class="flex items-center justify-between mb-5">
-            <div class="flex items-center gap-3">
-              <div class="w-10 h-10 flex-shrink-0 bg-q-yellow rounded-xl flex items-center justify-center">
-                <i class="fas fa-clock text-q-navy text-sm"></i>
-              </div>
-              <p class="font-bold text-white">Horario de apertura</p>
-            </div>
-            <!-- Live Status pill -->
-            <div id="status-pill" class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/8 border border-white/10">
-              <span class="relative flex h-2 w-2 flex-shrink-0">
-                <span id="status-ping" class="live-ring absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                <span id="status-dot" class="relative inline-flex rounded-full h-2 w-2 bg-green-400"></span>
-              </span>
-              <span id="status-text" class="font-semibold text-green-400 text-xs">Comprobando…</span>
-            </div>
-          </div>
-
-          <table class="w-full text-sm">
-            <tbody class="divide-y divide-white/5">
-              <tr>
-                <td class="py-2.5 font-medium text-gray-300">Lunes – Jueves</td>
-                <td class="py-2.5 text-right font-semibold text-white">8:00–14:00 &nbsp;·&nbsp; 15:30–20:00</td>
-              </tr>
-              <tr>
-                <td class="py-2.5 font-medium text-gray-300">Viernes</td>
-                <td class="py-2.5 text-right font-semibold text-white">8:00–16:00</td>
-              </tr>
-              <tr>
-                <td class="py-2.5 font-medium text-gray-300">Sábado</td>
-                <td class="py-2.5 text-right">
-                  <span class="inline-flex px-2.5 py-0.5 rounded-full bg-red-500/15 text-red-400 text-xs font-semibold">Cerrado</span>
-                </td>
-              </tr>
-              <tr>
-                <td class="py-2.5 font-medium text-gray-300">Domingo</td>
-                <td class="py-2.5 text-right">
-                  <span class="inline-flex px-2.5 py-0.5 rounded-full bg-red-500/15 text-red-400 text-xs font-semibold">Cerrado</span>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        <!-- Google Maps link -->
-        <a href="https://g.co/kgs/uhA6gAq" target="_blank" rel="noopener noreferrer"
-           class="flex items-center gap-3 bg-white/4 border border-white/8 hover:bg-white/8 text-white font-semibold px-5 py-4 rounded-2xl transition-colors group">
-          <i class="fab fa-google text-q-yellow text-lg"></i>
-          <span>Ver en Google Maps</span>
-          <i class="fas fa-arrow-up-right-from-square text-xs text-gray-500 ml-auto group-hover:text-q-yellow transition-colors"></i>
+    <!-- Mobile menu -->
+    <div id="mob-menu" class="hidden md:hidden border-t border-white/10">
+      <div class="max-w-7xl mx-auto px-6 py-4 space-y-1">
+        <a href="#servicios" onclick="closeMenu()"
+          class="block text-sm font-medium text-gray-300 hover:bg-white/8 px-4 py-3 rounded-lg transition-colors">Servicios</a>
+        <a href="#nosotros" onclick="closeMenu()"
+          class="block text-sm font-medium text-gray-300 hover:bg-white/8 px-4 py-3 rounded-lg transition-colors">Nosotros</a>
+        <a href="#galeria" onclick="closeMenu()"
+          class="block text-sm font-medium text-gray-300 hover:bg-white/8 px-4 py-3 rounded-lg transition-colors">Taller</a>
+        <a href="#contacto" onclick="closeMenu()"
+          class="block text-sm font-medium text-gray-300 hover:bg-white/8 px-4 py-3 rounded-lg transition-colors">Contacto</a>
+        <a href="tel:963593087"
+          class="flex items-center gap-2 justify-center bg-q-yellow text-q-navy text-sm font-bold px-4 py-3 rounded-lg mt-2 transition-colors hover:bg-q-yellow-d">
+          <i class="fas fa-phone text-xs"></i> 963 593 087
         </a>
-
+        <!-- WHATSAPP: Botón menú móvil -->
+        <a href="https://wa.me/34637621880?text=Hola%2C%20me%20gustar%C3%ADa%20solicitar%20informaci%C3%B3n%20o%20pedir%20cita%20en%20Neum%C3%A1ticos%20Quesada.%20%C2%BFPodr%C3%ADais%20ayudarme%3F%20Gracias."
+          target="_blank" rel="noopener noreferrer" onclick="closeMenu()"
+          class="wa-btn flex items-center gap-2 justify-center text-sm font-semibold px-4 py-3 rounded-lg mt-2"
+          style="border:1px solid rgba(37,211,102,.18); background:rgba(37,211,102,.04); color:rgba(220,252,231,.88)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"
+            style="flex-shrink:0; color:rgba(37,211,102,.9)">
+            <path
+              d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z" />
+          </svg>
+          Reservar por WhatsApp
+        </a>
       </div>
-
-      <!-- Mapa (dark-themed via CSS filter) -->
-      <div class="rounded-3xl overflow-hidden border border-white/8 shadow-2xl min-h-[460px] will-reveal">
-        <iframe
-          src="https://maps.google.com/maps?q=Neumaticos+Quesada+Cardenal+Benlloch+67+Mislata+Valencia&output=embed&z=16"
-          width="100%" height="100%"
-          style="border:0; min-height:460px; display:block; filter: invert(92%) hue-rotate(180deg) saturate(0.75) brightness(0.92);"
-          allowfullscreen loading="lazy"
-          referrerpolicy="no-referrer-when-downgrade"
-          title="Ubicación Neumáticos Quesada — Mislata, Valencia">
-        </iframe>
-      </div>
-
     </div>
-  </div>
-</section>
+  </header>
 
 
-<!-- ════════════════════════════════════════════
+  <!-- ════════════════════════════════════════════
+     SECCIÓN 1 — HERO cinematic split-screen
+════════════════════════════════════════════ -->
+  <section id="inicio" class="relative bg-q-navy flex items-center overflow-hidden">
+
+    <!-- Grid texture overlay -->
+    <div class="absolute inset-0 grid-texture opacity-100 pointer-events-none"></div>
+
+    <!-- Hero background video (right half, gradient-masked) — img de fallback debajo -->
+    <div class="hero-img-wrap absolute inset-0 lg:left-[42%]">
+      <video id="hero-video" class="hero-video w-full h-full object-cover" autoplay muted loop playsinline
+        preload="metadata">
+      </video>
+      <script>
+        /* Hero: elige vídeo vertical (móvil) u horizontal (desktop) UNA sola vez al
+           cargar. No reacciona a resize/rotación. reduced-motion se gestiona en CSS. */
+        (function () {
+          var v = document.getElementById('hero-video');
+          if (!v) return;
+          if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+          var isMobile = window.matchMedia('(max-width: 767px)').matches;
+          v.setAttribute('poster', isMobile ? 'videos/hero-poster-movil.jpg' : 'videos/hero-poster.jpg');
+          var base = isMobile ? 'videos/hero-quesada-movil' : 'videos/hero-quesada';
+          v.muted = true;
+          v.src = base + '.mp4';
+          v.load();
+          var p = v.play();
+          if (p && p.catch) p.catch(function () { });
+        })();
+      </script>
+      <img src="imagenes/taller-fachada.jpeg" alt="Fachada taller Neumáticos Quesada" fetchpriority="high"
+        decoding="async" class="hero-fallback-img w-full h-full object-cover">
+    </div>
+
+    <!-- Bottom vignette -->
+    <div class="absolute bottom-0 inset-x-0 h-40 bg-gradient-to-t from-q-navy to-transparent z-10 pointer-events-none">
+    </div>
+
+    <div class="relative z-20 max-w-7xl mx-auto px-6 lg:px-10 pt-28 pb-10 md:pb-20 w-full">
+      <div class="max-w-[600px]">
+
+        <div
+          class="hero-fade inline-flex items-center gap-2.5 text-q-yellow text-[11px] font-bold tracking-[.22em] uppercase mb-7">
+          <span class="hero-eyebrow-line w-6 h-px bg-q-yellow"></span>
+          Mislata &middot; Valencia &middot; Desde 1994
+        </div>
+
+        <h1 class="text-[2.8rem] sm:text-[3rem] lg:text-[3.35rem] font-black font-barlow leading-[1.0] mb-7">
+          <span class="hero-mask"><span class="hero-line text-white">Especialistas en neumáticos.</span></span>
+          <span class="hero-mask"><span class="hero-line italic text-q-yellow">Y todo lo que les rodea.</span></span>
+        </h1>
+
+        <p class="hero-fade text-gray-400 text-lg leading-relaxed mb-10 max-w-md">
+          Cambio, montaje, alineación y equilibrado profesional. Más de 30 años cuidando las ruedas de Mislata y
+          alrededores con las mejores marcas del mercado.
+        </p>
+
+        <div class="hero-ctas hero-fade flex flex-wrap gap-4">
+          <a href="#contacto"
+            class="magnetic inline-flex items-center gap-2.5 bg-q-yellow hover:bg-q-yellow-d text-q-navy font-bold text-[15px] px-8 py-4 rounded-xl transition-all btn-yellow">
+            Solicita presupuesto gratis
+            <i class="fas fa-arrow-right text-xs"></i>
+          </a>
+        </div>
+
+        <!-- Social proof -->
+        <div class="hero-fade mt-10 pt-8 border-t border-white/10 flex items-center gap-4 flex-wrap">
+          <div class="flex gap-0.5">
+            <i class="fas fa-star text-q-yellow text-sm"></i>
+            <i class="fas fa-star text-q-yellow text-sm"></i>
+            <i class="fas fa-star text-q-yellow text-sm"></i>
+            <i class="fas fa-star text-q-yellow text-sm"></i>
+            <i class="fas fa-star text-q-yellow text-sm"></i>
+          </div>
+          <span class="font-bold text-white text-sm">4.9 / 5</span>
+          <span class="text-gray-600 text-sm">&middot;</span>
+          <span class="text-gray-400 text-sm">245 reseñas en Google Maps</span>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ════════════════════════════════════════════
+     MARCAS — Infinite Marquee
+════════════════════════════════════════════ -->
+  <section class="bg-q-navy-2 border-y border-white/5 overflow-hidden py-5">
+    <div class="relative">
+      <div
+        class="absolute inset-y-0 left-0 w-28 bg-gradient-to-r from-q-navy-2 to-transparent z-10 pointer-events-none">
+      </div>
+      <div
+        class="absolute inset-y-0 right-0 w-28 bg-gradient-to-l from-q-navy-2 to-transparent z-10 pointer-events-none">
+      </div>
+
+      <div class="marquee-track select-none" aria-hidden="true">
+        <!-- Copy 1 -->
+        <div class="flex items-center gap-6 px-6">
+          <img class="marquee-logo" src="imagenes/logo-michelin.svg" alt="Michelin">
+          <span class="w-1 h-1 bg-q-yellow rounded-full flex-shrink-0 opacity-30"></span>
+          <img class="marquee-logo" src="imagenes/logo-bridgestone.svg" alt="Bridgestone">
+          <span class="w-1 h-1 bg-q-yellow rounded-full flex-shrink-0 opacity-30"></span>
+          <img class="marquee-logo" src="imagenes/logo-continental.svg" alt="Continental">
+          <span class="w-1 h-1 bg-q-yellow rounded-full flex-shrink-0 opacity-30"></span>
+          <img class="marquee-logo" src="imagenes/logo-pirelli.svg" alt="Pirelli">
+          <span class="w-1 h-1 bg-q-yellow rounded-full flex-shrink-0 opacity-30"></span>
+          <img class="marquee-logo" src="imagenes/logo-goodyear.svg" alt="Goodyear">
+          <span class="w-1 h-1 bg-q-yellow rounded-full flex-shrink-0 opacity-30"></span>
+          <img class="marquee-logo" src="imagenes/logo-dunlop.svg" alt="Dunlop">
+          <span class="w-1 h-1 bg-q-yellow rounded-full flex-shrink-0 opacity-30"></span>
+          <img class="marquee-logo" src="imagenes/logo-hankook.svg" alt="Hankook">
+          <span class="w-1 h-1 bg-q-yellow rounded-full flex-shrink-0 opacity-30"></span>
+        </div>
+        <!-- Copy 2 (duplicate for seamless loop) -->
+        <div class="flex items-center gap-6 px-6">
+          <img class="marquee-logo" src="imagenes/logo-michelin.svg" alt="Michelin">
+          <span class="w-1 h-1 bg-q-yellow rounded-full flex-shrink-0 opacity-30"></span>
+          <img class="marquee-logo" src="imagenes/logo-bridgestone.svg" alt="Bridgestone">
+          <span class="w-1 h-1 bg-q-yellow rounded-full flex-shrink-0 opacity-30"></span>
+          <img class="marquee-logo" src="imagenes/logo-continental.svg" alt="Continental">
+          <span class="w-1 h-1 bg-q-yellow rounded-full flex-shrink-0 opacity-30"></span>
+          <img class="marquee-logo" src="imagenes/logo-pirelli.svg" alt="Pirelli">
+          <span class="w-1 h-1 bg-q-yellow rounded-full flex-shrink-0 opacity-30"></span>
+          <img class="marquee-logo" src="imagenes/logo-goodyear.svg" alt="Goodyear">
+          <span class="w-1 h-1 bg-q-yellow rounded-full flex-shrink-0 opacity-30"></span>
+          <img class="marquee-logo" src="imagenes/logo-dunlop.svg" alt="Dunlop">
+          <span class="w-1 h-1 bg-q-yellow rounded-full flex-shrink-0 opacity-30"></span>
+          <img class="marquee-logo" src="imagenes/logo-hankook.svg" alt="Hankook">
+          <span class="w-1 h-1 bg-q-yellow rounded-full flex-shrink-0 opacity-30"></span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ════════════════════════════════════════════
+     SECCIÓN 3 — SOBRE NOSOTROS (Bento Grid, fondo claro)
+════════════════════════════════════════════ -->
+  <section id="nosotros" class="bg-q-cream py-20 lg:py-28">
+    <div class="max-w-7xl mx-auto px-6 lg:px-10">
+
+      <div class="mb-12 will-reveal">
+        <div class="inline-flex items-center gap-2 text-q-blue text-[11px] font-bold tracking-[.2em] uppercase mb-4">
+          <span class="w-5 h-px bg-q-blue"></span>
+          Sobre nosotros
+        </div>
+        <h2 class="text-4xl sm:text-[3.25rem] font-black font-barlow italic text-q-navy leading-[1.05]">
+          Somos Neumáticos<br>Quesada.
+        </h2>
+      </div>
+
+      <!-- Bento grid: 12 columnas -->
+      <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
+
+        <!-- Foto grande (7 cols) -->
+        <div class="md:col-span-7 rounded-3xl overflow-hidden aspect-[4/3] shadow-lg will-reveal">
+          <img src="imagenes/audi-taller.jpeg" alt="Audi SQ7 en el taller Neumáticos Quesada" loading="lazy"
+            decoding="async" class="w-full h-full object-cover">
+        </div>
+
+        <!-- Columna derecha (5 cols) -->
+        <div class="md:col-span-5 flex flex-col justify-center gap-4">
+
+          <!-- Texto card -->
+          <div class="bg-q-navy rounded-3xl p-7 will-reveal">
+            <p class="text-gray-300 text-sm leading-relaxed mb-4">
+              Llevamos más de 30 años siendo el taller de referencia para conductores de Mislata y alrededores. Desde el
+              primer día, nuestro compromiso ha sido el mismo: el mejor servicio al precio más justo, sin sorpresas.
+            </p>
+            <p class="text-gray-300 text-sm leading-relaxed">
+              Trabajamos todo tipo de vehículos —coches, motos, furgonetas y 4x4— con equipos de última generación y el
+              asesoramiento personalizado que cada cliente merece.
+            </p>
+          </div>
+
+          <!-- Stats row -->
+          <div class="grid grid-cols-3 gap-3 will-reveal">
+            <div class="bg-q-yellow rounded-2xl p-5 text-center">
+              <p class="text-2xl font-black text-q-navy leading-none" data-count="4.9" data-decimals="1"
+                data-duration="1500">4.9<span class="text-lg">★</span></p>
+              <p class="text-q-navy/60 text-[10px] font-bold uppercase tracking-wide mt-1.5">Google</p>
+            </div>
+            <div class="bg-q-navy rounded-2xl p-5 text-center">
+              <p class="text-2xl font-black text-white leading-none" data-count="245" data-duration="2000">245<span
+                  class="text-q-yellow text-base">+</span></p>
+              <p class="text-gray-500 text-[10px] font-bold uppercase tracking-wide mt-1.5">Reseñas</p>
+            </div>
+            <div class="bg-white rounded-2xl p-5 text-center shadow-sm">
+              <p class="text-2xl font-black text-q-navy leading-none" data-count="30" data-duration="1500">30<span
+                  class="text-q-blue text-base">+</span></p>
+              <p class="text-gray-400 text-[10px] font-bold uppercase tracking-wide mt-1.5">Años</p>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ════════════════════════════════════════════
+     SECCIÓN 4 — SERVICIOS (Bento Grid oscuro)
+════════════════════════════════════════════ -->
+  <section id="servicios" class="relative overflow-hidden bg-q-navy py-20 lg:py-28">
+
+    <!-- Tipografía cinética de fondo (se desplaza con el scroll, GSAP) -->
+    <div class="kinetic-strip" aria-hidden="true">
+      <span class="kinetic-text">Montaje &mdash; Equilibrado &mdash; Alineación &mdash; Reparación &mdash; Montaje
+        &mdash; Equilibrado &mdash; Alineación &mdash; Reparación &mdash;</span>
+    </div>
+
+    <div class="relative max-w-7xl mx-auto px-6 lg:px-10">
+
+      <div class="text-center mb-14 will-reveal">
+        <div class="inline-flex items-center gap-2 text-q-yellow text-[11px] font-bold tracking-[.2em] uppercase mb-4">
+          <span class="w-5 h-px bg-q-yellow"></span>
+          Servicios
+          <span class="w-5 h-px bg-q-yellow"></span>
+        </div>
+        <h2 class="text-4xl sm:text-[3.25rem] font-black font-barlow text-white mb-3">Nuestros servicios</h2>
+        <p class="text-gray-500 text-lg">Todo lo que tu vehículo necesita, en un solo taller.</p>
+      </div>
+
+      <!-- Bento asimétrico -->
+      <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
+
+        <!-- Reparación — grande (7 cols) -->
+        <div
+          class="svc-card bento-shine md:col-span-6 bg-gradient-to-br from-[#0e1f42] to-[#060D1F] rounded-3xl p-8 border border-white/5 flex flex-col justify-between md:min-h-[280px] will-reveal">
+          <div>
+            <div class="svc-icon-wrap w-12 h-12 bg-white/8 rounded-2xl flex items-center justify-center mb-4 md:mb-6">
+              <i class="fas fa-screwdriver-wrench text-q-yellow text-xl"></i>
+            </div>
+            <h3 class="font-bold font-barlow tracking-wide text-white text-2xl mb-3">Reparación</h3>
+            <p class="text-gray-400 text-sm leading-relaxed max-w-sm">
+              Detección y reparación de pinchazos y daños. Evaluamos el neumático antes de cualquier intervención para
+              garantizar tu seguridad.
+            </p>
+          </div>
+          <a href="#contacto"
+            class="inline-flex items-center gap-2 text-q-yellow text-sm font-bold hover:gap-3 transition-all mt-4 md:mt-6 group">
+            Solicitar servicio <i class="fas fa-arrow-right text-xs group-hover:translate-x-1 transition-transform"></i>
+          </a>
+        </div>
+
+        <!-- Alineación (5 cols) -->
+        <div
+          class="svc-card bento-shine md:col-span-6 bg-gradient-to-br from-[#0e1f42] to-[#060D1F] rounded-3xl p-8 border border-white/5 flex flex-col justify-between will-reveal">
+          <div>
+            <div class="svc-icon-wrap w-12 h-12 bg-white/8 rounded-2xl flex items-center justify-center mb-4 md:mb-6">
+              <i class="fas fa-ruler-combined text-q-yellow text-xl"></i>
+            </div>
+            <h3 class="font-bold font-barlow tracking-wide text-white text-2xl mb-3">Alineación</h3>
+            <p class="text-gray-400 text-sm leading-relaxed">
+              Corrección de geometría con tecnología láser. Mayor seguridad, menor consumo y neumáticos que duran más
+              kilómetros.
+            </p>
+          </div>
+          <a href="#contacto"
+            class="inline-flex items-center gap-2 text-q-yellow text-sm font-bold hover:gap-3 transition-all mt-4 md:mt-6 group">
+            Solicitar servicio <i class="fas fa-arrow-right text-xs group-hover:translate-x-1 transition-transform"></i>
+          </a>
+        </div>
+
+        <!-- Montaje (5 cols) -->
+        <div
+          class="svc-card bento-shine md:col-span-6 bg-gradient-to-br from-[#0e1f42] to-[#060D1F] rounded-3xl p-8 border border-white/5 flex flex-col justify-between will-reveal">
+          <div>
+            <div class="svc-icon-wrap w-12 h-12 bg-white/8 rounded-2xl flex items-center justify-center mb-4 md:mb-6">
+              <i class="fas fa-crosshairs text-q-yellow text-xl"></i>
+            </div>
+            <h3 class="font-bold font-barlow tracking-wide text-white text-2xl mb-3">Montaje</h3>
+            <p class="text-gray-400 text-sm leading-relaxed">
+              Desmontaje y montaje profesional rápido y seguro. Amplio stock de primeras marcas para todo tipo de
+              vehículos.
+            </p>
+          </div>
+          <a href="#contacto"
+            class="inline-flex items-center gap-2 text-q-yellow text-sm font-bold hover:gap-3 transition-all mt-4 md:mt-6 group">
+            Solicitar servicio <i class="fas fa-arrow-right text-xs group-hover:translate-x-1 transition-transform"></i>
+          </a>
+        </div>
+
+        <!-- Equilibrado (7 cols) -->
+        <div
+          class="svc-card bento-shine md:col-span-6 bg-gradient-to-br from-[#0e1f42] to-[#060D1F] rounded-3xl p-8 border border-white/5 flex flex-col justify-between will-reveal">
+          <div>
+            <div class="svc-icon-wrap w-12 h-12 bg-white/8 rounded-2xl flex items-center justify-center mb-4 md:mb-6">
+              <i class="fas fa-scale-balanced text-q-yellow text-xl"></i>
+            </div>
+            <h3 class="font-bold font-barlow tracking-wide text-white text-2xl mb-3">Equilibrado</h3>
+            <p class="text-gray-400 text-sm leading-relaxed max-w-sm">
+              Eliminamos las vibraciones para una conducción suave y prevenimos el desgaste desigual que acorta la vida
+              útil del neumático.
+            </p>
+          </div>
+          <a href="#contacto"
+            class="inline-flex items-center gap-2 text-q-yellow text-sm font-bold hover:gap-3 transition-all mt-4 md:mt-6 group">
+            Solicitar servicio <i class="fas fa-arrow-right text-xs group-hover:translate-x-1 transition-transform"></i>
+          </a>
+        </div>
+
+        <!-- Válvulas TPMS y codificadas — ancho completo (12 cols), horizontal en desktop -->
+        <div
+          class="svc-card bento-shine md:col-span-12 bg-gradient-to-br from-[#0e1f42] to-[#060D1F] rounded-3xl p-8 border border-white/5 flex flex-col md:flex-row md:items-center gap-4 md:gap-6 will-reveal">
+          <div class="svc-icon-wrap w-12 h-12 bg-white/8 rounded-2xl flex items-center justify-center shrink-0">
+            <i class="fas fa-gauge-high text-q-yellow text-xl"></i>
+          </div>
+          <div class="flex-1">
+            <div class="flex items-center gap-3 mb-3">
+              <h3 class="font-bold font-barlow tracking-wide text-white text-2xl">Válvulas TPMS y codificadas</h3>
+              <span
+                class="bg-q-yellow text-q-navy text-[10px] font-bold tracking-wider uppercase rounded-full px-2 py-0.5">Nuevo</span>
+            </div>
+            <p class="text-gray-400 text-sm leading-relaxed">
+              Sustitución y programación de sensores de presión de neumáticos. Si tu testigo de presión está encendido o
+              has cambiado de ruedas, revisamos, reemplazamos y codificamos la válvula para tu vehículo.
+            </p>
+          </div>
+          <a href="#contacto"
+            class="inline-flex items-center gap-2 text-q-yellow text-sm font-bold hover:gap-3 transition-all shrink-0 group">
+            Solicitar servicio <i class="fas fa-arrow-right text-xs group-hover:translate-x-1 transition-transform"></i>
+          </a>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ════════════════════════════════════════════
+     SECCIÓN 5B — RESEÑAS GOOGLE
+════════════════════════════════════════════ -->
+  <section id="resenas" class="bg-q-navy py-20 lg:py-24 scroll-mt-20 md:scroll-mt-0">
+    <div class="max-w-7xl mx-auto px-6 lg:px-10">
+
+      <!-- Cabecera -->
+      <div class="text-center mb-14 will-reveal">
+        <div class="inline-flex items-center gap-2 text-q-yellow text-[11px] font-bold tracking-[.2em] uppercase mb-4">
+          <span class="w-5 h-px bg-q-yellow"></span>
+          Lo que dicen nuestros clientes
+          <span class="w-5 h-px bg-q-yellow"></span>
+        </div>
+        <h2 class="text-4xl sm:text-[3rem] font-black font-barlow text-white">4.9 sobre 5 <span
+            class="italic text-q-yellow">en Google.</span></h2>
+      </div>
+
+      <!-- Tarjetas -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+
+        <!-- Reseña 1 -->
+        <article
+          class="will-reveal bg-white/4 border border-white/10 rounded-2xl p-7 flex flex-col gap-5 hover:border-q-yellow/30 hover:bg-white/6 transition-all duration-300">
+          <div class="flex items-start justify-between gap-3">
+            <div class="flex gap-0.5" aria-label="5 estrellas">
+              <i class="fas fa-star text-q-yellow text-sm"></i>
+              <i class="fas fa-star text-q-yellow text-sm"></i>
+              <i class="fas fa-star text-q-yellow text-sm"></i>
+              <i class="fas fa-star text-q-yellow text-sm"></i>
+              <i class="fas fa-star text-q-yellow text-sm"></i>
+            </div>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="w-4 h-4 shrink-0 opacity-60 mt-0.5"
+              aria-label="Google">
+              <path
+                d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                fill="#4285F4" />
+              <path
+                d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                fill="#34A853" />
+              <path
+                d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"
+                fill="#FBBC05" />
+              <path
+                d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                fill="#EA4335" />
+            </svg>
+          </div>
+          <blockquote class="text-gray-300 text-[0.95rem] leading-relaxed flex-1">
+            "Buen servicio y buena relación calidad precio, tengo dos vehículos y los llevo allí siempre que toca
+            cambiar neumáticos."
+          </blockquote>
+          <footer class="flex items-center gap-3 pt-2 border-t border-white/8">
+            <div class="w-9 h-9 rounded-full bg-q-yellow/15 flex items-center justify-center shrink-0">
+              <span class="text-q-yellow font-bold text-sm">M</span>
+            </div>
+            <div>
+              <p class="text-white text-sm font-semibold leading-none mb-1">Manu BR</p>
+              <p class="text-gray-500 text-xs flex items-center gap-1"><i class="fas fa-map-marker-alt text-[10px]"></i>
+                Local Guide</p>
+            </div>
+          </footer>
+        </article>
+
+        <!-- Reseña 2 -->
+        <article
+          class="will-reveal bg-white/4 border border-white/10 rounded-2xl p-7 flex flex-col gap-5 hover:border-q-yellow/30 hover:bg-white/6 transition-all duration-300">
+          <div class="flex items-start justify-between gap-3">
+            <div class="flex gap-0.5" aria-label="5 estrellas">
+              <i class="fas fa-star text-q-yellow text-sm"></i>
+              <i class="fas fa-star text-q-yellow text-sm"></i>
+              <i class="fas fa-star text-q-yellow text-sm"></i>
+              <i class="fas fa-star text-q-yellow text-sm"></i>
+              <i class="fas fa-star text-q-yellow text-sm"></i>
+            </div>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="w-4 h-4 shrink-0 opacity-60 mt-0.5"
+              aria-label="Google">
+              <path
+                d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                fill="#4285F4" />
+              <path
+                d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                fill="#34A853" />
+              <path
+                d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"
+                fill="#FBBC05" />
+              <path
+                d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                fill="#EA4335" />
+            </svg>
+          </div>
+          <blockquote class="text-gray-300 text-[0.95rem] leading-relaxed flex-1">
+            "Experiencia de 10. Fui por un pinchazo en mi Jeep, me informaron que no tenían hueco pero harían todo lo
+            posible. Menos de dos horas ya estaba arreglado. Así da gusto."
+          </blockquote>
+          <footer class="flex items-center gap-3 pt-2 border-t border-white/8">
+            <div class="w-9 h-9 rounded-full bg-q-yellow/15 flex items-center justify-center shrink-0">
+              <span class="text-q-yellow font-bold text-sm">J</span>
+            </div>
+            <div>
+              <p class="text-white text-sm font-semibold leading-none mb-1">Juan Padilla</p>
+              <p class="text-gray-500 text-xs flex items-center gap-1"><i class="fas fa-map-marker-alt text-[10px]"></i>
+                Local Guide</p>
+            </div>
+          </footer>
+        </article>
+
+        <!-- Reseña 3 -->
+        <article
+          class="will-reveal bg-white/4 border border-white/10 rounded-2xl p-7 flex flex-col gap-5 hover:border-q-yellow/30 hover:bg-white/6 transition-all duration-300">
+          <div class="flex items-start justify-between gap-3">
+            <div class="flex gap-0.5" aria-label="5 estrellas">
+              <i class="fas fa-star text-q-yellow text-sm"></i>
+              <i class="fas fa-star text-q-yellow text-sm"></i>
+              <i class="fas fa-star text-q-yellow text-sm"></i>
+              <i class="fas fa-star text-q-yellow text-sm"></i>
+              <i class="fas fa-star text-q-yellow text-sm"></i>
+            </div>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="w-4 h-4 shrink-0 opacity-60 mt-0.5"
+              aria-label="Google">
+              <path
+                d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                fill="#4285F4" />
+              <path
+                d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                fill="#34A853" />
+              <path
+                d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"
+                fill="#FBBC05" />
+              <path
+                d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                fill="#EA4335" />
+            </svg>
+          </div>
+          <blockquote class="text-gray-300 text-[0.95rem] leading-relaxed flex-1">
+            "Fantástico taller de neumáticos. Han sido rápidos, amables, con una perfecta atención al cliente.
+            Sinceramente son personas de 10."
+          </blockquote>
+          <footer class="flex items-center gap-3 pt-2 border-t border-white/8">
+            <div class="w-9 h-9 rounded-full bg-q-yellow/15 flex items-center justify-center shrink-0">
+              <span class="text-q-yellow font-bold text-sm">I</span>
+            </div>
+            <div>
+              <p class="text-white text-sm font-semibold leading-none mb-1">I. Fuertes</p>
+              <p class="text-gray-500 text-xs flex items-center gap-1"><i class="fas fa-map-marker-alt text-[10px]"></i>
+                Local Guide</p>
+            </div>
+          </footer>
+        </article>
+
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ════════════════════════════════════════════
+     SECCIÓN 5 — CTA BANNER
+════════════════════════════════════════════ -->
+  <section class="bg-q-navy-2 overflow-hidden relative border-y border-white/5">
+    <div class="absolute inset-y-0 right-0 w-full lg:w-1/2">
+      <img src="imagenes/michelin-taller.jpeg" alt="Michelin Pilot Sport 5 montado en Neumáticos Quesada" loading="lazy"
+        decoding="async" class="w-full h-full object-cover opacity-45">
+      <div class="absolute inset-0 bg-gradient-to-r from-q-navy-2 via-q-navy-2/55 to-transparent"></div>
+      <!-- Refuerzo de overlay solo móvil: contraste cómodo del párrafo gris sobre la foto -->
+      <div class="absolute inset-0 bg-q-navy-2/60 md:hidden"></div>
+    </div>
+
+    <div class="relative max-w-7xl mx-auto px-6 lg:px-10 py-20 lg:py-28">
+      <div class="max-w-xl will-reveal">
+        <p class="text-q-yellow text-[11px] font-bold tracking-[.22em] uppercase mb-4">Confía en los expertos.</p>
+        <h2 class="text-4xl sm:text-5xl font-black font-barlow text-white leading-tight mb-6">
+          Tu seguridad empieza<br><span class="italic text-q-yellow">por las ruedas.</span>
+        </h2>
+        <p class="text-gray-400 text-base leading-relaxed mb-8">
+          Llevamos más de tres décadas garantizando que cada vehículo sale en las mejores condiciones. Precio justo,
+          garantía real y el trato cercano que mereces.
+        </p>
+        <a href="tel:963593087"
+          class="magnetic inline-flex items-center gap-2.5 bg-q-yellow hover:bg-q-yellow-d text-q-navy font-bold px-8 py-4 rounded-xl transition-all btn-yellow">
+          <i class="fas fa-phone text-sm"></i> Llámanos ahora
+        </a>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ════════════════════════════════════════════
+     SECCIÓN 6 — GALERÍA
+════════════════════════════════════════════ -->
+  <section id="galeria" class="bg-q-cream py-20 lg:py-28">
+    <div class="max-w-7xl mx-auto px-6 lg:px-10">
+
+      <div class="text-center mb-14 will-reveal">
+        <div class="inline-flex items-center gap-2 text-q-blue text-[11px] font-bold tracking-[.2em] uppercase mb-4">
+          <span class="w-5 h-px bg-q-blue"></span>
+          Galería
+          <span class="w-5 h-px bg-q-blue"></span>
+        </div>
+        <h2 class="text-4xl sm:text-[3.25rem] font-black font-barlow text-q-navy mb-3 leading-tight">
+          Nuestro trabajo<br><span class="italic">habla por nosotros</span>
+        </h2>
+        <p class="text-gray-500 text-lg">Cada vehículo que entra, sale a punto.</p>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+
+        <div class="gal-wrap rounded-3xl overflow-hidden aspect-[4/3] relative shadow-md will-reveal">
+          <img src="imagenes/audi-taller.jpeg" alt="Audi SQ7 sobre elevador para alineación" loading="lazy"
+            decoding="async" class="gal-img w-full h-full object-cover">
+          <div
+            class="gal-caption absolute bottom-0 inset-x-0 translate-y-full bg-gradient-to-t from-black/80 via-black/40 to-transparent p-5">
+            <p class="text-white font-bold text-sm">Alineación y equilibrado &middot; Audi SQ7</p>
+          </div>
+        </div>
+
+        <div class="gal-wrap rounded-3xl overflow-hidden aspect-[4/3] relative shadow-md will-reveal">
+          <img src="imagenes/jeep-taller.jpeg" alt="Alineación Jeep Willys" loading="lazy" decoding="async"
+            class="gal-img w-full h-full object-cover">
+          <div
+            class="gal-caption absolute bottom-0 inset-x-0 translate-y-full bg-gradient-to-t from-black/80 via-black/40 to-transparent p-5">
+            <p class="text-white font-bold text-sm">Alineación Jeep Willys</p>
+          </div>
+        </div>
+
+        <div class="gal-wrap rounded-3xl overflow-hidden aspect-[4/3] relative shadow-md will-reveal">
+          <img src="imagenes/benelli-taller.jpeg" alt="Benelli TRK en el taller — también para motos" loading="lazy"
+            decoding="async" class="gal-img w-full h-full object-cover">
+          <div
+            class="gal-caption absolute bottom-0 inset-x-0 translate-y-full bg-gradient-to-t from-black/80 via-black/40 to-transparent p-5">
+            <p class="text-white font-bold text-sm">Motos también &middot; Benelli TRK</p>
+          </div>
+        </div>
+
+        <div class="gal-wrap rounded-3xl overflow-hidden aspect-[4/3] relative shadow-md will-reveal">
+          <img src="imagenes/honda-taller.jpeg" alt="Pinchazo reparado Honda CBR 600 RR" loading="lazy" decoding="async"
+            class="gal-img w-full h-full object-cover">
+          <div
+            class="gal-caption absolute bottom-0 inset-x-0 translate-y-full bg-gradient-to-t from-black/80 via-black/40 to-transparent p-5">
+            <p class="text-white font-bold text-sm">Pinchazo reparado Honda CBR 600 RR</p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ════════════════════════════════════════════
+     SECCIÓN 7 — CONTACTO
+════════════════════════════════════════════ -->
+  <section id="contacto" class="bg-q-navy py-20 lg:py-28">
+    <div class="max-w-7xl mx-auto px-6 lg:px-10">
+
+      <div class="text-center mb-16 will-reveal">
+        <div class="inline-flex items-center gap-2 text-q-yellow text-[11px] font-bold tracking-[.2em] uppercase mb-4">
+          <span class="w-5 h-px bg-q-yellow"></span>
+          Contacto
+          <span class="w-5 h-px bg-q-yellow"></span>
+        </div>
+        <h2 class="text-4xl sm:text-[3.25rem] font-black font-barlow text-white mb-3 leading-tight">
+          ¿Listo para ponerte<br><span class="italic text-q-yellow">en marcha?</span>
+        </h2>
+        <p class="text-gray-500 text-lg max-w-lg mx-auto mt-4 mb-8">
+          Llámanos o pásate por el taller. Estamos de lunes a viernes en Mislata, Valencia.
+        </p>
+        <!-- Botones contacto: teléfono + WhatsApp -->
+        <div class="flex flex-wrap items-center justify-center gap-4">
+          <a href="tel:963593087"
+            class="magnetic inline-flex items-center gap-2.5 bg-q-yellow hover:bg-q-yellow-d text-q-navy font-bold text-lg px-10 py-4 rounded-xl transition-all btn-yellow">
+            <i class="fas fa-phone text-sm"></i> 963 593 087
+          </a>
+          <!-- WHATSAPP: Botón sección contacto -->
+          <a href="https://wa.me/34637621880?text=Hola%2C%20me%20gustar%C3%ADa%20solicitar%20informaci%C3%B3n%20o%20pedir%20cita%20en%20Neum%C3%A1ticos%20Quesada.%20%C2%BFPodr%C3%ADais%20ayudarme%3F%20Gracias."
+            target="_blank" rel="noopener noreferrer"
+            class="magnetic wa-btn inline-flex items-center gap-2.5 font-bold text-lg px-10 py-4 rounded-xl"
+            style="border:1px solid rgba(37,211,102,.22); background:rgba(6,13,31,.5); color:rgba(220,252,231,.88); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px)">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"
+              style="flex-shrink:0; color:rgba(37,211,102,.9)">
+              <path
+                d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z" />
+            </svg>
+            WhatsApp
+          </a>
+        </div>
+      </div>
+
+      <div class="grid lg:grid-cols-2 gap-8">
+
+        <div class="space-y-4 will-reveal">
+
+          <!-- Dirección -->
+          <div
+            class="flex items-start gap-4 bg-white/4 border border-white/8 p-5 rounded-2xl hover:bg-white/7 transition-colors">
+            <div class="w-10 h-10 flex-shrink-0 bg-q-yellow rounded-xl flex items-center justify-center">
+              <i class="fas fa-location-dot text-q-navy text-sm"></i>
+            </div>
+            <div>
+              <p class="text-[10px] font-bold tracking-[.18em] uppercase text-gray-500 mb-0.5">Dirección</p>
+              <p class="font-semibold text-white">C/ del Cardenal Benlloch, 67, bajo</p>
+              <p class="text-gray-400 text-sm">46920 Mislata, Valencia</p>
+            </div>
+          </div>
+
+          <!-- Teléfono + Email -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div
+              class="flex items-start gap-3 bg-white/4 border border-white/8 p-5 rounded-2xl hover:bg-white/7 transition-colors">
+              <div class="w-10 h-10 flex-shrink-0 bg-q-yellow rounded-xl flex items-center justify-center">
+                <i class="fas fa-phone text-q-navy text-sm"></i>
+              </div>
+              <div>
+                <p class="text-[10px] font-bold tracking-[.18em] uppercase text-gray-500 mb-0.5">Teléfono</p>
+                <a href="tel:963593087"
+                  class="font-semibold text-white hover:text-q-yellow transition-colors text-sm">963 593 087</a>
+              </div>
+            </div>
+            <div
+              class="flex items-start gap-3 bg-white/4 border border-white/8 p-5 rounded-2xl hover:bg-white/7 transition-colors">
+              <div class="w-10 h-10 flex-shrink-0 bg-q-yellow rounded-xl flex items-center justify-center">
+                <i class="fas fa-envelope text-q-navy text-sm"></i>
+              </div>
+              <div>
+                <p class="text-[10px] font-bold tracking-[.18em] uppercase text-gray-500 mb-0.5">Email</p>
+                <a href="mailto:neucergon@hotmail.com"
+                  class="font-semibold text-white hover:text-q-yellow transition-colors text-xs break-words">neucergon@hotmail.com</a>
+              </div>
+            </div>
+          </div>
+
+          <!-- Horario con Live Status integrado -->
+          <div class="bg-white/4 border border-white/8 p-6 rounded-2xl">
+            <div class="flex items-center justify-between mb-5">
+              <div class="flex items-center gap-3">
+                <div class="w-10 h-10 flex-shrink-0 bg-q-yellow rounded-xl flex items-center justify-center">
+                  <i class="fas fa-clock text-q-navy text-sm"></i>
+                </div>
+                <p class="font-bold text-white">Horario de apertura</p>
+              </div>
+              <!-- Live Status pill -->
+              <div id="status-pill"
+                class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/8 border border-white/10">
+                <span class="relative flex h-2 w-2 flex-shrink-0">
+                  <span id="status-ping"
+                    class="live-ring absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                  <span id="status-dot" class="relative inline-flex rounded-full h-2 w-2 bg-green-400"></span>
+                </span>
+                <span id="status-text" class="font-semibold text-green-400 text-xs">Comprobando…</span>
+              </div>
+            </div>
+
+            <table class="w-full text-sm">
+              <tbody class="divide-y divide-white/5">
+                <tr>
+                  <td class="py-2.5 font-medium text-gray-300">Lunes – Jueves</td>
+                  <td class="py-2.5 text-right font-semibold text-white">8:00–14:00 &nbsp;·&nbsp; 15:30–20:00</td>
+                </tr>
+                <tr>
+                  <td class="py-2.5 font-medium text-gray-300">Viernes</td>
+                  <td class="py-2.5 text-right font-semibold text-white">8:00–16:00</td>
+                </tr>
+                <tr>
+                  <td class="py-2.5 font-medium text-gray-300">Sábado</td>
+                  <td class="py-2.5 text-right">
+                    <span
+                      class="inline-flex px-2.5 py-0.5 rounded-full bg-red-500/15 text-red-400 text-xs font-semibold">Cerrado</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td class="py-2.5 font-medium text-gray-300">Domingo</td>
+                  <td class="py-2.5 text-right">
+                    <span
+                      class="inline-flex px-2.5 py-0.5 rounded-full bg-red-500/15 text-red-400 text-xs font-semibold">Cerrado</span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Google Maps link -->
+          <a href="https://g.co/kgs/uhA6gAq" target="_blank" rel="noopener noreferrer"
+            class="flex items-center gap-3 bg-white/4 border border-white/8 hover:bg-white/8 text-white font-semibold px-5 py-4 rounded-2xl transition-colors group">
+            <i class="fab fa-google text-q-yellow text-lg"></i>
+            <span>Ver en Google Maps</span>
+            <i
+              class="fas fa-arrow-up-right-from-square text-xs text-gray-500 ml-auto group-hover:text-q-yellow transition-colors"></i>
+          </a>
+
+        </div>
+
+        <!-- Mapa (dark-themed via CSS filter) -->
+        <div class="rounded-3xl overflow-hidden border border-white/8 shadow-2xl min-h-[460px] will-reveal">
+          <iframe
+            src="https://maps.google.com/maps?q=Neumaticos+Quesada+Cardenal+Benlloch+67+Mislata+Valencia&output=embed&z=16"
+            width="100%" height="100%"
+            style="border:0; min-height:460px; display:block; filter: invert(92%) hue-rotate(180deg) saturate(0.75) brightness(0.92);"
+            allowfullscreen loading="lazy" referrerpolicy="no-referrer-when-downgrade"
+            title="Ubicación Neumáticos Quesada — Mislata, Valencia">
+          </iframe>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ════════════════════════════════════════════
      FOOTER
 ════════════════════════════════════════════ -->
-<footer class="bg-[#040916] border-t border-white/5 py-14">
-  <div class="max-w-7xl mx-auto px-6 lg:px-10">
+  <footer class="bg-[#040916] border-t border-white/5 py-14">
+    <div class="max-w-7xl mx-auto px-6 lg:px-10">
 
-    <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-10 mb-12">
+      <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-10 mb-12">
 
-      <div class="lg:col-span-2">
-        <img src="imagenes/logo_quesada_navy.png" alt="Neumáticos Quesada"
-             loading="lazy" decoding="async" class="h-14 w-auto object-contain mb-5">
-        <p class="text-gray-500 text-sm leading-relaxed mb-4">
-          C/ del Cardenal Benlloch, 67, bajo<br>46920 Mislata, Valencia
-        </p>
-        <div class="space-y-2">
-          <a href="tel:963593087"
-             class="flex items-center gap-2 text-gray-500 hover:text-white text-sm transition-colors">
-            <i class="fas fa-phone text-q-yellow text-xs w-4"></i> 963 593 087
-          </a>
-          <a href="mailto:neucergon@hotmail.com"
-             class="flex items-center gap-2 text-gray-500 hover:text-white text-sm transition-colors">
-            <i class="fas fa-envelope text-q-yellow text-xs w-4"></i> neucergon@hotmail.com
-          </a>
-        </div>
-      </div>
-
-      <div>
-        <h4 class="text-white font-bold text-sm mb-4">Servicios</h4>
-        <ul class="space-y-2.5">
-          <li><a href="#servicios" class="text-gray-500 hover:text-white text-sm transition-colors">Reparación de neumáticos</a></li>
-          <li><a href="#servicios" class="text-gray-500 hover:text-white text-sm transition-colors">Alineación de dirección</a></li>
-          <li><a href="#servicios" class="text-gray-500 hover:text-white text-sm transition-colors">Montaje de neumáticos</a></li>
-          <li><a href="#servicios" class="text-gray-500 hover:text-white text-sm transition-colors">Equilibrado de ruedas</a></li>
-          <li><a href="#servicios" class="text-gray-500 hover:text-white text-sm transition-colors">Válvulas TPMS y codificadas</a></li>
-        </ul>
-      </div>
-
-      <div>
-        <h4 class="text-white font-bold text-sm mb-4">General</h4>
-        <ul class="space-y-2.5">
-          <li><a href="#nosotros"  class="text-gray-500 hover:text-white text-sm transition-colors">Sobre nosotros</a></li>
-          <li><a href="#galeria"   class="text-gray-500 hover:text-white text-sm transition-colors">Galería del taller</a></li>
-          <li><a href="#contacto"  class="text-gray-500 hover:text-white text-sm transition-colors">Contacto y horarios</a></li>
-          <li>
-            <a href="https://g.co/kgs/uhA6gAq" target="_blank" rel="noopener"
-               class="text-gray-500 hover:text-white text-sm transition-colors">
-              Reseñas en Google
+        <div class="lg:col-span-2">
+          <img src="imagenes/logo_quesada_navy.png" alt="Neumáticos Quesada" loading="lazy" decoding="async"
+            class="h-14 w-auto object-contain mb-5">
+          <p class="text-gray-500 text-sm leading-relaxed mb-4">
+            C/ del Cardenal Benlloch, 67, bajo<br>46920 Mislata, Valencia
+          </p>
+          <div class="space-y-2">
+            <a href="tel:963593087"
+              class="flex items-center gap-2 text-gray-500 hover:text-white text-sm transition-colors">
+              <i class="fas fa-phone text-q-yellow text-xs w-4"></i> 963 593 087
             </a>
-          </li>
-        </ul>
+            <a href="mailto:neucergon@hotmail.com"
+              class="flex items-center gap-2 text-gray-500 hover:text-white text-sm transition-colors">
+              <i class="fas fa-envelope text-q-yellow text-xs w-4"></i> neucergon@hotmail.com
+            </a>
+          </div>
+        </div>
+
+        <div>
+          <h4 class="text-white font-bold text-sm mb-4">Servicios</h4>
+          <ul class="space-y-2.5">
+            <li><a href="#servicios" class="text-gray-500 hover:text-white text-sm transition-colors">Reparación de
+                neumáticos</a></li>
+            <li><a href="#servicios" class="text-gray-500 hover:text-white text-sm transition-colors">Alineación de
+                dirección</a></li>
+            <li><a href="#servicios" class="text-gray-500 hover:text-white text-sm transition-colors">Montaje de
+                neumáticos</a></li>
+            <li><a href="#servicios" class="text-gray-500 hover:text-white text-sm transition-colors">Equilibrado de
+                ruedas</a></li>
+            <li><a href="#servicios" class="text-gray-500 hover:text-white text-sm transition-colors">Válvulas TPMS y
+                codificadas</a></li>
+          </ul>
+        </div>
+
+        <div>
+          <h4 class="text-white font-bold text-sm mb-4">General</h4>
+          <ul class="space-y-2.5">
+            <li><a href="#nosotros" class="text-gray-500 hover:text-white text-sm transition-colors">Sobre nosotros</a>
+            </li>
+            <li><a href="#galeria" class="text-gray-500 hover:text-white text-sm transition-colors">Galería del
+                taller</a></li>
+            <li><a href="#contacto" class="text-gray-500 hover:text-white text-sm transition-colors">Contacto y
+                horarios</a></li>
+            <li>
+              <a href="https://g.co/kgs/uhA6gAq" target="_blank" rel="noopener"
+                class="text-gray-500 hover:text-white text-sm transition-colors">
+                Reseñas en Google
+              </a>
+            </li>
+          </ul>
+        </div>
+
+      </div>
+
+      <div class="border-t border-white/5 pt-7">
+        <p class="text-gray-600 text-xs">© 2026 Neumáticos Quesada Cdad. Todos los derechos reservados.</p>
       </div>
 
     </div>
-
-    <div class="border-t border-white/5 pt-7">
-      <p class="text-gray-600 text-xs">© 2026 Neumáticos Quesada Cdad. Todos los derechos reservados.</p>
-    </div>
-
-  </div>
-</footer>
+  </footer>
 
 
-<!-- ════════════════════════════════════════════
+  <!-- ════════════════════════════════════════════
      GSAP + ScrollTrigger (animaciones premium)
      Progressive enhancement: si el CDN falla, la web funciona igual
 ════════════════════════════════════════════ -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
-<script>
-  if (window.gsap && window.ScrollTrigger) {
-    gsap.registerPlugin(ScrollTrigger);
-  }
-  // Fallback: sin GSAP se retiran los estados iniciales y la web queda como antes
-  if (!window.gsap) {
-    document.documentElement.classList.remove('js-anim');
-  }
-</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+  <script>
+    if (window.gsap && window.ScrollTrigger) {
+      gsap.registerPlugin(ScrollTrigger);
+    }
+    // Fallback: sin GSAP se retiran los estados iniciales y la web queda como antes
+    if (!window.gsap) {
+      document.documentElement.classList.remove('js-anim');
+    }
+  </script>
 
 
-<!-- ════════════════════════════════════════════
+  <!-- ════════════════════════════════════════════
      GSAP — HERO entrada cinematográfica
 ════════════════════════════════════════════ -->
-<script>
-(function () {
-  'use strict';
-  if (!window.gsap || !document.documentElement.classList.contains('js-anim')) return;
+  <script>
+    (function () {
+      'use strict';
+      if (!window.gsap || !document.documentElement.classList.contains('js-anim')) return;
 
-  var tl = gsap.timeline({ defaults: { ease: 'power4.out' } });
+      var tl = gsap.timeline({ defaults: { ease: 'power4.out' } });
 
-  tl
-    // La imagen entra barriendo de derecha a izquierda, con zoom-out sutil
-    .to('.hero-img-wrap', { clipPath: 'inset(0% 0% 0% 0%)', duration: 1.15, ease: 'power3.inOut' }, 0)
-    .from('.hero-img-wrap video, .hero-img-wrap img', { scale: 1.14, duration: 1.7, ease: 'power2.out' }, 0)
-    // Titular: cada línea emerge de su máscara, escalonado
-    .to('.hero-line', { y: 0, duration: 0.95, stagger: 0.13 }, 0.3)
-    // La línea amarilla del eyebrow se dibuja
-    .to('.hero-eyebrow-line', { scaleX: 1, duration: 0.6 }, 0.35)
-    // Eyebrow, párrafo, CTAs y social proof en cascada
-    .to('.hero-fade', { opacity: 1, y: 0, duration: 0.75, stagger: 0.11 }, 0.55);
-})();
-</script>
+      tl
+        // La imagen entra barriendo de derecha a izquierda, con zoom-out sutil
+        .to('.hero-img-wrap', { clipPath: 'inset(0% 0% 0% 0%)', duration: 1.15, ease: 'power3.inOut' }, 0)
+        .from('.hero-img-wrap video, .hero-img-wrap img', { scale: 1.14, duration: 1.7, ease: 'power2.out' }, 0)
+        // Titular: cada línea emerge de su máscara, escalonado
+        .to('.hero-line', { y: 0, duration: 0.95, stagger: 0.13 }, 0.3)
+        // La línea amarilla del eyebrow se dibuja
+        .to('.hero-eyebrow-line', { scaleX: 1, duration: 0.6 }, 0.35)
+        // Eyebrow, párrafo, CTAs y social proof en cascada
+        .to('.hero-fade', { opacity: 1, y: 0, duration: 0.75, stagger: 0.11 }, 0.55);
+    })();
+  </script>
 
 
-<!-- ════════════════════════════════════════════
+  <!-- ════════════════════════════════════════════
      JAVASCRIPT
 ════════════════════════════════════════════ -->
-<script>
-  // ── Header glass on scroll ──
-  const hdr = document.getElementById('hdr');
-  window.addEventListener('scroll', () => {
-    hdr.classList.toggle('hdr-scrolled', window.scrollY > 40);
-  }, { passive: true });
+  <script>
+    // ═══ CIERRE POR VACACIONES ═══
+    // Rango INCLUSIVO en hora local (Europe/Madrid).
+    // Para desactivarlo: poner activo en false. NO borrar el bloque.
+    const VACACIONES = {
+      activo: true,
+      desde: '2026-08-08',
+      hasta: '2026-08-31',
+      textoCorto: 'Cerrado por vacaciones',
+      textoLargo: 'Cerrados por vacaciones hasta el 1 de septiembre · Escríbenos y te atendemos a la vuelta',
+      fechaVuelta: '1 de septiembre',
+    };
 
-  // ── Mobile menu ──
-  const burger     = document.getElementById('burger');
-  const burgerIcon = document.getElementById('burger-icon');
-  const mobMenu    = document.getElementById('mob-menu');
-
-  burger.addEventListener('click', () => {
-    const open = !mobMenu.classList.contains('hidden');
-    mobMenu.classList.toggle('hidden', open);
-    burgerIcon.className = open ? 'fas fa-bars' : 'fas fa-times';
-  });
-
-  function closeMenu() {
-    mobMenu.classList.add('hidden');
-    burgerIcon.className = 'fas fa-bars';
-  }
-
-  document.addEventListener('click', e => {
-    if (!burger.contains(e.target) && !mobMenu.contains(e.target)) closeMenu();
-  });
-
-  // ── Smooth scroll with header offset ──
-  document.querySelectorAll('a[href^="#"]').forEach(a => {
-    a.addEventListener('click', e => {
-      const target = document.querySelector(a.getAttribute('href'));
-      if (!target) return;
-      e.preventDefault();
-      window.scrollTo({
-        top: target.getBoundingClientRect().top + window.scrollY - hdr.offsetHeight - 16,
-        behavior: 'smooth'
-      });
-      closeMenu();
-    });
-  });
-
-  // ── Live status (Abierto / Cerrado) ──
-  // L–J: 8:00–14:00 (480–840) | 15:30–20:00 (930–1200)
-  // V:   8:00–16:00 (480–960)
-  function updateStatus() {
-    const now  = new Date();
-    const day  = now.getDay();
-    const mins = now.getHours() * 60 + now.getMinutes();
-
-    let isOpen = false;
-    if (day >= 1 && day <= 4) {
-      isOpen = (mins >= 480 && mins < 840) || (mins >= 930 && mins < 1200);
-    } else if (day === 5) {
-      isOpen = (mins >= 480 && mins < 960);
+    function enVacaciones() {
+      if (!VACACIONES.activo) return false;
+      const hoy = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'Europe/Madrid',
+        year: 'numeric', month: '2-digit', day: '2-digit'
+      }).format(new Date());
+      return hoy >= VACACIONES.desde && hoy <= VACACIONES.hasta;
     }
 
-    const ping = document.getElementById('status-ping');
-    const dot  = document.getElementById('status-dot');
-    const txt  = document.getElementById('status-text');
-    const pill = document.getElementById('status-pill');
+    // ── Header glass on scroll ──
+    const hdr = document.getElementById('hdr');
+    window.addEventListener('scroll', () => {
+      hdr.classList.toggle('hdr-scrolled', window.scrollY > 40);
+    }, { passive: true });
 
-    if (isOpen) {
-      ping.className  = 'live-ring absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75';
-      dot.className   = 'relative inline-flex rounded-full h-2 w-2 bg-green-400';
-      txt.textContent = 'Abierto ahora';
-      txt.className   = 'font-semibold text-green-400 text-xs';
-      pill.className  = 'flex items-center gap-2 px-3 py-1.5 rounded-full bg-green-500/10 border border-green-500/25';
-    } else {
-      ping.className  = 'absolute inline-flex h-full w-full rounded-full opacity-0';
-      dot.className   = 'relative inline-flex rounded-full h-2 w-2 bg-red-500';
-      txt.textContent = 'Cerrado ahora';
-      txt.className   = 'font-semibold text-red-400 text-xs';
-      pill.className  = 'flex items-center gap-2 px-3 py-1.5 rounded-full bg-red-500/10 border border-red-500/25';
-    }
-  }
+    // ── Banner de vacaciones: mostrar y compensar la altura del header fijo ──
+    let vacBannerH = 0;
+    (function () {
+      if (!enVacaciones()) return;
+      const b = document.getElementById('vac-banner');
+      if (!b) return;
+      b.textContent = VACACIONES.textoLargo;
+      b.style.display = 'block';
 
-  updateStatus();
-  setInterval(updateStatus, 60_000);
+      const hero = document.getElementById('inicio');
+      function aplicarAltura() {
+        vacBannerH = b.offsetHeight;
+        hdr.style.top = vacBannerH + 'px';
+        if (hero) hero.style.paddingTop = vacBannerH + 'px';
+      }
+      aplicarAltura();
 
-  // ── Blur-in Scroll Reveal (escalonado) ──
-  (function () {
-    const selectors = [
-      '#inicio > div > div',
-      '#nosotros .will-reveal',
-      '#servicios .will-reveal',
-      '#servicios ~ section .will-reveal',
-      '#galeria .will-reveal',
-      '#contacto .will-reveal',
-    ];
+      // El alto cambia al cargar las fuentes web y al rotar/redimensionar.
+      if (window.ResizeObserver) {
+        new ResizeObserver(aplicarAltura).observe(b);
+      } else {
+        window.addEventListener('resize', aplicarAltura, { passive: true });
+      }
+    })();
 
-    // Collect all elements that already have will-reveal from markup
-    const allEls = [];
-    document.querySelectorAll('.will-reveal').forEach(el => {
-      if (!allEls.includes(el)) allEls.push(el);
+    // ── Vacaciones: antepone el aviso al texto prerrellenado de todos los enlaces wa.me ──
+    (function () {
+      if (!enVacaciones()) return;
+      const aviso = 'Hola, sé que estáis de vacaciones hasta el ' + VACACIONES.fechaVuelta + '. ';
+      document.querySelectorAll('a[href^="https://wa.me/"]').forEach(a => {
+        try {
+          const url = new URL(a.href);
+          url.searchParams.set('text', aviso + (url.searchParams.get('text') || ''));
+          a.href = url.toString();
+        } catch (e) { /* href malformado: se deja como está */ }
+      });
+    })();
+
+    // ── Mobile menu ──
+    const burger = document.getElementById('burger');
+    const burgerIcon = document.getElementById('burger-icon');
+    const mobMenu = document.getElementById('mob-menu');
+
+    burger.addEventListener('click', () => {
+      const open = !mobMenu.classList.contains('hidden');
+      mobMenu.classList.toggle('hidden', open);
+      burgerIcon.className = open ? 'fas fa-bars' : 'fas fa-times';
     });
 
-    // Also auto-tag hero children — solo si GSAP no gestiona la entrada del hero
-    if (!document.documentElement.classList.contains('js-anim')) {
-      document.querySelectorAll('#inicio .max-w-\\[600px\\] > *').forEach(el => {
-        if (!allEls.includes(el)) { allEls.push(el); el.classList.add('will-reveal'); }
-      });
+    function closeMenu() {
+      mobMenu.classList.add('hidden');
+      burgerIcon.className = 'fas fa-bars';
     }
 
-    // Stagger siblings
-    allEls.forEach(el => {
-      const siblings = Array.from(el.parentElement.children).filter(c =>
-        c.classList.contains('will-reveal')
-      );
-      const idx = siblings.indexOf(el);
-      if (idx > 0) el.style.transitionDelay = `${idx * 0.12}s`;
+    document.addEventListener('click', e => {
+      if (!burger.contains(e.target) && !mobMenu.contains(e.target)) closeMenu();
     });
 
-    const obs = new IntersectionObserver(entries => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          entry.target.classList.add('is-revealed');
-        } else if (entry.boundingClientRect.top > 0) {
-          entry.target.classList.remove('is-revealed');
-        }
+    // ── Smooth scroll with header offset ──
+    document.querySelectorAll('a[href^="#"]').forEach(a => {
+      a.addEventListener('click', e => {
+        const target = document.querySelector(a.getAttribute('href'));
+        if (!target) return;
+        e.preventDefault();
+        window.scrollTo({
+          top: target.getBoundingClientRect().top + window.scrollY - hdr.offsetHeight - vacBannerH - 16,
+          behavior: 'smooth'
+        });
+        closeMenu();
       });
-    }, { threshold: 0.07, rootMargin: '0px 0px -40px 0px' });
+    });
 
-    allEls.forEach(el => obs.observe(el));
-  })();
-</script>
+    // ── Live status (Abierto / Cerrado) ──
+    // L–J: 8:00–14:00 (480–840) | 15:30–20:00 (930–1200)
+    // V:   8:00–16:00 (480–960)
+    function updateStatus() {
+      // Vacaciones: corta antes del cálculo horario, con el estilo "cerrado" existente
+      if (enVacaciones()) {
+        const ping = document.getElementById('status-ping');
+        const dot = document.getElementById('status-dot');
+        const txt = document.getElementById('status-text');
+        const pill = document.getElementById('status-pill');
+        ping.className = 'absolute inline-flex h-full w-full rounded-full opacity-0';
+        dot.className = 'relative inline-flex rounded-full h-2 w-2 bg-red-500';
+        txt.textContent = VACACIONES.textoCorto;
+        txt.className = 'font-semibold text-red-400 text-xs';
+        pill.className = 'flex items-center gap-2 px-3 py-1.5 rounded-full bg-red-500/10 border border-red-500/25';
+        return;
+      }
+      const now = new Date();
+      const day = now.getDay();
+      const mins = now.getHours() * 60 + now.getMinutes();
+
+      let isOpen = false;
+      if (day >= 1 && day <= 4) {
+        isOpen = (mins >= 480 && mins < 840) || (mins >= 930 && mins < 1200);
+      } else if (day === 5) {
+        isOpen = (mins >= 480 && mins < 960);
+      }
+
+      const ping = document.getElementById('status-ping');
+      const dot = document.getElementById('status-dot');
+      const txt = document.getElementById('status-text');
+      const pill = document.getElementById('status-pill');
+
+      if (isOpen) {
+        ping.className = 'live-ring absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75';
+        dot.className = 'relative inline-flex rounded-full h-2 w-2 bg-green-400';
+        txt.textContent = 'Abierto ahora';
+        txt.className = 'font-semibold text-green-400 text-xs';
+        pill.className = 'flex items-center gap-2 px-3 py-1.5 rounded-full bg-green-500/10 border border-green-500/25';
+      } else {
+        ping.className = 'absolute inline-flex h-full w-full rounded-full opacity-0';
+        dot.className = 'relative inline-flex rounded-full h-2 w-2 bg-red-500';
+        txt.textContent = 'Cerrado ahora';
+        txt.className = 'font-semibold text-red-400 text-xs';
+        pill.className = 'flex items-center gap-2 px-3 py-1.5 rounded-full bg-red-500/10 border border-red-500/25';
+      }
+    }
+
+    updateStatus();
+    setInterval(updateStatus, 60_000);
+
+    // ── Blur-in Scroll Reveal (escalonado) ──
+    (function () {
+      const selectors = [
+        '#inicio > div > div',
+        '#nosotros .will-reveal',
+        '#servicios .will-reveal',
+        '#servicios ~ section .will-reveal',
+        '#galeria .will-reveal',
+        '#contacto .will-reveal',
+      ];
+
+      // Collect all elements that already have will-reveal from markup
+      const allEls = [];
+      document.querySelectorAll('.will-reveal').forEach(el => {
+        if (!allEls.includes(el)) allEls.push(el);
+      });
+
+      // Also auto-tag hero children — solo si GSAP no gestiona la entrada del hero
+      if (!document.documentElement.classList.contains('js-anim')) {
+        document.querySelectorAll('#inicio .max-w-\\[600px\\] > *').forEach(el => {
+          if (!allEls.includes(el)) { allEls.push(el); el.classList.add('will-reveal'); }
+        });
+      }
+
+      // Stagger siblings
+      allEls.forEach(el => {
+        const siblings = Array.from(el.parentElement.children).filter(c =>
+          c.classList.contains('will-reveal')
+        );
+        const idx = siblings.indexOf(el);
+        if (idx > 0) el.style.transitionDelay = `${idx * 0.12}s`;
+      });
+
+      const obs = new IntersectionObserver(entries => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('is-revealed');
+          } else if (entry.boundingClientRect.top > 0) {
+            entry.target.classList.remove('is-revealed');
+          }
+        });
+      }, { threshold: 0.07, rootMargin: '0px 0px -40px 0px' });
+
+      allEls.forEach(el => obs.observe(el));
+    })();
+  </script>
 
 
 
 
-<!-- ════════════════════════════════════════════
+  <!-- ════════════════════════════════════════════
      WHATSAPP — Botón flotante premium
      Esquina inferior derecha, siempre visible
 ════════════════════════════════════════════ -->
-<div id="wa-float" role="complementary" aria-label="Contactar por WhatsApp">
-  <a href="https://wa.me/34637621880?text=Hola%2C%20me%20gustar%C3%ADa%20solicitar%20informaci%C3%B3n%20o%20pedir%20cita%20en%20Neum%C3%A1ticos%20Quesada.%20%C2%BFPodr%C3%ADais%20ayudarme%3F%20Gracias." target="_blank" rel="noopener noreferrer" class="wa-float-inner" aria-label="Abrir WhatsApp">
-    <span style="position:absolute;inset:0;border-radius:100px;backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);pointer-events:none;z-index:0"></span>
-    <!-- Icono con pulso -->
-    <span class="wa-float-icon">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="color:rgba(37,211,102,.95); position:relative; z-index:1"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
-    </span>
-    <!-- Texto — visible en sm+ -->
-    <span class="hidden sm:flex flex-col" style="gap:1px">
-      <span style="font-size:11px; font-weight:700; color:rgba(220,252,231,.95); letter-spacing:.01em; line-height:1.2">WhatsApp</span>
-      <span style="font-size:10px; font-weight:500; color:rgba(156,163,175,.8); line-height:1.2">Reserva tu cita</span>
-    </span>
-    <!-- Flecha decorativa desktop -->
-    <svg class="hidden sm:block" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color:rgba(37,211,102,.55); margin-left:2px"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-  </a>
-</div>
+  <div id="wa-float" role="complementary" aria-label="Contactar por WhatsApp">
+    <a href="https://wa.me/34637621880?text=Hola%2C%20me%20gustar%C3%ADa%20solicitar%20informaci%C3%B3n%20o%20pedir%20cita%20en%20Neum%C3%A1ticos%20Quesada.%20%C2%BFPodr%C3%ADais%20ayudarme%3F%20Gracias."
+      target="_blank" rel="noopener noreferrer" class="wa-float-inner" aria-label="Abrir WhatsApp">
+      <span
+        style="position:absolute;inset:0;border-radius:100px;backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);pointer-events:none;z-index:0"></span>
+      <!-- Icono con pulso -->
+      <span class="wa-float-icon">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"
+          style="color:rgba(37,211,102,.95); position:relative; z-index:1">
+          <path
+            d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z" />
+        </svg>
+      </span>
+      <!-- Texto — visible en sm+ -->
+      <span class="hidden sm:flex flex-col" style="gap:1px">
+        <span
+          style="font-size:11px; font-weight:700; color:rgba(220,252,231,.95); letter-spacing:.01em; line-height:1.2">WhatsApp</span>
+        <span style="font-size:10px; font-weight:500; color:rgba(156,163,175,.8); line-height:1.2">Reserva tu
+          cita</span>
+      </span>
+      <!-- Flecha decorativa desktop -->
+      <svg class="hidden sm:block" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+        stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
+        style="color:rgba(37,211,102,.55); margin-left:2px">
+        <path d="M5 12h14M12 5l7 7-7 7" />
+      </svg>
+    </a>
+  </div>
 
 
-<!-- ════════════════════════════════════════════
+  <!-- ════════════════════════════════════════════
      RUEDA-PROGRESO DE SCROLL — botón "volver arriba"
      Llanta SVG: el rotor gira con el scroll, el aro
      amarillo se rellena como indicador de progreso
 ════════════════════════════════════════════ -->
-<button id="wheel-progress" aria-label="Volver arriba" title="Volver arriba">
-  <!-- Disco de freno incandescente (detrás del rotor) -->
-  <div id="wheel-heat"></div>
-  <!-- Rueda: imagen que gira con inercia -->
-  <img id="wheel-rotor" src="imagenes/rueda-scroll.png" alt="">
-  <!-- Overlay estático sobre la imagen: brillo especular fijo + aro de progreso -->
-  <svg id="wheel-overlay" viewBox="0 0 100 100" width="100%" height="100%" aria-hidden="true">
-    <!-- Brillo especular FIJO (no rota): luz de entorno en el cuarto superior -->
-    <path d="M 13.6 29 A 42 42 0 0 1 86.4 29" fill="none"
-          stroke="#ffffff" stroke-opacity="0.15" stroke-width="4" stroke-linecap="round"/>
-    <!-- Aro de progreso (estático, empieza arriba) -->
-    <circle cx="50" cy="50" r="40" fill="none" stroke="rgba(255,215,0,.16)" stroke-width="3"/>
-    <circle id="wheel-ring" cx="50" cy="50" r="40" fill="none" stroke="#FFD700" stroke-width="3"
-            stroke-linecap="round" transform="rotate(-90 50 50)"/>
-  </svg>
-</button>
+  <button id="wheel-progress" aria-label="Volver arriba" title="Volver arriba">
+    <!-- Disco de freno incandescente (detrás del rotor) -->
+    <div id="wheel-heat"></div>
+    <!-- Rueda: imagen que gira con inercia -->
+    <img id="wheel-rotor" src="imagenes/rueda-scroll.png" alt="">
+    <!-- Overlay estático sobre la imagen: brillo especular fijo + aro de progreso -->
+    <svg id="wheel-overlay" viewBox="0 0 100 100" width="100%" height="100%" aria-hidden="true">
+      <!-- Brillo especular FIJO (no rota): luz de entorno en el cuarto superior -->
+      <path d="M 13.6 29 A 42 42 0 0 1 86.4 29" fill="none" stroke="#ffffff" stroke-opacity="0.15" stroke-width="4"
+        stroke-linecap="round" />
+      <!-- Aro de progreso (estático, empieza arriba) -->
+      <circle cx="50" cy="50" r="40" fill="none" stroke="rgba(255,215,0,.16)" stroke-width="3" />
+      <circle id="wheel-ring" cx="50" cy="50" r="40" fill="none" stroke="#FFD700" stroke-width="3"
+        stroke-linecap="round" transform="rotate(-90 50 50)" />
+    </svg>
+  </button>
 
-<script>
-(function () {
-  'use strict';
-  if (!window.gsap || !window.ScrollTrigger) return;
-  if (!document.documentElement.classList.contains('js-anim')) return;
+  <script>
+    (function () {
+      'use strict';
+      if (!window.gsap || !window.ScrollTrigger) return;
+      if (!document.documentElement.classList.contains('js-anim')) return;
 
-  /* Móvil: la rueda está oculta por CSS — no pagamos física ni ScrollTrigger.
-     Decisión única al cargar (mismo patrón que el vídeo del hero). */
-  if (window.matchMedia('(max-width: 767px)').matches) return;
+      /* Móvil: la rueda está oculta por CSS — no pagamos física ni ScrollTrigger.
+         Decisión única al cargar (mismo patrón que el vídeo del hero). */
+      if (window.matchMedia('(max-width: 767px)').matches) return;
 
-  var wheel = document.getElementById('wheel-progress');
-  var rotor = document.getElementById('wheel-rotor');
-  var ring  = document.getElementById('wheel-ring');
-  var heatDisc = document.getElementById('wheel-heat');
-  if (!wheel || !rotor || !ring || !heatDisc) return;
+      var wheel = document.getElementById('wheel-progress');
+      var rotor = document.getElementById('wheel-rotor');
+      var ring = document.getElementById('wheel-ring');
+      var heatDisc = document.getElementById('wheel-heat');
+      if (!wheel || !rotor || !ring || !heatDisc) return;
 
-  /* ── Knobs de calibración de la rueda ── */
-  var WHEEL_SPIN_FACTOR = 0.13; /* delta scroll → velocidad angular (antes 0.4) */
-  var HEAT_GAIN  = 0.0005;      /* cuánto sube el calor por velocidad */
-  var HEAT_DECAY = 0.985;       /* enfriamiento por frame */
-  var BASE_SHADOW = 'drop-shadow(0 2px 6px rgba(0,0,0,.4))';
+      /* ── Knobs de calibración de la rueda ── */
+      var WHEEL_SPIN_FACTOR = 0.13; /* delta scroll → velocidad angular (antes 0.4) */
+      var HEAT_GAIN = 0.0005;      /* cuánto sube el calor por velocidad */
+      var HEAT_DECAY = 0.985;       /* enfriamiento por frame */
+      var BASE_SHADOW = 'drop-shadow(0 2px 6px rgba(0,0,0,.4))';
 
-  var CIRC = 2 * Math.PI * 40; /* perímetro del aro r=40 */
-  ring.style.strokeDasharray  = CIRC;
-  ring.style.strokeDashoffset = CIRC;
+      var CIRC = 2 * Math.PI * 40; /* perímetro del aro r=40 */
+      ring.style.strokeDasharray = CIRC;
+      ring.style.strokeDashoffset = CIRC;
 
-  /* ── Rotación con inercia: velocidad angular + fricción ──
-     Desligada de la posición de scroll: cada scroll inyecta velocidad,
-     la fricción la disipa (giro rápido que decelera, nunca frena en seco). */
-  var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  var rotation = 0, angularVel = 0, lastY = window.scrollY;
-  var heat = 0, heatApplied = false;
+      /* ── Rotación con inercia: velocidad angular + fricción ──
+         Desligada de la posición de scroll: cada scroll inyecta velocidad,
+         la fricción la disipa (giro rápido que decelera, nunca frena en seco). */
+      var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      var rotation = 0, angularVel = 0, lastY = window.scrollY;
+      var heat = 0, heatApplied = false;
 
-  /* Interpola el efecto de sobrecalentamiento con heat (0→1) */
-  function applyHeat(h) {
-    if (h === 0) {
-      if (heatApplied) {                 /* limpia una sola vez al enfriar */
-        rotor.style.filter = BASE_SHADOW;
-        heatDisc.style.opacity = '0';
-        heatApplied = false;
+      /* Interpola el efecto de sobrecalentamiento con heat (0→1) */
+      function applyHeat(h) {
+        if (h === 0) {
+          if (heatApplied) {                 /* limpia una sola vez al enfriar */
+            rotor.style.filter = BASE_SHADOW;
+            heatDisc.style.opacity = '0';
+            heatApplied = false;
+          }
+          return;
+        }
+        heatApplied = true;
+        var blur = (h * 14).toFixed(1);       /* XX: 0 → 14px */
+        var green = Math.round(140 - h * 80); /* YY: 140 → 60 (rojo más profundo) */
+        rotor.style.filter = BASE_SHADOW +
+          ' drop-shadow(0 0 ' + blur + 'px rgba(255,' + green + ',0,' + h.toFixed(3) + '))';
+        heatDisc.style.opacity = (h * 0.85).toFixed(3);
       }
-      return;
-    }
-    heatApplied = true;
-    var blur = (h * 14).toFixed(1);       /* XX: 0 → 14px */
-    var green = Math.round(140 - h * 80); /* YY: 140 → 60 (rojo más profundo) */
-    rotor.style.filter = BASE_SHADOW +
-      ' drop-shadow(0 0 ' + blur + 'px rgba(255,' + green + ',0,' + h.toFixed(3) + '))';
-    heatDisc.style.opacity = (h * 0.85).toFixed(3);
-  }
 
-  (function spinLoop() {
-    if (angularVel !== 0) {
-      rotation += angularVel;
-      angularVel *= 0.95;                              /* fricción */
-      if (Math.abs(angularVel) < 0.01) angularVel = 0; /* umbral: evita repaints */
-      rotor.style.transform = 'rotate(' + rotation.toFixed(2) + 'deg)';
-    }
+      (function spinLoop() {
+        if (angularVel !== 0) {
+          rotation += angularVel;
+          angularVel *= 0.95;                              /* fricción */
+          if (Math.abs(angularVel) < 0.01) angularVel = 0; /* umbral: evita repaints */
+          rotor.style.transform = 'rotate(' + rotation.toFixed(2) + 'deg)';
+        }
 
-    if (!reduceMotion) {                  /* sin efecto de calor si reduce-motion */
-      heat += Math.abs(angularVel) * HEAT_GAIN;
-      if (heat > 1) heat = 1;
-      heat *= HEAT_DECAY;                 /* enfriamiento */
-      if (heat < 0.03) heat = 0;          /* umbral: evita repaints */
-      applyHeat(heat);
-    }
+        if (!reduceMotion) {                  /* sin efecto de calor si reduce-motion */
+          heat += Math.abs(angularVel) * HEAT_GAIN;
+          if (heat > 1) heat = 1;
+          heat *= HEAT_DECAY;                 /* enfriamiento */
+          if (heat < 0.03) heat = 0;          /* umbral: evita repaints */
+          applyHeat(heat);
+        }
 
-    requestAnimationFrame(spinLoop);
-  })();
+        requestAnimationFrame(spinLoop);
+      })();
 
-  ScrollTrigger.create({
-    trigger: document.body,
-    start: 'top top',
-    end: 'bottom bottom',
-    onUpdate: function (self) {
-      var y = window.scrollY;
-      if (!reduceMotion) angularVel += (y - lastY) * WHEEL_SPIN_FACTOR; /* delta scroll → velocidad angular */
-      lastY = y;
-      ring.style.strokeDashoffset = CIRC * (1 - self.progress);
-      wheel.classList.toggle('wp-visible', y > 300);
-    }
-  });
-  wheel.classList.toggle('wp-visible', window.scrollY > 300);
+      ScrollTrigger.create({
+        trigger: document.body,
+        start: 'top top',
+        end: 'bottom bottom',
+        onUpdate: function (self) {
+          var y = window.scrollY;
+          if (!reduceMotion) angularVel += (y - lastY) * WHEEL_SPIN_FACTOR; /* delta scroll → velocidad angular */
+          lastY = y;
+          ring.style.strokeDashoffset = CIRC * (1 - self.progress);
+          wheel.classList.toggle('wp-visible', y > 300);
+        }
+      });
+      wheel.classList.toggle('wp-visible', window.scrollY > 300);
 
-  wheel.addEventListener('click', function () {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  });
-})();
-</script>
+      wheel.addEventListener('click', function () {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      });
+    })();
+  </script>
 
 
-<!-- ════════════════════════════════════════════
+  <!-- ════════════════════════════════════════════
      GSAP — Marquee reactivo + tipografía cinética
 ════════════════════════════════════════════ -->
-<script>
-(function () {
-  'use strict';
-  if (!window.gsap || !window.ScrollTrigger) return;
-  if (!document.documentElement.classList.contains('js-anim')) return;
+  <script>
+    (function () {
+      'use strict';
+      if (!window.gsap || !window.ScrollTrigger) return;
+      if (!document.documentElement.classList.contains('js-anim')) return;
 
-  var mm = gsap.matchMedia();
+      var mm = gsap.matchMedia();
 
-  /* ── Marquee de marcas: GSAP toma el control con un loop a
-        velocidad constante ── */
-  var track = document.querySelector('.marquee-track');
-  if (track) {
-    var loop = null;
+      /* ── Marquee de marcas: GSAP toma el control con un loop a
+            velocidad constante ── */
+      var track = document.querySelector('.marquee-track');
+      if (track) {
+        var loop = null;
 
-    /* Se desactiva la animación CSS solo aquí: si este script no llega
-       a ejecutarse, el marquee CSS original sigue funcionando */
-    track.style.animation = 'none';
+        /* Se desactiva la animación CSS solo aquí: si este script no llega
+           a ejecutarse, el marquee CSS original sigue funcionando */
+        track.style.animation = 'none';
 
-    mm.add(
-      { small: '(max-width: 640px)', large: '(min-width: 641px)' },
-      function (ctx) {
-        loop = gsap.to(track, {
-          xPercent: -50,
-          duration: ctx.conditions.small ? 16 : 32,
+        mm.add(
+          { small: '(max-width: 640px)', large: '(min-width: 641px)' },
+          function (ctx) {
+            loop = gsap.to(track, {
+              xPercent: -50,
+              duration: ctx.conditions.small ? 16 : 32,
+              ease: 'none',
+              repeat: -1
+            });
+            return function () { loop.kill(); loop = null; };
+          }
+        );
+      }
+
+      /* ── Tipografía cinética detrás de Servicios (solo desktop) ── */
+      mm.add('(min-width: 768px)', function () {
+        var strip = document.querySelector('.kinetic-text');
+        if (!strip) return;
+        gsap.fromTo(strip, { xPercent: -4 }, {
+          xPercent: -16,
           ease: 'none',
-          repeat: -1
-        });
-        return function () { loop.kill(); loop = null; };
-      }
-    );
-  }
-
-  /* ── Tipografía cinética detrás de Servicios (solo desktop) ── */
-  mm.add('(min-width: 768px)', function () {
-    var strip = document.querySelector('.kinetic-text');
-    if (!strip) return;
-    gsap.fromTo(strip, { xPercent: -4 }, {
-      xPercent: -16,
-      ease: 'none',
-      scrollTrigger: {
-        trigger: '#servicios',
-        start: 'top bottom',
-        end: 'bottom top',
-        scrub: 1
-      }
-    });
-  });
-})();
-</script>
-
-
-<!-- ════════════════════════════════════════════
-     GSAP — Micro-interacciones (solo desktop, puntero fino)
-════════════════════════════════════════════ -->
-<script>
-(function () {
-  'use strict';
-  if (!window.gsap) return;
-  if (!document.documentElement.classList.contains('js-anim')) return;
-  if (!window.matchMedia('(hover: hover) and (pointer: fine)').matches) return;
-  if (window.innerWidth < 768) return;
-
-  /* ── Botones magnéticos: se inclinan hacia el cursor ── */
-  document.querySelectorAll('.magnetic').forEach(function (btn) {
-    var xTo = gsap.quickTo(btn, 'x', { duration: 0.4, ease: 'power3.out' });
-    var yTo = gsap.quickTo(btn, 'y', { duration: 0.4, ease: 'power3.out' });
-    btn.addEventListener('mousemove', function (e) {
-      var r = btn.getBoundingClientRect();
-      xTo((e.clientX - r.left - r.width / 2) * 0.25);
-      yTo((e.clientY - r.top - r.height / 2) * 0.35);
-    });
-    btn.addEventListener('mouseleave', function () { xTo(0); yTo(0); });
-  });
-
-  /* ── Tilt 3D sutil en tarjetas de servicio ── */
-  /* Solo en dispositivos con puntero fino y hover real (desktop): en táctil
-     el tilt/brillo mueve el enlace bajo el dedo y roba el primer tap. */
-  if (window.matchMedia && matchMedia('(hover: hover) and (pointer: fine)').matches) {
-    document.querySelectorAll('.svc-card').forEach(function (card) {
-      gsap.set(card, { transformPerspective: 900 });
-
-      card.addEventListener('mouseenter', function () {
-        /* aparta el transform de la transición CSS mientras GSAP manda
-           (la transición de .svc-card/.will-reveal lo suavizaría con lag) */
-        card.style.transitionProperty = 'opacity, box-shadow, border-left, border-color';
-      });
-
-      card.addEventListener('mousemove', function (e) {
-        var r  = card.getBoundingClientRect();
-        var px = (e.clientX - r.left) / r.width  - 0.5;
-        var py = (e.clientY - r.top)  / r.height - 0.5;
-        card.style.setProperty('--mx', (e.clientX - r.left) + 'px');
-        card.style.setProperty('--my', (e.clientY - r.top)  + 'px');
-        gsap.to(card, {
-          rotationY: px * 6,
-          rotationX: py * -6,
-          y: -4,
-          duration: 0.5, ease: 'power2.out', overwrite: 'auto'
-        });
-      });
-
-      card.addEventListener('mouseleave', function () {
-        gsap.to(card, {
-          rotationX: 0, rotationY: 0, y: 0,
-          duration: 0.55, ease: 'power3.out', overwrite: 'auto',
-          onComplete: function () {
-            /* devuelve el control del transform al CSS (.will-reveal) */
-            gsap.set(card, { clearProps: 'transform' });
-            card.style.transitionProperty = '';
+          scrollTrigger: {
+            trigger: '#servicios',
+            start: 'top bottom',
+            end: 'bottom top',
+            scrub: 1
           }
         });
       });
-    });
-  }
-})();
-</script>
+    })();
+  </script>
 
 
-<!-- ════════════════════════════════════════════
+  <!-- ════════════════════════════════════════════
+     GSAP — Micro-interacciones (solo desktop, puntero fino)
+════════════════════════════════════════════ -->
+  <script>
+    (function () {
+      'use strict';
+      if (!window.gsap) return;
+      if (!document.documentElement.classList.contains('js-anim')) return;
+      if (!window.matchMedia('(hover: hover) and (pointer: fine)').matches) return;
+      if (window.innerWidth < 768) return;
+
+      /* ── Botones magnéticos: se inclinan hacia el cursor ── */
+      document.querySelectorAll('.magnetic').forEach(function (btn) {
+        var xTo = gsap.quickTo(btn, 'x', { duration: 0.4, ease: 'power3.out' });
+        var yTo = gsap.quickTo(btn, 'y', { duration: 0.4, ease: 'power3.out' });
+        btn.addEventListener('mousemove', function (e) {
+          var r = btn.getBoundingClientRect();
+          xTo((e.clientX - r.left - r.width / 2) * 0.25);
+          yTo((e.clientY - r.top - r.height / 2) * 0.35);
+        });
+        btn.addEventListener('mouseleave', function () { xTo(0); yTo(0); });
+      });
+
+      /* ── Tilt 3D sutil en tarjetas de servicio ── */
+      /* Solo en dispositivos con puntero fino y hover real (desktop): en táctil
+         el tilt/brillo mueve el enlace bajo el dedo y roba el primer tap. */
+      if (window.matchMedia && matchMedia('(hover: hover) and (pointer: fine)').matches) {
+        document.querySelectorAll('.svc-card').forEach(function (card) {
+          gsap.set(card, { transformPerspective: 900 });
+
+          card.addEventListener('mouseenter', function () {
+            /* aparta el transform de la transición CSS mientras GSAP manda
+               (la transición de .svc-card/.will-reveal lo suavizaría con lag) */
+            card.style.transitionProperty = 'opacity, box-shadow, border-left, border-color';
+          });
+
+          card.addEventListener('mousemove', function (e) {
+            var r = card.getBoundingClientRect();
+            var px = (e.clientX - r.left) / r.width - 0.5;
+            var py = (e.clientY - r.top) / r.height - 0.5;
+            card.style.setProperty('--mx', (e.clientX - r.left) + 'px');
+            card.style.setProperty('--my', (e.clientY - r.top) + 'px');
+            gsap.to(card, {
+              rotationY: px * 6,
+              rotationX: py * -6,
+              y: -4,
+              duration: 0.5, ease: 'power2.out', overwrite: 'auto'
+            });
+          });
+
+          card.addEventListener('mouseleave', function () {
+            gsap.to(card, {
+              rotationX: 0, rotationY: 0, y: 0,
+              duration: 0.55, ease: 'power3.out', overwrite: 'auto',
+              onComplete: function () {
+                /* devuelve el control del transform al CSS (.will-reveal) */
+                gsap.set(card, { clearProps: 'transform' });
+                card.style.transitionProperty = '';
+              }
+            });
+          });
+        });
+      }
+    })();
+  </script>
+
+
+  <!-- ════════════════════════════════════════════
      WHATSAPP — JavaScript
 ════════════════════════════════════════════ -->
-<script>
-(function () {
-  'use strict';
+  <script>
+    (function () {
+      'use strict';
 
-  var WA_NUMBER = '34637621880';
+      var WA_NUMBER = '34637621880';
 
-  /* ── waOpen(service): abre WhatsApp con mensaje contextual ── */
-  window.waOpen = function (service) {
-    var msg;
-    if (service) {
-      msg = 'Hola, me gustaría pedir cita para *' + service + '* en Neumáticos Quesada. ¿Tendríais disponibilidad? Gracias.';
-    } else {
-      msg = 'Hola, me gustaría solicitar información o pedir cita en Neumáticos Quesada. ¿Podríais ayudarme? Gracias.';
-    }
-    var url = 'https://wa.me/' + WA_NUMBER + '?text=' + encodeURIComponent(msg);
-    window.location.href = url;
-  };
+      /* ── waOpen(service): abre WhatsApp con mensaje contextual ── */
+      window.waOpen = function (service) {
+        var msg;
+        if (service) {
+          msg = 'Hola, me gustaría pedir cita para *' + service + '* en Neumáticos Quesada. ¿Tendríais disponibilidad? Gracias.';
+        } else {
+          msg = 'Hola, me gustaría solicitar información o pedir cita en Neumáticos Quesada. ¿Podríais ayudarme? Gracias.';
+        }
+        var url = 'https://wa.me/' + WA_NUMBER + '?text=' + encodeURIComponent(msg);
+        window.location.href = url;
+      };
 
-  /* ── Móvil: el float aparece solo cuando el hero sale del viewport ── */
-  (function () {
-    if (!window.matchMedia('(max-width: 767px)').matches) return;
-    var float = document.getElementById('wa-float');
-    var hero  = document.getElementById('inicio');
-    if (!float || !hero || !('IntersectionObserver' in window)) return;
-    float.classList.add('wa-defer');
-    new IntersectionObserver(function (entries) {
-      float.classList.toggle('wa-show', !entries[0].isIntersecting);
-    }).observe(hero);
-  })();
+      /* ── Móvil: el float aparece solo cuando el hero sale del viewport ── */
+      (function () {
+        if (!window.matchMedia('(max-width: 767px)').matches) return;
+        var float = document.getElementById('wa-float');
+        var hero = document.getElementById('inicio');
+        if (!float || !hero || !('IntersectionObserver' in window)) return;
+        float.classList.add('wa-defer');
+        new IntersectionObserver(function (entries) {
+          float.classList.toggle('wa-show', !entries[0].isIntersecting);
+        }).observe(hero);
+      })();
 
-})();
+    })();
 
-// ── Counter animation (Nosotros stats) — efecto odómetro ──
-// Mismo IntersectionObserver, easing y data-attrs que el contador original;
-// ahora cada dígito es un carrete vertical que rueda como un cuentakilómetros.
-(function () {
-  const stats = document.querySelectorAll('[data-count]');
-  if (!stats.length) return;
+    // ── Counter animation (Nosotros stats) — efecto odómetro ──
+    // Mismo IntersectionObserver, easing y data-attrs que el contador original;
+    // ahora cada dígito es un carrete vertical que rueda como un cuentakilómetros.
+    (function () {
+      const stats = document.querySelectorAll('[data-count]');
+      if (!stats.length) return;
 
-  const reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+      const reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  function easeOut(t) { return 1 - Math.pow(1 - t, 3); }
+      function easeOut(t) { return 1 - Math.pow(1 - t, 3); }
 
-  /* Sustituye el nodo de texto por carretes de dígitos.
-     El sizer invisible conserva el ancho; el carrete (0-9 + 0 extra
-     para el wrap 9→0) se desplaza con translateY en em. */
-  function buildReels(el) {
-    const target   = parseFloat(el.dataset.count);
-    const decimals = parseInt(el.dataset.decimals || '0', 10);
-    const str      = target.toFixed(decimals);
-    const wrap     = document.createElement('span');
-    wrap.className = 'odo';
-    const reels    = [];
-    let place      = str.replace('.', '').length - 1;
+      /* Sustituye el nodo de texto por carretes de dígitos.
+         El sizer invisible conserva el ancho; el carrete (0-9 + 0 extra
+         para el wrap 9→0) se desplaza con translateY en em. */
+      function buildReels(el) {
+        const target = parseFloat(el.dataset.count);
+        const decimals = parseInt(el.dataset.decimals || '0', 10);
+        const str = target.toFixed(decimals);
+        const wrap = document.createElement('span');
+        wrap.className = 'odo';
+        const reels = [];
+        let place = str.replace('.', '').length - 1;
 
-    for (const ch of str) {
-      if (ch === '.') {
-        const dot = document.createElement('span');
-        dot.textContent = '.';
-        wrap.appendChild(dot);
-        continue;
+        for (const ch of str) {
+          if (ch === '.') {
+            const dot = document.createElement('span');
+            dot.textContent = '.';
+            wrap.appendChild(dot);
+            continue;
+          }
+          const cell = document.createElement('span');
+          cell.className = 'odo-digit';
+          const sizer = document.createElement('span');
+          sizer.className = 'odo-sizer';
+          sizer.textContent = '8';
+          const reel = document.createElement('span');
+          reel.className = 'odo-reel';
+          for (let d = 0; d <= 10; d++) {
+            const s = document.createElement('span');
+            s.textContent = d % 10;
+            reel.appendChild(s);
+          }
+          cell.appendChild(sizer);
+          cell.appendChild(reel);
+          wrap.appendChild(cell);
+          reels.push({ reel, div: Math.pow(10, place) });
+          place--;
+        }
+        el.replaceChild(wrap, el.firstChild);
+        return { reels, scaled: target * Math.pow(10, decimals) };
       }
-      const cell  = document.createElement('span');
-      cell.className = 'odo-digit';
-      const sizer = document.createElement('span');
-      sizer.className = 'odo-sizer';
-      sizer.textContent = '8';
-      const reel  = document.createElement('span');
-      reel.className = 'odo-reel';
-      for (let d = 0; d <= 10; d++) {
-        const s = document.createElement('span');
-        s.textContent = d % 10;
-        reel.appendChild(s);
+
+      /* Posición continua de cada carrete: las unidades ruedan en continuo;
+         los dígitos superiores solo giran durante la transición 9→0 del
+         dígito inferior, como un odómetro mecánico real. */
+      function digitPos(value, div) {
+        if (div === 1) return value % 10;
+        const base = Math.floor(value / div) % 10;
+        const lower = (value / (div / 10)) % 10;
+        return base + (lower > 9 ? lower - 9 : 0);
       }
-      cell.appendChild(sizer);
-      cell.appendChild(reel);
-      wrap.appendChild(cell);
-      reels.push({ reel, div: Math.pow(10, place) });
-      place--;
-    }
-    el.replaceChild(wrap, el.firstChild);
-    return { reels, scaled: target * Math.pow(10, decimals) };
-  }
 
-  /* Posición continua de cada carrete: las unidades ruedan en continuo;
-     los dígitos superiores solo giran durante la transición 9→0 del
-     dígito inferior, como un odómetro mecánico real. */
-  function digitPos(value, div) {
-    if (div === 1) return value % 10;
-    const base  = Math.floor(value / div) % 10;
-    const lower = (value / (div / 10)) % 10;
-    return base + (lower > 9 ? lower - 9 : 0);
-  }
+      function render(reels, value) {
+        reels.forEach(r => {
+          r.reel.style.transform = 'translateY(' + (-digitPos(value, r.div)) + 'em)';
+        });
+      }
 
-  function render(reels, value) {
-    reels.forEach(r => {
-      r.reel.style.transform = 'translateY(' + (-digitPos(value, r.div)) + 'em)';
-    });
-  }
+      function animateCounter(el) {
+        const duration = parseFloat(el.dataset.duration || '1500');
+        const odo = buildReels(el);
+        if (reduce) { render(odo.reels, odo.scaled); return; }
+        render(odo.reels, 0);
+        const start = performance.now();
+        function tick(now) {
+          const progress = Math.min((now - start) / duration, 1);
+          render(odo.reels, odo.scaled * easeOut(progress));
+          if (progress < 1) requestAnimationFrame(tick);
+        }
+        requestAnimationFrame(tick);
+      }
 
-  function animateCounter(el) {
-    const duration = parseFloat(el.dataset.duration || '1500');
-    const odo = buildReels(el);
-    if (reduce) { render(odo.reels, odo.scaled); return; }
-    render(odo.reels, 0);
-    const start = performance.now();
-    function tick(now) {
-      const progress = Math.min((now - start) / duration, 1);
-      render(odo.reels, odo.scaled * easeOut(progress));
-      if (progress < 1) requestAnimationFrame(tick);
-    }
-    requestAnimationFrame(tick);
-  }
+      const observer = new IntersectionObserver(entries => {
+        entries.forEach(entry => {
+          if (!entry.isIntersecting) return;
+          stats.forEach(animateCounter);
+          observer.disconnect();
+        });
+      }, { threshold: 0.3 });
 
-  const observer = new IntersectionObserver(entries => {
-    entries.forEach(entry => {
-      if (!entry.isIntersecting) return;
-      stats.forEach(animateCounter);
-      observer.disconnect();
-    });
-  }, { threshold: 0.3 });
+      const nosotros = document.getElementById('nosotros');
+      if (nosotros) observer.observe(nosotros);
+    })();
 
-  const nosotros = document.getElementById('nosotros');
-  if (nosotros) observer.observe(nosotros);
-})();
-
-</script>
+  </script>
 
 </body>
-</html>
 
+</html>
