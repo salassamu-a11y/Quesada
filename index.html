@@ -876,6 +876,115 @@
   <link rel="icon" type="image/png" sizes="16x16" href="imagenes/nq2f-16.png">
   <link rel="icon" type="image/png" sizes="192x192" href="imagenes/nq2f-192.png">
   <link rel="apple-touch-icon" href="imagenes/nq2f-apple-touch-icon.png">
+
+  <!-- Datos estructurados (schema.org). Horario derivado de updateStatus().
+       Sin aggregateRating/review a propósito: las reseñas viven en Google Business Profile. -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "AutoRepair",
+    "@id": "https://neumaticosquesada.com/#business",
+    "name": "Neumáticos Quesada",
+    "url": "https://neumaticosquesada.com/",
+    "telephone": "+34963593087",
+    "image": "https://neumaticosquesada.com/imagenes/og-image.jpg",
+    "logo": "https://neumaticosquesada.com/imagenes/logo_quesada_navy.png",
+    "foundingDate": "1994",
+    "priceRange": "€€",
+    "address": {
+      "@type": "PostalAddress",
+      "streetAddress": "C/ del Cardenal Benlloch, 67, bajo",
+      "addressLocality": "Mislata",
+      "addressRegion": "Valencia",
+      "postalCode": "46920",
+      "addressCountry": "ES"
+    },
+    "geo": {
+      "@type": "GeoCoordinates",
+      "latitude": 39.473826,
+      "longitude": -0.421161
+    },
+    "openingHoursSpecification": [
+      {
+        "@type": "OpeningHoursSpecification",
+        "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday"],
+        "opens": "08:00",
+        "closes": "14:00"
+      },
+      {
+        "@type": "OpeningHoursSpecification",
+        "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday"],
+        "opens": "15:30",
+        "closes": "20:00"
+      },
+      {
+        "@type": "OpeningHoursSpecification",
+        "dayOfWeek": "Friday",
+        "opens": "08:00",
+        "closes": "16:00"
+      },
+      {
+        "@type": "OpeningHoursSpecification",
+        "dayOfWeek": ["Saturday", "Sunday"],
+        "opens": "00:00",
+        "closes": "00:00"
+      }
+    ],
+    "sameAs": ["https://g.co/kgs/uhA6gAq"],
+    "areaServed": [
+      {"@type": "City", "name": "Mislata"},
+      {"@type": "City", "name": "Valencia"},
+      {"@type": "City", "name": "Quart de Poblet"},
+      {"@type": "City", "name": "Xirivella"}
+    ],
+    "hasOfferCatalog": {
+      "@type": "OfferCatalog",
+      "name": "Servicios",
+      "itemListElement": [
+        {
+          "@type": "Offer",
+          "itemOffered": {
+            "@type": "Service",
+            "name": "Reparación",
+            "description": "Detección y reparación de pinchazos y daños. Evaluamos el neumático antes de cualquier intervención para garantizar tu seguridad."
+          }
+        },
+        {
+          "@type": "Offer",
+          "itemOffered": {
+            "@type": "Service",
+            "name": "Alineación",
+            "description": "Corrección de geometría con tecnología láser. Mayor seguridad, menor consumo y neumáticos que duran más kilómetros."
+          }
+        },
+        {
+          "@type": "Offer",
+          "itemOffered": {
+            "@type": "Service",
+            "name": "Montaje",
+            "description": "Desmontaje y montaje profesional rápido y seguro. Amplio stock de primeras marcas para todo tipo de vehículos."
+          }
+        },
+        {
+          "@type": "Offer",
+          "itemOffered": {
+            "@type": "Service",
+            "name": "Equilibrado",
+            "description": "Eliminamos las vibraciones para una conducción suave y prevenimos el desgaste desigual que acorta la vida útil del neumático."
+          }
+        },
+        {
+          "@type": "Offer",
+          "itemOffered": {
+            "@type": "Service",
+            "name": "Válvulas TPMS y codificadas",
+            "description": "Sustitución y programación de sensores de presión de neumáticos. Si tu testigo de presión está encendido o has cambiado de ruedas, revisamos, reemplazamos y codificamos la válvula para tu vehículo."
+          }
+        }
+      ]
+    }
+  }
+  </script>
 </head>
 
 <body class="bg-q-navy text-white antialiased">
@@ -1871,7 +1980,7 @@
     // ── Vacaciones: antepone el aviso al texto prerrellenado de todos los enlaces wa.me ──
     (function () {
       if (!enVacaciones()) return;
-      const aviso = 'Hola, sé que estáis de vacaciones hasta el ' + VACACIONES.fechaVuelta + '. ';
+      const aviso = 'Sé que estáis de vacaciones hasta el ' + VACACIONES.fechaVuelta + '. ';
       document.querySelectorAll('a[href^="https://wa.me/"]').forEach(a => {
         try {
           const url = new URL(a.href);
