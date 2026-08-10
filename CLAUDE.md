@@ -87,6 +87,33 @@ proyecto/
 - **`#contacto` — tarjetas teléfono/email**: grid pasa de 2 columnas fijas a 1 columna en móvil (`grid-cols-1 md:grid-cols-2`); email usa `break-words` en vez de `break-all` (evita cortes agresivos en pantallas anchas).
 - **`#resenas`**: `scroll-mt-20` en móvil para que el ancla de navegación no quede tapada por el header fijo (`md:scroll-mt-0` en desktop, sin header fijo que lo requiera).
 
+## Cierre por vacaciones (index.html)
+Aviso de cierre temporal controlado por un único objeto de configuración, sin backend.
+
+- **Objeto `VACACIONES`** (cabecera del script principal, ~línea 1822): `{activo, desde, hasta, textoCorto, textoLargo, fechaVuelta}`. Rango actual **2026-08-08 → 2026-08-31** (inclusivo), `fechaVuelta: '1 de septiembre'`.
+- **`enVacaciones()`**: obtiene "hoy" con `Intl.DateTimeFormat('en-CA', {timeZone:'Europe/Madrid'})` y compara **strings `YYYY-MM-DD`**, nunca objetos `Date`. Motivo: el visitante puede estar en otra zona horaria; comparando fechas locales del navegador el aviso saldría un día antes/después según el país. Mismo patrón que `hoyMadrid()` en server.js.
+- **Tres puntos de aviso**, todos condicionados por `enVacaciones()`:
+  1. **Banner `#vac-banner`**: `<div>` al inicio del `<body>`, `fixed top-0 inset-x-0 z-[60]` (por encima del header, que va a `z-50`), fondo `q-yellow` sobre texto navy. Oculto por defecto (`style="display:none"` en el HTML) y mostrado por JS — sin JS no aparece nada roto.
+  2. **Corte previo en `updateStatus()`** (`#status-pill`): sale antes del cálculo horario reutilizando el estilo "cerrado" existente (punto rojo, `ping` a opacidad 0) con `VACACIONES.textoCorto`.
+  3. **Reescritura del `?text=` de los enlaces `wa.me`**: recorre `a[href^="https://wa.me/"]` y antepone `"Sé que estáis de vacaciones hasta el <fechaVuelta>. "` al texto prerrellenado, vía `new URL()` + `searchParams.set` (href malformado → `try/catch` que lo deja intacto).
+- **Compensación de altura (`vacBannerH`)**: el banner desplaza todo hacia abajo, así que `aplicarAltura()` mide `b.offsetHeight` y ajusta `hdr.style.top`, el `padding-top` de `#inicio` y el offset del smooth-scroll de anclas. **Se remide con `ResizeObserver`** sobre el banner (fallback: listener de `resize`): medir `offsetHeight` una sola vez falla porque las fuentes web cambian el alto del texto al cargar y el banner puede pasar de una a dos líneas.
+- **Desactivación**: poner `activo: false` — o simplemente dejar que el rango expire (`enVacaciones()` devuelve `false` fuera de `desde`–`hasta`). **No borrar el bloque**: se reutiliza en el siguiente cierre cambiando las fechas.
+
+## Teléfono del taller en index.html
+- **963 593 087** — fijo del taller, verificado en WhatsApp Business (mismo número para llamadas y WhatsApp).
+- **Aparece LITERAL en 12 sitios**, en tres formatos distintos según el uso:
+
+| Formato | Dónde | Nº de apariciones |
+|---------|-------|-------------------|
+| `34963593087` (prefijo, sin `+` ni espacios) | `href="https://wa.me/34963593087?text=..."` — hero, menú móvil, `#contacto`, `#wa-float` | 4 |
+| `34963593087` | constante `WA_NUMBER` del script secundario | 1 |
+| `963593087` (sin prefijo ni espacios) | `href="tel:963593087"` — header, menú móvil, CTA banner, `#contacto` (2×), footer | 6 |
+| `963 593 087` (texto visible, agrupado 3-3-3) | texto de los enlaces `tel:` + **`<meta name="description">`** del `<head>` | — |
+
+- **Si el taller cambia de número, hay que revisar TODOS**: los 4 `wa.me`, `WA_NUMBER`, los 6 `tel:` y la meta description. No hay una única fuente de verdad.
+- **DELIBERADO: el número no se inyecta por JS.** Los CTA de WhatsApp deben funcionar aunque el JS falle o no llegue a ejecutarse; un `href` construido en runtime dejaría los 4 botones muertos ante cualquier error de script. La duplicación es el precio de esa garantía.
+- **No confundir con Twilio**: el número que enviará los recordatorios automáticos es **distinto** (número Twilio pendiente de compra) y se configura aparte, en variables de entorno del backend.
+
 ## Favicon
 - Set completo en `imagenes/`: `nq2f-favicon.ico`, `nq2f-16.png`, `nq2f-32.png`, `nq2f-192.png`, `nq2f-apple-touch-icon.png`.
 - Declarado en `<head>` con 5 `<link>` (icon .ico `sizes="any"`, icon png 16/32/192, apple-touch-icon).
@@ -225,6 +252,8 @@ Los .env cambian solo al reiniciar el proceso: Ctrl+C y volver a arrancar.
 | config.json   | ❌     | No creado, no referenciado en el código                |
 | Twilio        | ⚠️     | Código migrado a plantilla y verificado en dry-run. Bloqueado por: bundle regulatorio ES → número → sender/WABA → plantilla aprobada. Falta `TWILIO_CONTENT_SID` real. |
 | Deploy Render | ✅     | En producción — plan Starter, Frankfurt, disco 1 GB en /data, auto-deploy desde main (ver sección propia) |
+| Enlaces wa.me | ✅     | Los 4 apuntan ya al fijo del taller (34963593087), no al número personal — ver "Teléfono del taller en index.html" |
+| Vacaciones    | ✅     | Aviso activo 2026-08-08 → 2026-08-31 (banner + pill + texto wa.me) — ver sección propia |
 
 ## WhatsApp — Aclaración operativa
 - El WhatsApp Business actual del taller sigue gestionado manualmente por Vicky (sin cambios).
@@ -232,6 +261,7 @@ Los .env cambian solo al reiniciar el proceso: Ctrl+C y volver a arrancar.
 
 ## Deuda técnica / Pendiente
 - Status callback de Twilio: el SID devuelto significa "aceptado", no "entregado". Saber si el cliente recibió el recordatorio requiere un webhook de status. Pendiente, no bloquea la entrega.
+- **`waOpen()` es código muerto** (script secundario de index.html, ~línea 2305): construye una URL `wa.me` con mensaje contextual por servicio a partir de `WA_NUMBER`, pero **ningún `onclick` la referencia**. Decidir: o se conecta a los CTA "Solicitar servicio →" de las cards de `#servicios` (que es para lo que se escribió), o se elimina junto con `WA_NUMBER`.
 
 ## Reglas
 - Claude Code nunca ejecuta curl ni llamadas reales a Twilio para debuggear
