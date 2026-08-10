@@ -11,7 +11,17 @@ const PORT = process.env.PORT || 3001;
 const DATA_DIR = process.env.DATA_DIR || __dirname;
 const CITAS_PATH = path.join(DATA_DIR, 'citas.json');
 
-const twilioClient = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+// Cliente perezoso: instanciarlo al cargar el módulo hace que unas
+// credenciales ausentes o mal escritas tumben TODO el servidor al arrancar
+// (incluido el panel /admin), cuando lo único que debería caer es el envío
+// de recordatorios. Se crea en el primer envío y se cachea.
+let twilioClient = null;
+function getTwilioClient() {
+  if (!twilioClient) {
+    twilioClient = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+  }
+  return twilioClient;
+}
 
 // Red de seguridad de proceso. Una rejection asíncrona suelta (p. ej. un await
 // que lanza dentro del handler HTTP) es local a esa petición y no corrompe el
@@ -206,26 +216,51 @@ function maskPhones(text) {
   });
 }
 
-async function sendWhatsApp(telefono, mensaje) {
-  const clean = telefono.replace(/[\s\-]/g, '').replace(/^(\+34|34)/, '');
-  return twilioClient.messages.create({
-    from: process.env.TWILIO_WHATSAPP_FROM,
-    to: `whatsapp:+34${clean}`,
-    body: mensaje,
-  });
-}
+// Envío por plantilla aprobada de Meta (Content Template Builder). NO existe
+// camino de texto libre: fuera de la ventana de 24h Meta rechaza el body
+// suelto, así que un fallback silencioso solo produciría fallos opacos.
+async function sendWhatsApp(cita) {
+  const contentSid = process.env.TWILIO_CONTENT_SID;
+  if (!contentSid) {
+    throw new Error('TWILIO_CONTENT_SID no configurado: no se puede enviar la plantilla de WhatsApp');
+  }
 
-function buildReminderText(cita) {
-  const taller = process.env.TALLER_NOMBRE || 'el taller';
-  return `Hola ${cita.nombre} 👋 Soy el asistente de ${taller}. Te recordamos que tienes cita el ${cita.fecha} a las ${cita.hora} para ${cita.servicio}. ¡Te esperamos!`;
+  const clean = cita.telefono.replace(/[\s\-]/g, '').replace(/^(\+34|34)/, '');
+  const to = `whatsapp:+34${clean}`;
+  const contentVariables = JSON.stringify({
+    1: contentVar(cita.nombre, 'nombre'),
+    2: contentVar(fechaLegible(cita.fecha), 'fecha'),
+    3: contentVar(cita.hora, 'hora'),
+    4: contentVar(cita.servicio, 'servicio'),
+    5: contentVar(process.env.TALLER_TELEFONO, 'TALLER_TELEFONO'),
+  });
+
+  // Simulación: ni una llamada a Twilio. El payload se loggea enmascarado
+  // (destino y teléfono del taller viajan dentro).
+  if (process.env.TWILIO_DRY_RUN === 'true') {
+    console.log('[whatsapp][DRY_RUN] payload:', maskPhones(JSON.stringify({
+      to, contentSid, contentVariables,
+    })));
+    return { sid: 'DRYRUN', dryRun: true };
+  }
+
+  return getTwilioClient().messages.create({
+    from: process.env.TWILIO_WHATSAPP_FROM,
+    to,
+    contentSid,
+    contentVariables,
+  });
 }
 
 // Recordatorios automáticos diarios a las 19:00
 cron.schedule('0 19 * * *', async () => {
   const citas = readCitas();
-  const tomorrow = new Date();
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  const tomorrowStr = tomorrow.toISOString().split('T')[0];
+  // "Mañana" en Europe/Madrid, mismo enfoque que hoyMadrid(): el proceso corre
+  // en UTC y toISOString() desfasaría el día en horario local de tarde/noche.
+  // Sumar 24h en ms es seguro AQUÍ porque el cron dispara a las 19:00: el
+  // desfase de ±1h del cambio de hora nunca cruza medianoche. Si se mueve
+  // el cron a última hora de la noche, hay que recalcular en zona Madrid.
+  const tomorrowStr = fechaMadrid(new Date(Date.now() + 24 * 60 * 60 * 1000));
 
   const pendientes = citas.filter(c =>
     c.estado === 'confirmada' &&
@@ -233,17 +268,35 @@ cron.schedule('0 19 * * *', async () => {
     !c.recordatorioEnviado
   );
 
+  let enviados = 0;
   for (const cita of pendientes) {
     try {
-      await sendWhatsApp(cita.telefono, buildReminderText(cita));
-      cita.recordatorioEnviado = true;
+      const envio = await sendWhatsApp(cita);
+      // En simulación no hubo entrega real: marcar la cita dejaría el test
+      // local irrepetible (la siguiente pasada ya la filtraría fuera).
+      if (envio?.dryRun) {
+        console.log(`[cron][DRY_RUN] ${cita.id}: no se marca recordatorioEnviado`);
+        continue;
+      }
+      // Persistencia inmediata sobre lectura fresca: el array leído al empezar
+      // el barrido está obsoleto tras cada await (el panel puede haber creado,
+      // borrado o modificado citas mientras tanto). Escribirlo entero al final
+      // pisaría esos cambios.
+      const actuales = readCitas();
+      const target = actuales.find(c => c.id === cita.id);
+      if (!target) {
+        console.warn(`[cron] Cita ${cita.id} ya no existe al persistir el recordatorio; se omite`);
+        continue;
+      }
+      target.recordatorioEnviado = true;
+      writeCitas(actuales);
+      enviados += 1;
     } catch (err) {
       console.error(`Error recordatorio ${cita.id}:`, maskPhones(err.message));
     }
   }
 
-  if (pendientes.length > 0) writeCitas(citas);
-  console.log(`[cron] Recordatorios enviados: ${pendientes.length}`);
+  console.log(`[cron] Recordatorios: ${enviados} enviados de ${pendientes.length} pendientes`);
 }, { timezone: 'Europe/Madrid' });
 
 // Escapa datos variables antes de interpolarlos en el HTML del panel (anti-XSS).
@@ -262,10 +315,32 @@ function escapeHtml(str) {
 const FMT_FECHA_MADRID = new Intl.DateTimeFormat('en-CA', {
   timeZone: 'Europe/Madrid', year: 'numeric', month: '2-digit', day: '2-digit'
 });
-function hoyMadrid() {
+function fechaMadrid(date) {
   const p = {};
-  for (const { type, value } of FMT_FECHA_MADRID.formatToParts(new Date())) p[type] = value;
+  for (const { type, value } of FMT_FECHA_MADRID.formatToParts(date)) p[type] = value;
   return `${p.year}-${p.month}-${p.day}`;
+}
+function hoyMadrid() {
+  return fechaMadrid(new Date());
+}
+
+// "2026-08-12" → "martes 12 de agosto", para la variable {{2}} de la plantilla.
+// Se ancla a mediodía UTC: Madrid va +1/+2h, así que nunca cae en el día
+// anterior al formatear en zona local.
+const FMT_FECHA_LEGIBLE = new Intl.DateTimeFormat('es-ES', {
+  timeZone: 'Europe/Madrid', weekday: 'long', day: 'numeric', month: 'long'
+});
+function fechaLegible(fecha) {
+  return FMT_FECHA_LEGIBLE.format(new Date(`${fecha}T12:00:00Z`));
+}
+
+// Meta rechaza variables de plantilla vacías, con saltos de línea o con
+// series largas de espacios. Fallar aquí, antes de llamar a Twilio, da un
+// error legible en el log en vez de un código opaco de Meta a las 19:00.
+function contentVar(valor, campo) {
+  const v = String(valor ?? '').replace(/\s+/g, ' ').trim();
+  if (!v) throw new Error(`Variable de plantilla vacía: ${campo}`);
+  return v;
 }
 
 // Validación de entrada del panel admin (#7). Devuelve el mensaje de error
@@ -646,9 +721,22 @@ const server = http.createServer(async (req, res) => {
         return;
       }
       try {
-        await sendWhatsApp(cita.telefono, buildReminderText(cita));
-        cita.recordatorioEnviado = true;
-        writeCitas(citas);
+        const envio = await sendWhatsApp(cita);
+        if (envio?.dryRun) {
+          // Sin entrega real no se persiste nada: el test local queda repetible.
+          console.log(`[recordatorio][DRY_RUN] ${cita.id}: no se marca recordatorioEnviado`);
+        } else {
+          // Relectura tras el await: el array de arriba quedó obsoleto durante la
+          // llamada a Twilio y escribirlo pisaría cambios concurrentes.
+          const actuales = readCitas();
+          const target = actuales.find(c => c.id === recMatch[1]);
+          if (target) {
+            target.recordatorioEnviado = true;
+            writeCitas(actuales);
+          } else {
+            console.warn(`[recordatorio] Cita ${recMatch[1]} ya no existe al persistir; WhatsApp enviado igualmente`);
+          }
+        }
         res.writeHead(302, { Location: '/admin' });
         res.end();
       } catch (err) {
@@ -666,4 +754,17 @@ const server = http.createServer(async (req, res) => {
 
 server.listen(PORT, () => {
   console.log(`${process.env.TALLER_NOMBRE || 'Server'} escuchando en puerto ${PORT}`);
+
+  // Sin Twilio configurado la web y el panel siguen siendo plenamente
+  // usables (solo cae el envío de recordatorios): se avisa, no se aborta.
+  const faltan = [
+    'TWILIO_ACCOUNT_SID',
+    'TWILIO_AUTH_TOKEN',
+    'TWILIO_WHATSAPP_FROM',
+    'TWILIO_CONTENT_SID',
+    'TALLER_TELEFONO',   // alimenta la variable {{5}}: contentVar() lanza si falta
+  ].filter(k => !process.env[k]);
+  if (faltan.length) {
+    console.warn(`[twilio] Variables sin configurar: ${faltan.join(', ')}. Los recordatorios de WhatsApp fallarán hasta que se definan.`);
+  }
 });
