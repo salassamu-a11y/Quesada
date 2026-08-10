@@ -32,6 +32,8 @@ proyecto/
 ├── videos/           ← hero-quesada.mp4, hero-quesada-movil.mp4, hero-poster.jpg, hero-poster-movil.jpg (ver sección Hero — vídeo de fondo)
 ├── .env              ← credenciales (nunca al repo)
 ├── CNAME             ← dominio propio para GitHub Pages: neumaticosquesada.com
+├── robots.txt        ← raíz del repo, servido por GitHub Pages (ver "SEO técnico")
+├── sitemap.xml       ← raíz del repo, una sola URL (ver "SEO técnico")
 └── package.json
 
 > Nota: `taller-interior.jpeg` y `Horario.jpeg` (fotos reales del taller) se archivaron fuera del repo en `..\Quesada-archivo\` — posible uso futuro en revisión visual o slider antes/después.
@@ -122,6 +124,27 @@ Aviso de cierre temporal controlado por un único objeto de configuración, sin 
 - `<link rel="canonical" href="https://neumaticosquesada.com/">` justo tras `<meta name="description">`.
 - Bloque de metas OG + Twitter Card: `og:type=website`, `og:site_name`, `og:title`, `og:description`, `og:url` (`https://neumaticosquesada.com/`), `og:image` (URL **absoluta** a `https://neumaticosquesada.com/imagenes/og-image.jpg`), `og:image:width=1200` / `og:image:height=630`, `og:locale=es_ES`; `twitter:card=summary_large_image`. Antes apuntaban a `salassamu-a11y.github.io/Quesada/` (subdominio de GitHub Pages); ahora usan el dominio propio, declarado también en `CNAME`.
 - **Asset** `imagenes/og-image.jpg` (1200×630): composición fachada + marca con el contenido centrado en la **zona segura cuadrada**, para sobrevivir al recorte cuadrado que aplica WhatsApp al preview (la imagen se recompuso expresamente por esto).
+
+## SEO técnico
+
+### JSON-LD schema.org (index.html)
+- Bloque `<script type="application/ld+json">` al **final del `<head>`** de index.html (~líneas 880-983), tipo **`AutoRepair`**, con `@id: https://neumaticosquesada.com/#business`.
+- **Contenido**: `name`, `url`, `telephone` (`+34963593087`), `image` (og-image), `logo`, `foundingDate` 1994, `priceRange`, `address`, `geo` (39.473826, -0.421161), `openingHoursSpecification`, `sameAs`, `areaServed` y `hasOfferCatalog` con los 5 servicios.
+- **Dirección — coherencia NAP**: `C/ del Cardenal Benlloch, 67, bajo`, en **forma castellana**, exactamente la misma que la ficha de Google. Los datos Name-Address-Phone deben coincidir literalmente entre web, JSON-LD y ficha; una variante ortográfica distinta se lee como otro negocio.
+- **`openingHoursSpecification`: CUATRO entradas**, no dos:
+  1. L–J mañana `08:00–14:00`
+  2. L–J tarde `15:30–20:00`
+  3. V continuo `08:00–16:00`
+  4. Sábado + domingo `00:00–00:00`
+  El fin de semana se declara cerrado **EXPLÍCITAMENTE**: en schema.org omitir un día no significa "cerrado", significa "sin datos" — y Google podría rellenarlo desde otras fuentes.
+- **DELIBERADO: sin `aggregateRating` ni `review`.** Google penaliza el marcado de reseñas auto-declaradas sobre el propio negocio; las estrellas de los resultados de búsqueda vienen del Google Business Profile, no del JSON-LD.
+- **Si cambia el horario de la web, hay que actualizar TAMBIÉN el JSON-LD**: son dos fuentes independientes (la otra es `updateStatus()` en el script principal). No hay sincronización automática entre ambas.
+- **VERIFICADO en producción** con `search.google.com/test/rich-results`: 2 elementos válidos (Empresas locales + Organización), sin errores.
+
+### robots.txt y sitemap.xml
+- Ambos en la **raíz del repo**, servidos directamente por GitHub Pages.
+- El sitemap tiene **una sola URL**: es una web de página única y **las anclas (`#servicios`, `#contacto`…) NO son URLs** — no se listan.
+- `lastmod` es **fijo**: conviene actualizarlo a mano cuando cambie el contenido de la home.
 
 ## Hero — vídeo de fondo (#inicio)
 `.hero-img-wrap` (dentro de `#inicio`) contiene `<video id="hero-video">` + `<img class="hero-fallback-img">` (fallback estático `taller-fachada.jpeg`, no se borra del proyecto).
@@ -243,6 +266,15 @@ Con `TWILIO_DRY_RUN=true` en .env y `$env:PORT=3005; node server.js`:
 
 Los .env cambian solo al reiniciar el proceso: Ctrl+C y volver a arrancar.
 
+## Prueba de concurrencia (verificada)
+Carga real contra `POST /admin/cita` en local con **autocannon**, para validar el patrón de persistencia bajo escrituras simultáneas.
+
+- **Aislar los datos**: `$env:DATA_DIR` apuntando a una **carpeta temporal**. Nunca contra Render ni contra el `citas.json` de desarrollo.
+- **Body en archivo** con `-i body.json`. **OJO — generarlo con `[IO.File]::WriteAllText`, NO con `Out-File -Encoding utf8`**: PowerShell añade BOM, `parseBody` devuelve `null` y todas las peticiones fallan con un 400 silencioso que parece un problema del servidor.
+- **Pasar el JSON inline con `-b` tampoco funciona**: autocannon interpreta mal las barras de escape y falla con "Invalid URL".
+- **Auth básica**: cabecera `Authorization` con las credenciales del `.env` **LOCAL**, no las de Render.
+- **RESULTADO**: 20 conexiones simultáneas, 50 peticiones → **50 citas con 50 ids únicos**, sin pérdidas ni JSON corrupto. `writeCitas` atómico y el patrón de persistencia validados bajo carga.
+
 ## Estado actual
 | Área          | Estado | Notas                                                  |
 |---------------|--------|--------------------------------------------------------|
@@ -254,12 +286,17 @@ Los .env cambian solo al reiniciar el proceso: Ctrl+C y volver a arrancar.
 | Deploy Render | ✅     | En producción — plan Starter, Frankfurt, disco 1 GB en /data, auto-deploy desde main (ver sección propia) |
 | Enlaces wa.me | ✅     | Los 4 apuntan ya al fijo del taller (34963593087), no al número personal — ver "Teléfono del taller en index.html" |
 | Vacaciones    | ✅     | Aviso activo 2026-08-08 → 2026-08-31 (banner + pill + texto wa.me) — ver sección propia |
+| SEO técnico   | ✅     | JSON-LD AutoRepair + robots.txt + sitemap.xml en producción, validados en Rich Results Test — ver sección propia |
+| Concurrencia  | ✅     | Probada con autocannon: 50 citas / 20 conexiones, sin pérdidas — ver sección propia |
 
 ## WhatsApp — Aclaración operativa
 - El WhatsApp Business actual del taller sigue gestionado manualmente por Vicky (sin cambios).
 - Número Twilio **nuevo pendiente de compra**, exclusivo para envío de recordatorios automáticos — no sustituye el canal de atención al cliente existente.
 
 ## Deuda técnica / Pendiente
+- **Google Search Console: pendiente.** El SEO técnico de la web está hecho, pero falta verificar la propiedad y dar de alta el sitemap. **Bloqueado por acceso a la cuenta de Google del negocio.**
+- **Google Business Profile: ficha SIN RECLAMAR** (verificado). 295 reseñas, 4,9★. Es la **palanca de mayor impacto** para posicionar en "neumáticos Mislata" — más que cualquier cambio en la web. Requiere la cuenta de Google del negocio y verificación **por postal o vídeo presencial**.
+- **Contador de reseñas desactualizado**: index.html dice "245+ reseñas" (stats de `#nosotros` y kicker del hero) pero Google tiene 295. Revisar y actualizar; conviene comprobar la cifra real antes de tocarlo, y volver a revisarla periódicamente.
 - Status callback de Twilio: el SID devuelto significa "aceptado", no "entregado". Saber si el cliente recibió el recordatorio requiere un webhook de status. Pendiente, no bloquea la entrega.
 - **`waOpen()` es código muerto** (script secundario de index.html, ~línea 2305): construye una URL `wa.me` con mensaje contextual por servicio a partir de `WA_NUMBER`, pero **ningún `onclick` la referencia**. Decidir: o se conecta a los CTA "Solicitar servicio →" de las cards de `#servicios` (que es para lo que se escribió), o se elimina junto con `WA_NUMBER`.
 
