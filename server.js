@@ -246,6 +246,18 @@ function escapeHtml(str) {
     .replace(/'/g, '&#39;');
 }
 
+// "Hoy" en Europe/Madrid como YYYY-MM-DD. NO usamos toISOString(): el proceso
+// corre en UTC en Render y Madrid va +1/+2h, así que entre las 22:00/23:00 y
+// medianoche hora local UTC sigue en el día anterior y la fecha se desfasaría.
+const FMT_FECHA_MADRID = new Intl.DateTimeFormat('en-CA', {
+  timeZone: 'Europe/Madrid', year: 'numeric', month: '2-digit', day: '2-digit'
+});
+function hoyMadrid() {
+  const p = {};
+  for (const { type, value } of FMT_FECHA_MADRID.formatToParts(new Date())) p[type] = value;
+  return `${p.year}-${p.month}-${p.day}`;
+}
+
 // Validación de entrada del panel admin (#7). Devuelve el mensaje de error
 // del primer campo inválido, o null si todo es correcto.
 function validarCita(body) {
@@ -266,6 +278,10 @@ function validarCita(body) {
   if (dt.getFullYear() !== y || dt.getMonth() !== mo - 1 || dt.getDate() !== d) {
     return 'La fecha no existe en el calendario';
   }
+  // El atributo min del input es saltable (devtools, curl): manda el servidor.
+  // Comparación de cadenas YYYY-MM-DD = comparación cronológica.
+  // Hoy mismo se permite: solo se rechaza estrictamente anterior.
+  if (fecha < hoyMadrid()) return 'La fecha no puede ser anterior a hoy';
 
   const hora = typeof body.hora === 'string' ? body.hora : '';
   if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(hora)) return 'La hora debe tener formato HH:MM válido';
@@ -313,6 +329,7 @@ function adminHTML(citas) {
     }).join('');
 
   const taller = escapeHtml(process.env.TALLER_NOMBRE || 'Panel de Citas');
+  const hoy = hoyMadrid();   // formato YYYY-MM-DD, seguro para interpolar
   return `<!DOCTYPE html>
 <html lang="es">
 <head>
@@ -320,6 +337,20 @@ function adminHTML(citas) {
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>${taller} — Admin</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* Los inputs date/time usan controles nativos: sin color-scheme, el
+       navegador los dibuja en tema claro (icono oscuro sobre navy = invisible)
+       y el desplegable del calendario sale blanco. */
+    #nc-fecha, #nc-hora { color-scheme: dark; }
+    #nc-fecha::-webkit-calendar-picker-indicator,
+    #nc-hora::-webkit-calendar-picker-indicator {
+      opacity: .75;
+      cursor: pointer;
+      transition: opacity .15s;
+    }
+    #nc-fecha:hover::-webkit-calendar-picker-indicator,
+    #nc-hora:hover::-webkit-calendar-picker-indicator { opacity: 1; }
+  </style>
 </head>
 <body class="bg-[#060D1F] min-h-screen p-6 font-sans">
   <div class="max-w-6xl mx-auto">
@@ -346,7 +377,7 @@ function adminHTML(citas) {
           </div>
           <div>
             <label class="block text-xs text-gray-400 mb-1.5 uppercase tracking-wide">Fecha</label>
-            <input id="nc-fecha" type="date" class="w-full bg-[#060D1F] border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-[#2563EB]">
+            <input id="nc-fecha" type="date" min="${hoy}" class="w-full bg-[#060D1F] border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-[#2563EB]">
           </div>
           <div>
             <label class="block text-xs text-gray-400 mb-1.5 uppercase tracking-wide">Hora</label>
