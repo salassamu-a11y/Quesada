@@ -31,6 +31,7 @@ proyecto/
 ├── imagenes/         ← favicons nq2f (5), logos de marca .svg (7 — `logo-dunlop.svg` y `logo-pirelli.svg` saneados: sin fondos "horneados", el detalle interior vuelve como transparencia real evenodd/máscara, imprescindible para el filtro monocromo del marquee), `logo_quesada_navy.png` (logo de empresa para header+footer, transparente y sin pastilla blanca, sobre fondo navy), fotos del taller (audi/benelli/honda/jeep/michelin-taller.jpeg), taller-fachada.jpeg (fallback hero), rueda-scroll.png (rueda-progreso, verificado: carga en producción). `logo-empresa.jpg` sigue en la carpeta pero **ya no se referencia** (huérfano tras adoptar logo_quesada_navy.png). `og-image.jpg` (1200×630, preview social Open Graph — ver sección propia)
 ├── videos/           ← hero-quesada.mp4, hero-quesada-movil.mp4, hero-poster.jpg, hero-poster-movil.jpg (ver sección Hero — vídeo de fondo)
 ├── .env              ← credenciales (nunca al repo)
+├── CNAME             ← dominio propio para GitHub Pages: neumaticosquesada.com
 └── package.json
 
 > Nota: `taller-interior.jpeg` y `Horario.jpeg` (fotos reales del taller) se archivaron fuera del repo en `..\Quesada-archivo\` — posible uso futuro en revisión visual o slider antes/después.
@@ -91,7 +92,8 @@ proyecto/
 - Declarado en `<head>` con 5 `<link>` (icon .ico `sizes="any"`, icon png 16/32/192, apple-touch-icon).
 
 ## Open Graph / Meta social (`<head>`)
-- Bloque de metas OG + Twitter Card tras `<meta name="description">`: `og:type=website`, `og:site_name`, `og:title`, `og:description`, `og:url` (`https://salassamu-a11y.github.io/Quesada/`), `og:image` (URL **absoluta** a `imagenes/og-image.jpg`), `og:image:width=1200` / `og:image:height=630`, `og:locale=es_ES`; `twitter:card=summary_large_image`.
+- `<link rel="canonical" href="https://neumaticosquesada.com/">` justo tras `<meta name="description">`.
+- Bloque de metas OG + Twitter Card: `og:type=website`, `og:site_name`, `og:title`, `og:description`, `og:url` (`https://neumaticosquesada.com/`), `og:image` (URL **absoluta** a `https://neumaticosquesada.com/imagenes/og-image.jpg`), `og:image:width=1200` / `og:image:height=630`, `og:locale=es_ES`; `twitter:card=summary_large_image`. Antes apuntaban a `salassamu-a11y.github.io/Quesada/` (subdominio de GitHub Pages); ahora usan el dominio propio, declarado también en `CNAME`.
 - **Asset** `imagenes/og-image.jpg` (1200×630): composición fachada + marca con el contenido centrado en la **zona segura cuadrada**, para sobrevivir al recorte cuadrado que aplica WhatsApp al preview (la imagen se recompuso expresamente por esto).
 
 ## Hero — vídeo de fondo (#inicio)
@@ -143,7 +145,7 @@ Botón "volver arriba" fijo (inferior izquierda) con forma de rueda de neumátic
 Respuestas de error comunes a todas las rutas `/admin`:
 - **401** sin/con credenciales incorrectas (auth básica)
 - **429** IP bloqueada por rate-limit (5 fallos de auth en 15 min → 15 min de bloqueo)
-- **403** POST/DELETE con `Origin`/`Referer` que no coincide con el host (anti-CSRF)
+- **403** POST/DELETE que falla el anti-CSRF (`Sec-Fetch-Site` cross-site, `Origin`/`Referer` que no coincide con el host, o `Origin: null`)
 - **413** body > 10 KB (rutas POST con `parseBody`)
 
 ## Persistencia y resiliencia (server.js) — sesión A
@@ -156,14 +158,16 @@ Respuestas de error comunes a todas las rutas `/admin`:
 - **Auth básica en tiempo constante**: `checkAuth` compara usuario/contraseña hasheando ambos lados con SHA-256 y comparando con `crypto.timingSafeEqual` (`safeEqual`), evita timing attacks y filtrar la longitud real de las credenciales.
 - **Rate-limit de intentos por IP**: 5 fallos en 15 min → bloqueo de 15 min (`AUTH_MAX_FAILS`/`AUTH_WINDOW_MS`/`AUTH_BLOCK_MS`, respuesta 429 mientras dure). Estado en memoria (`Map`, se pierde al reiniciar el proceso), con barrido horario que purga entradas expiradas. IP real vía `getClientIp` (primer valor de `x-forwarded-for` — fiable solo detrás del proxy de Render; fallback `remoteAddress` en local).
 - **Log de intentos fallidos**: IP + timestamp en `console.warn`, nunca las credenciales probadas.
-- **Anti-CSRF**: `isSameOrigin` exige que `Origin` (o `Referer`) coincida con el host propio en toda petición POST/DELETE bajo `/admin`; sin ninguna cabecera (curl, herramientas API) se permite. Petición cross-origin desde navegador → 403.
+- **Anti-CSRF en tres niveles** (`isSameOrigin`, toda petición POST/DELETE bajo `/admin`): 1) `Sec-Fetch-Site` si el navegador la manda (inmune a la referrer policy) — solo `same-origin`/`none` pasan; 2) si no, `Origin` (o `Referer` de reserva) debe coincidir con el host propio, y el literal `"null"` (iframe sandbox, `file://`, redirect cross-origin) se rechaza explícitamente; 3) sin ninguna de las tres cabeceras (curl, herramientas API) se permite. Petición cross-origin desde navegador → 403.
 - **Anti-XSS en el panel**: `escapeHtml` escapa todo dato variable (`nombre`, `telefono`, `fecha`, `hora`, `servicio`, `estado`, `id`, `TALLER_NOMBRE`) antes de interpolarlo en `adminHTML`.
-- **Validación de entrada** (`validarCita`, `POST /admin/cita`): nombre obligatorio (≤100 car.), teléfono móvil español (`^[67]\d{8}` tras limpiar prefijo/espacios/guiones), fecha `YYYY-MM-DD` con calendario real, hora `HH:MM` válida, servicio ≤100 car. — primer campo inválido → 400 con mensaje específico. `POST /admin/cita/:id/estado` valida que el estado sea `pendiente|confirmada|cancelada` → 400 si no.
+- **Validación de entrada** (`validarCita`, `POST /admin/cita`): nombre obligatorio (≤100 car.), teléfono móvil español (`^[67]\d{8}` tras limpiar prefijo/espacios/guiones), fecha `YYYY-MM-DD` con calendario real **y no anterior a hoy** (`hoyMadrid()`, hoy sí se permite), hora `HH:MM` válida, servicio ≤100 car. — primer campo inválido → 400 con mensaje específico. `POST /admin/cita/:id/estado` valida que el estado sea `pendiente|confirmada|cancelada` → 400 si no.
+- **`hoyMadrid()`**: "hoy" en zona `Europe/Madrid` vía `Intl.DateTimeFormat('en-CA', {timeZone:'Europe/Madrid', ...})`, no `toISOString()` — el proceso corre en UTC en Render y entre las 22–24h hora local `toISOString()` seguiría en el día anterior, desfasando la validación de fecha mínima. El input `type="date"` del panel (`nc-fecha`) lleva `min="${hoy}"` en el HTML, pero es saltable (devtools/curl) — la validación real la hace el servidor.
+- **Inputs `date`/`time` del panel en tema oscuro**: `#nc-fecha`/`#nc-hora` llevan `color-scheme: dark` (si no, el navegador los dibuja en tema claro — icono invisible sobre fondo navy y desplegable de calendario blanco) + estilo del icono `::-webkit-calendar-picker-indicator` (opacity .75→1 en hover).
 - **`parseBody` estricto**: JSON que no sea un objeto (array, primitivo, inválido) resuelve `null` → 400 "Cuerpo de la petición inválido", en vez de `{}` silencioso.
 - **Tope de tamaño de body**: `MAX_BODY_BYTES = 10 KB`; si se supera, `parseBody` resuelve el sentinel `BODY_TOO_LARGE` y el caller responde 413.
 - **Errores genéricos al cliente**: `POST /admin/cita/:id/recordatorio` ya no devuelve `err.message` de Twilio en la respuesta (mensaje genérico "No se pudo enviar el recordatorio"); el detalle real se loggea en servidor con `maskPhones()`.
 - **Teléfonos enmascarados en logs**: `maskPhones()` sustituye cualquier número de teléfono en un texto de log por `***XX` (últimos 2 dígitos), aplicado a los errores de Twilio (cron y envío manual) antes de loggear.
-- **Cabeceras de seguridad** (`setSecurityHeaders`, todas las respuestas): `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer`, `Strict-Transport-Security: max-age=31536000; includeSubDomains`.
+- **Cabeceras de seguridad** (`setSecurityHeaders`, todas las respuestas): `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: same-origin`, `Strict-Transport-Security: max-age=31536000; includeSubDomains`. **OJO — no volver a `no-referrer`**: por el Fetch Standard obliga al navegador a mandar `Origin: null` en peticiones no-CORS con método != GET/HEAD (los `<form method="post">` del panel), lo que hacía que `isSameOrigin` bloqueara con 403 los propios formularios del admin. `same-origin` conserva Origin/Referer reales en same-origin y los suprime hacia cualquier otro host.
 - **Panel — opción TPMS**: el select de servicio del formulario "nueva cita" (`POST /admin/cita`) incluye ahora "Válvulas TPMS y codificadas", en línea con el 5.º servicio de la web pública.
 
 ## Variables de entorno (.env)
@@ -179,6 +183,14 @@ TALLER_TELEFONO=
 TALLER_NOMBRE=Neumáticos Quesada
 ```
 
+## Backend en producción (Render)
+- **URL del servicio**: `https://neumaticos-quesada.onrender.com`
+- **Panel admin**: `https://neumaticos-quesada.onrender.com/admin` — este es el acceso real de Vicky, sustituye a `localhost:3001/admin` (que queda solo para desarrollo).
+- **Plan Starter**, región **Frankfurt (EU Central)**, **auto-deploy desde `main`**: cada push a `main` redespliega automáticamente.
+- **Disco persistente de 1 GB montado en `/data`**, con `DATA_DIR=/data` en variables de entorno. **VERIFICADO**: las citas sobreviven a los redeploys.
+- **Variables de entorno configuradas en el dashboard de Render** (no en `.env`): `DATA_DIR`, `ADMIN_USER`, `ADMIN_PASS` (contraseña fuerte, ya **no** `quesada123`), `TALLER_NOMBRE`, `TALLER_TELEFONO`. Las `TWILIO_*` están **pendientes** de crear la cuenta.
+- **`PORT` lo inyecta Render automáticamente** — no configurarlo a mano.
+
 ## Cron job
 - Hora: 19:00 cada día (`'0 19 * * *'`, timezone `Europe/Madrid` fijado explícitamente en `cron.schedule`) → el recordatorio se envía a las 19:00 del día anterior a la cita
 - Filtra: estado=confirmada, fecha=mañana, recordatorioEnviado=false
@@ -192,7 +204,7 @@ TALLER_NOMBRE=Neumáticos Quesada
 | citas.json    | ⚠️     | Se crea al guardar la primera cita                     |
 | config.json   | ❌     | No creado, no referenciado en el código                |
 | Twilio        | ⚠️     | Cuenta pendiente de crear; credenciales vacías en .env |
-| Deploy Render | ❌     | Pendiente (Railway descartado — conflicto con Twilio)  |
+| Deploy Render | ✅     | En producción — plan Starter, Frankfurt, disco 1 GB en /data, auto-deploy desde main (ver sección propia) |
 
 ## WhatsApp — Aclaración operativa
 - El WhatsApp Business actual del taller sigue gestionado manualmente por Vicky (sin cambios).
@@ -204,4 +216,6 @@ TALLER_NOMBRE=Neumáticos Quesada
 - El panel /admin usa auth básica HTTP nativa (sin librerías)
 - Puerto: process.env.PORT || 3001
 - Nunca añadir patrones globales de assets (*.png, *.jpg, etc.) al .gitignore: los favicons PNG estuvieron rotos en producción por un *.png heredado.
+- `git pull` antes de tocar el repo: GitHub Pages creó el archivo `CNAME` que sostiene el dominio propio; si se borra en un push, el dominio deja de funcionar.
+- Verificación de frontend en local: servidor estático (`python -m http.server 3002`), nunca `file://` (las imágenes no cargan). Backend local en otro puerto: `$env:PORT=3005; node server.js`.
 - Vídeo en web: siempre MP4 asignado directo a `video.src` — nunca `<source>` hijos ni confiar en `canPlayType` (Safari devuelve 'maybe' para WebM/vp9 y falla en reproducción real).
