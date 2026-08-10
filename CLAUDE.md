@@ -149,6 +149,7 @@ Respuestas de error comunes a todas las rutas `/admin`:
 - **413** body > 10 KB (rutas POST con `parseBody`)
 
 ## Persistencia y resiliencia (server.js) — sesión A
+- **Fix race condition en recordatorios**: tanto el cron como el envío manual (`POST /admin/cita/:id/recordatorio`) releen `citas.json` (`readCitas()`) justo antes de marcar `recordatorioEnviado=true`, en vez de reusar el array leído al principio del barrido — el array inicial queda obsoleto tras cada `await` a Twilio si el panel crea/borra/edita citas mientras tanto. Si la cita ya no existe al persistir, se loggea y se omite en vez de reescribirla.
 - **`DATA_DIR` configurable**: `const DATA_DIR = process.env.DATA_DIR || __dirname`; `citas.json` vive en `DATA_DIR/citas.json`. **CRÍTICO para Render**: hay que configurar `DATA_DIR` apuntando al disco persistente (p. ej. `/var/data`), porque el filesystem del servicio es efímero y sin ello las citas se pierden en cada deploy/reinicio. En local no hace falta (fallback `__dirname`).
 - **`readCitas` a prueba de corrupción**: si `citas.json` no parsea, lo renombra a `citas.json.corrupt-<timestamp>` (preserva el archivo para forense) y devuelve `[]` — evita el bucle de reinicios por JSON corrupto.
 - **`writeCitas` atómico**: escribe a `citas.json.tmp` y luego `fs.renameSync` al destino — nunca queda un citas.json a medio escribir si el proceso muere.
@@ -179,6 +180,8 @@ ADMIN_PASS=
 TWILIO_ACCOUNT_SID=
 TWILIO_AUTH_TOKEN=
 TWILIO_WHATSAPP_FROM=whatsapp:+14155238886
+TWILIO_CONTENT_SID=        # Content SID de la plantilla aprobada en Meta
+TWILIO_DRY_RUN=            # true → simula el envío sin llamar a Twilio (logs enmascarados)
 TALLER_TELEFONO=
 TALLER_NOMBRE=Neumáticos Quesada
 ```
@@ -195,6 +198,23 @@ TALLER_NOMBRE=Neumáticos Quesada
 - Hora: 19:00 cada día (`'0 19 * * *'`, timezone `Europe/Madrid` fijado explícitamente en `cron.schedule`) → el recordatorio se envía a las 19:00 del día anterior a la cita
 - Filtra: estado=confirmada, fecha=mañana, recordatorioEnviado=false
 - Acción: envía WhatsApp y marca recordatorioEnviado=true
+- **Fecha de "mañana" en Madrid**: `fechaMadrid(new Date(Date.now() + 24*60*60*1000))`, no `toISOString()` (mismo motivo que `hoyMadrid()`: el proceso corre en UTC). Válido porque el cron dispara a las 19:00 — si se mueve a última hora de la noche hay que recalcular.
+
+## WhatsApp — envío por plantilla Meta (server.js)
+- **Sin texto libre**: `sendWhatsApp(cita)` envía siempre vía `contentSid` (Content Template Builder de Twilio/Meta) + `contentVariables` — no existe fallback a body suelto, porque fuera de la ventana de 24h Meta lo rechaza.
+- **Variables de la plantilla**: `{{1}}` nombre, `{{2}}` fecha legible (`fechaLegible()`, ej. "martes, 12 de agosto"), `{{3}}` hora, `{{4}}` servicio, `{{5}}` `TALLER_TELEFONO`. `contentVar()` valida cada una (colapsa espacios, `trim()`) y lanza si queda vacía — falla en el log a las 19:00 en vez de un error opaco de Meta. **El orden de las 5 variables debe coincidir exactamente con la plantilla aprobada en Meta.** Cambiarlo obliga a repetir el ciclo de aprobación entero. Si no coinciden, el mensaje sale con los datos cruzados y no hay error — solo un cliente confundido.
+- **Cliente Twilio perezoso**: `getTwilioClient()` instancia y cachea en el primer envío, ya no al cargar el módulo — credenciales ausentes/erróneas ya no tumban el servidor entero (incluido `/admin`) al arrancar, solo el envío de recordatorios.
+- **Modo simulación** (`TWILIO_DRY_RUN=true`): `sendWhatsApp` no llama a Twilio, solo loggea el payload enmascarado (`maskPhones`) y devuelve `{sid:'DRYRUN', dryRun:true}`. Ni el cron ni el envío manual marcan `recordatorioEnviado` en dry-run (repetible en local).
+- **Aviso al arrancar**: `server.listen` comprueba `TWILIO_ACCOUNT_SID/AUTH_TOKEN/WHATSAPP_FROM/CONTENT_SID/TALLER_TELEFONO` y avisa por `console.warn` si falta alguna — no aborta, la web y el panel siguen operativos sin Twilio.
+
+## Verificación local del envío de WhatsApp
+Con `TWILIO_DRY_RUN=true` en .env y `$env:PORT=3005; node server.js`:
+1. Arranque: warn de variables sin configurar, el servidor NO muere
+2. Recordatorio manual desde el panel → log `[whatsapp][DRY_RUN] payload:` con teléfonos enmascarados
+3. `recordatorioEnviado` sigue en `false` en citas.json (test repetible)
+4. Cita con un campo vacío → 500 genérico + log `Variable de plantilla vacía: <campo>`
+
+Los .env cambian solo al reiniciar el proceso: Ctrl+C y volver a arrancar.
 
 ## Estado actual
 | Área          | Estado | Notas                                                  |
@@ -203,16 +223,20 @@ TALLER_NOMBRE=Neumáticos Quesada
 | server.js     | ✅     | Completo — todos los endpoints implementados           |
 | citas.json    | ⚠️     | Se crea al guardar la primera cita                     |
 | config.json   | ❌     | No creado, no referenciado en el código                |
-| Twilio        | ⚠️     | Cuenta pendiente de crear; credenciales vacías en .env |
+| Twilio        | ⚠️     | Código migrado a plantilla y verificado en dry-run. Bloqueado por: bundle regulatorio ES → número → sender/WABA → plantilla aprobada. Falta `TWILIO_CONTENT_SID` real. |
 | Deploy Render | ✅     | En producción — plan Starter, Frankfurt, disco 1 GB en /data, auto-deploy desde main (ver sección propia) |
 
 ## WhatsApp — Aclaración operativa
 - El WhatsApp Business actual del taller sigue gestionado manualmente por Vicky (sin cambios).
 - Número Twilio **nuevo pendiente de compra**, exclusivo para envío de recordatorios automáticos — no sustituye el canal de atención al cliente existente.
 
+## Deuda técnica / Pendiente
+- Status callback de Twilio: el SID devuelto significa "aceptado", no "entregado". Saber si el cliente recibió el recordatorio requiere un webhook de status. Pendiente, no bloquea la entrega.
+
 ## Reglas
 - Claude Code nunca ejecuta curl ni llamadas reales a Twilio para debuggear
 - Leer siempre citas.json con fs.readFileSync antes de escribir (evitar race conditions)
+- Escritura de citas.json tras un `await` externo: SIEMPRE releer con `readCitas()` y parchear solo el registro afectado, nunca reescribir el array leído antes del await. Aplica a cualquier endpoint futuro que escriba después de llamar a una API.
 - El panel /admin usa auth básica HTTP nativa (sin librerías)
 - Puerto: process.env.PORT || 3001
 - Nunca añadir patrones globales de assets (*.png, *.jpg, etc.) al .gitignore: los favicons PNG estuvieron rotos en producción por un *.png heredado.
