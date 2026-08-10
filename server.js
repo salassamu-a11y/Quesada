@@ -117,12 +117,22 @@ function checkAuth(req) {
   return userOk && passOk;
 }
 
-// Anti-CSRF: si el navegador envía Origin (o Referer), debe coincidir con el
-// propio host. Sin ninguna de las dos (curl, herramientas API) se permite:
-// el objetivo es bloquear peticiones cross-origin desde navegador.
+// Anti-CSRF en tres niveles, de más fiable a menos:
+//  1. Sec-Fetch-Site: la manda el navegador y es inmune a la referrer
+//     policy; "same-origin" y "none" (navegación iniciada por el usuario)
+//     son legítimos, "same-site"/"cross-site" no.
+//  2. Origin (o Referer de reserva): debe coincidir con el propio host.
+//     El literal "null" (iframe sandbox, file://, redirect cross-origin)
+//     se rechaza explícitamente: es justo el vector que hay que parar.
+//  3. Sin ninguna de las tres (curl, herramientas API) se permite: el
+//     objetivo es bloquear peticiones cross-origin desde navegador.
 function isSameOrigin(req) {
+  const site = req.headers['sec-fetch-site'];
+  if (site) return site === 'same-origin' || site === 'none';
+
   const origin = req.headers.origin || req.headers.referer;
   if (!origin) return true;
+  if (origin === 'null') return false;
   try {
     return new URL(origin).host === req.headers.host;
   } catch {
@@ -463,12 +473,19 @@ function adminHTML(citas) {
 
 // Cabeceras de seguridad para TODAS las respuestas (#9). Se fijan con
 // setHeader antes de cualquier writeHead: nosniff evita el sniffing de
-// MIME, DENY impide embeber el panel en iframes, no-referrer no filtra
-// URLs internas y HSTS fuerza HTTPS en Render (inocuo en local HTTP).
+// MIME, DENY impide embeber el panel en iframes, same-origin no filtra
+// URLs internas a terceros y HSTS fuerza HTTPS en Render (inocuo en
+// local HTTP).
+// OJO — no volver a "no-referrer": por el Fetch Standard, esa política
+// obliga al navegador a mandar `Origin: null` en peticiones no-CORS con
+// método != GET/HEAD (los <form method="post"> del panel), lo que hacía
+// que isSameOrigin bloqueara con 403 los propios formularios del admin.
+// "same-origin" conserva Origin y Referer reales en same-origin y los
+// suprime hacia cualquier otro host.
 function setSecurityHeaders(res) {
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'DENY');
-  res.setHeader('Referrer-Policy', 'no-referrer');
+  res.setHeader('Referrer-Policy', 'same-origin');
   res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
 }
 
