@@ -519,6 +519,17 @@
       .svc-card:hover::after {
         opacity: 0;
       }
+
+      /* CTA "Solicitar servicio": Tailwind CDN compila hover:gap-3 y
+         group-hover:translate-x-1 como :hover plano (sin guarda de media
+         query); ese cambio de layout bajo el dedo consume el primer tap. */
+      .svc-card a:hover {
+        gap: 0.5rem !important;
+      }
+
+      .svc-card a:hover i {
+        transform: none !important;
+      }
     }
 
     /* ── Gallery ── */
@@ -2400,27 +2411,13 @@
     (function () {
       'use strict';
 
-      /* Número de WhatsApp del taller (fijo 963 59 30 87, verificado
-         en WhatsApp Business). Formato wa.me: prefijo + número, sin "+"
-         ni espacios.
-         OJO: este número aparece también, escrito literal, en los href
-         wa.me de las líneas 917, 952, 1571 y 2024. Si cambia, hay que
-         actualizarlo en LOS CINCO SITIOS.
-         Deliberadamente NO se inyecta por JS: los CTA de WhatsApp deben
-         funcionar aunque el JS falle. */
-      var WA_NUMBER = '34963593087';
-
-      /* ── waOpen(service): abre WhatsApp con mensaje contextual ── */
-      window.waOpen = function (service) {
-        var msg;
-        if (service) {
-          msg = 'Hola, me gustaría pedir cita para *' + service + '* en Neumáticos Quesada. ¿Tendríais disponibilidad? Gracias.';
-        } else {
-          msg = 'Hola, me gustaría solicitar información o pedir cita en Neumáticos Quesada. ¿Podríais ayudarme? Gracias.';
-        }
-        var url = 'https://wa.me/' + WA_NUMBER + '?text=' + encodeURIComponent(msg);
-        window.location.href = url;
-      };
+      /* El número de WhatsApp del taller (34963593087) va escrito LITERAL
+         en los 4 href wa.me: botón header desktop, botón menú móvil,
+         botón de #contacto y #wa-float (buscar "wa.me/" o el marcador
+         "WHATSAPP:"). Deliberadamente NO se inyecta por JS: los CTA deben
+         funcionar aunque el JS falle. Si el taller cambia de número,
+         actualizar los cuatro — y los tel: y la meta description (ver
+         "Teléfono del taller" en CLAUDE.md). */
 
       /* ── Móvil: el float aparece solo cuando el hero sale del viewport ── */
       (function () {
