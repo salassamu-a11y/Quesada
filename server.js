@@ -343,6 +343,46 @@ function contentVar(valor, campo) {
   return v;
 }
 
+// Horario del taller: L-J 08:00-14:00 y 15:30-20:00, V 08:00-16:00, sáb y dom
+// cerrado. Devuelve null si la cita cae dentro, o el motivo si no.
+//
+// OJO: esta función está DUPLICADA a propósito (servidor y cliente).
+// Si cambia el horario, hay que tocar las dos, además de
+// updateStatus() y el JSON-LD de index.html. Cuatro sitios en total.
+// (La copia del cliente está en el <script> de adminHTML.)
+//
+// Es solo una GUÍA para avisar en el panel: NO se llama desde validarCita()
+// ni bloquea nada. Las excepciones (urgencias, favores, un sábado suelto)
+// deben poder guardarse sin fricción.
+function horarioTaller(fecha, hora) {
+  // Formato inválido: no es asunto de esta función, ya lo reporta validarCita.
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha)) return null;
+  if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(hora)) return null;
+
+  // Día de la semana en Europe/Madrid, NUNCA getDay() sobre un Date construido
+  // a pelo (daría el día en la zona local del navegador o en UTC en Render).
+  // Se ancla a mediodía UTC para que el offset de Madrid (+1/+2h) no pueda
+  // desplazar el día. Mismo patrón que fechaLegible().
+  const dia = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Europe/Madrid', weekday: 'short'
+  }).format(new Date(`${fecha}T12:00:00Z`));
+
+  if (dia === 'Sat' || dia === 'Sun') {
+    return 'Fuera del horario habitual (sáb y dom cerrado)';
+  }
+
+  const min = Number(hora.slice(0, 2)) * 60 + Number(hora.slice(3, 5));
+  const tramos = dia === 'Fri'
+    ? [[8 * 60, 16 * 60]]                            // V: 08:00-16:00 continuo
+    : [[8 * 60, 14 * 60], [15 * 60 + 30, 20 * 60]];  // L-J: mañana y tarde
+
+  // Límites inclusivos: una cita a la hora exacta de cierre no avisa.
+  for (const [ini, fin] of tramos) {
+    if (min >= ini && min <= fin) return null;
+  }
+  return 'Fuera del horario habitual (L-J: 8-14 y 15:30-20, V: 8-16)';
+}
+
 // Validación de entrada del panel admin (#7). Devuelve el mensaje de error
 // del primer campo inválido, o null si todo es correcto.
 function validarCita(body) {
@@ -378,7 +418,7 @@ function validarCita(body) {
   return null;
 }
 
-function adminHTML(citas) {
+function adminHTML(citas, verTodas = false) {
   const estadoBadge = e =>
     e === 'confirmada' ? 'bg-green-900/50 text-green-400 border border-green-700/50' :
     e === 'cancelada'  ? 'bg-red-900/50 text-red-400 border border-red-700/50' :
@@ -400,7 +440,7 @@ function adminHTML(citas) {
         <td class="px-4 py-3 flex items-center gap-2">
           <form method="post" action="/admin/cita/${id}/estado" class="inline">
             <select name="estado" onchange="this.form.submit()" class="text-xs bg-[#060D1F] border border-white/10 text-gray-300 rounded-lg px-2 py-1.5 cursor-pointer focus:outline-none focus:border-[#2563EB]">
-              <option ${c.estado === 'pendiente'   ? 'selected' : ''}>pendiente</option>
+              ${c.estado === 'pendiente' ? '<option selected>pendiente</option>' : ''}
               <option ${c.estado === 'confirmada'  ? 'selected' : ''}>confirmada</option>
               <option ${c.estado === 'cancelada'   ? 'selected' : ''}>cancelada</option>
             </select>
@@ -444,7 +484,10 @@ function adminHTML(citas) {
         <p class="text-[#FFD700] text-xs font-semibold uppercase tracking-widest mb-1">Panel de administración</p>
         <h1 class="text-2xl font-bold text-white">${taller}</h1>
       </div>
-      <span class="bg-[#0D1B3E] text-gray-400 text-sm px-4 py-2 rounded-full border border-white/10">${citas.length} cita${citas.length !== 1 ? 's' : ''}</span>
+      <div class="flex items-center gap-3">
+        <a href="${verTodas ? '/admin' : '/admin?ver=todas'}" class="text-sm text-gray-400 hover:text-white transition-colors">${verTodas ? 'Volver a próximas citas' : 'Ver todas las citas'}</a>
+        <span class="bg-[#0D1B3E] text-gray-400 text-sm px-4 py-2 rounded-full border border-white/10">${verTodas ? 'Todas' : 'Próximas'}: ${citas.length} cita${citas.length !== 1 ? 's' : ''}</span>
+      </div>
     </header>
 
     <div class="mb-5">
@@ -468,6 +511,7 @@ function adminHTML(citas) {
             <label class="block text-xs text-gray-400 mb-1.5 uppercase tracking-wide">Hora</label>
             <input id="nc-hora" type="time" class="w-full bg-[#060D1F] border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-[#2563EB]">
           </div>
+          <p id="nc-horario-aviso" class="hidden col-span-2 -mt-1 text-xs text-amber-400"></p>
           <div class="col-span-2">
             <label class="block text-xs text-gray-400 mb-1.5 uppercase tracking-wide">Servicio</label>
             <select id="nc-servicio" class="w-full bg-[#060D1F] border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-[#2563EB]">
@@ -508,6 +552,59 @@ function adminHTML(citas) {
     function toggleNuevaCita() {
       document.getElementById('nueva-cita-form').classList.toggle('hidden');
     }
+
+    // OJO: esta función está DUPLICADA a propósito (servidor y cliente).
+    // Si cambia el horario, hay que tocar las dos, además de
+    // updateStatus() y el JSON-LD de index.html. Cuatro sitios en total.
+    // (La copia del servidor está en server.js, justo antes de validarCita.)
+    function horarioTaller(fecha, hora) {
+      // Formato inválido: no es asunto de esta función, ya lo valida el servidor.
+      if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(fecha)) return null;
+      if (!/^([01]\\d|2[0-3]):[0-5]\\d$/.test(hora)) return null;
+
+      // Día de la semana en Europe/Madrid, NUNCA getDay() sobre un Date
+      // construido a pelo (daría el día en la zona local del navegador).
+      // Anclado a mediodía UTC para que el offset de Madrid no desplace el día.
+      var dia = new Intl.DateTimeFormat('en-US', {
+        timeZone: 'Europe/Madrid', weekday: 'short'
+      }).format(new Date(fecha + 'T12:00:00Z'));
+
+      if (dia === 'Sat' || dia === 'Sun') {
+        return 'Fuera del horario habitual (sáb y dom cerrado)';
+      }
+
+      var min = Number(hora.slice(0, 2)) * 60 + Number(hora.slice(3, 5));
+      var tramos = dia === 'Fri'
+        ? [[8 * 60, 16 * 60]]                            // V: 08:00-16:00 continuo
+        : [[8 * 60, 14 * 60], [15 * 60 + 30, 20 * 60]];  // L-J: mañana y tarde
+
+      // Límites inclusivos: una cita a la hora exacta de cierre no avisa.
+      for (var i = 0; i < tramos.length; i++) {
+        if (min >= tramos[i][0] && min <= tramos[i][1]) return null;
+      }
+      return 'Fuera del horario habitual (L-J: 8-14 y 15:30-20, V: 8-16)';
+    }
+
+    // AVISO, NO BLOQUEO: solo pinta texto. Sin alert(), no impide guardar y no
+    // se consulta desde guardarNuevaCita(). El horario es una guía.
+    function avisoHorario() {
+      var aviso = document.getElementById('nc-horario-aviso');
+      var fecha = document.getElementById('nc-fecha').value;
+      var hora  = document.getElementById('nc-hora').value;
+      var motivo = (fecha && hora) ? horarioTaller(fecha, hora) : null;
+      if (motivo) {
+        aviso.textContent = motivo;
+        aviso.classList.remove('hidden');
+      } else {
+        aviso.classList.add('hidden');
+      }
+    }
+    ['nc-fecha', 'nc-hora'].forEach(function (id) {
+      var el = document.getElementById(id);
+      el.addEventListener('change', avisoHorario);
+      el.addEventListener('input', avisoHorario);   // teclado, no solo el picker
+    });
+
     async function eliminarCita(id) {
       if (!confirm('¿Eliminar esta cita? Esta acción no se puede deshacer.')) return;
       const res = await fetch('/admin/cita/' + id, { method: 'DELETE' });
@@ -615,8 +712,18 @@ const server = http.createServer(async (req, res) => {
     // GET /admin
     if (req.method === 'GET' && p === '/admin') {
       const citas = readCitas();
+      const verTodas = url.searchParams.get('ver') === 'todas';
+      const hoy = hoyMadrid();
+      // Solo visualización: citas.json no se toca. Comparar strings
+      // "YYYY-MM-DD HH:MM" equivale a comparar cronológicamente.
+      const cmpAsc = (a, b) => `${a.fecha} ${a.hora}`.localeCompare(`${b.fecha} ${b.hora}`);
+      // Por defecto: solo de hoy en adelante, la próxima cita arriba.
+      // Histórico (?ver=todas): todo el listado, lo más reciente arriba.
+      const visibles = verTodas
+        ? [...citas].sort((a, b) => cmpAsc(b, a))
+        : citas.filter(c => c.fecha >= hoy).sort(cmpAsc);
       res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-      res.end(adminHTML(citas));
+      res.end(adminHTML(visibles, verTodas));
       return;
     }
 
