@@ -2088,15 +2088,6 @@
 
     // ── Blur-in Scroll Reveal (escalonado) ──
     (function () {
-      const selectors = [
-        '#inicio > div > div',
-        '#nosotros .will-reveal',
-        '#servicios .will-reveal',
-        '#servicios ~ section .will-reveal',
-        '#galeria .will-reveal',
-        '#contacto .will-reveal',
-      ];
-
       // Collect all elements that already have will-reveal from markup
       const allEls = [];
       document.querySelectorAll('.will-reveal').forEach(el => {
@@ -2119,12 +2110,14 @@
         if (idx > 0) el.style.transitionDelay = `${idx * 0.12}s`;
       });
 
+      // Reveal de UNA sola vez: es una animación de entrada, no un efecto de
+      // scroll. Sin unobserve, la card puede estar re-animándose justo cuando
+      // el usuario la toca y el primer tap cae fuera del enlace desplazado.
       const obs = new IntersectionObserver(entries => {
         entries.forEach(entry => {
           if (entry.isIntersecting) {
             entry.target.classList.add('is-revealed');
-          } else if (entry.boundingClientRect.top > 0) {
-            entry.target.classList.remove('is-revealed');
+            obs.unobserve(entry.target);
           }
         });
       }, { threshold: 0.07, rootMargin: '0px 0px -40px 0px' });
