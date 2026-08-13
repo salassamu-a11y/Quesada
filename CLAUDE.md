@@ -44,7 +44,7 @@ proyecto/
 |-----------|-----------|--------------------------------------------------------------|
 | #inicio   | q-navy    | Hero cinematic split-screen — vídeo de fondo (ver sección propia); fallback estático `taller-fachada.jpeg` |
 | —         | q-navy-2  | Marquee infinito de marcas                                   |
-| #nosotros | q-cream   | Bento grid "Sobre nosotros" + stats (4.9★, 245+ reseñas, 30+ años) |
+| #nosotros | q-cream   | Bento grid "Sobre nosotros" + stats (4.9★, 290+ reseñas, 48+ años) |
 | #servicios| q-navy    | Bento grid — 5 servicios: 2×2 (Reparación, Alineación, Montaje, Equilibrado) + card ancha "Válvulas TPMS y codificadas" (badge NUEVO); hover: translateY(-4px) + border-left q-yellow |
 | —         | q-navy-2  | CTA banner "Tu seguridad empieza por las ruedas"             |
 | #galeria  | q-cream   | Galería 2×2 del taller                                       |
@@ -57,7 +57,7 @@ proyecto/
 - **Botón flotante WhatsApp** (`#wa-float`): enlace directo wa.me, esquina inferior derecha, animación de entrada.
 - **Live status taller** (`#status-pill`): muestra "Abierto/Cerrado" según horario real (L–J 8–14/15:30–20, V 8–16 continuo). Se actualiza cada minuto.
 - **Contadores animados** (`#nosotros` stats): `IntersectionObserver` + `requestAnimationFrame`, easing cúbico, se activan una sola vez al entrar en viewport.
-- **Scroll reveal** (`.will-reveal`): animación blur-in + translate al entrar en viewport.
+- **Scroll reveal** (`.will-reveal`): animación blur-in + translate al entrar en viewport. Revela **una sola vez** y hace `unobserve` del elemento; se eliminó la rama de des-reveal. Aplica a toda la página, no solo a `#servicios`.
 - **Nav activa**: Servicios | Nosotros | Taller | Reserva | Contacto (desktop y menú móvil).
 - **Animaciones GSAP + ScrollTrigger**: hero con clip-reveal, marquee a velocidad constante (loop GSAP fijo; 16s móvil / 32s desktop), tipografía cinética en Servicios. Micro-interacciones: botones magnéticos, tilt 3D en tarjetas de servicio (**solo puntero fino/hover real — ver "Fix táctil"**), odómetro en contadores de stats, input matrícula estilizado. (Rueda-progreso de scroll documentada aparte — ver sección propia.)
 
@@ -81,6 +81,7 @@ proyecto/
 - **Kickers de sección**: patrón unificado por alineación — centrados (Servicios/Galería/Contacto/Reseñas) llevan raya `w-5 h-px` a ambos lados del texto; alineados a la izquierda (Hero/Nosotros) llevan raya solo a la izquierda. Reseñas se corrigió a este patrón (antes `<p>` plano sin rayas).
 - **Footer**: enlace "Ver en Google Maps" eliminado de la barra inferior (colisionaba con `#wa-float`, ambos en la esquina inferior derecha); la barra queda solo con el copyright. El enlace sigue en la columna "General" → "Reseñas en Google" (misma URL `g.co/kgs/uhA6gAq`) y en la tarjeta de `#contacto`.
 - **`#resenas` h2**: "4.9 sobre 5 *en Google.*" ("en Google." en itálica q-yellow, mismo patrón que el CTA "¿Listo para ponerte *en marcha?*"). Sustituye a "Reseñas reales"; se eliminó el subtítulo con icono G + "Reseñas verificadas de Google" por redundante.
+- **Antigüedad y reseñas (datos corregidos)**: fundación **1978** (antes figuraba 1994), copy "casi 50 años" (antes "más de 30"); contadores de stats a **48+ años** y **290+ reseñas** (stats de `#nosotros` y kicker del hero). El JSON-LD usa el mismo `foundingDate` 1978.
 - **Rueda-progreso en móvil** (`#wheel-progress`, `<768px`): oculta por completo (`.js-anim #wheel-progress { display:none }`) y el JS de física/ScrollTrigger corta con `return` temprano bajo el mismo breakpoint — cero coste de física ni listeners en móvil. Antes solo se encogía (46px) a `≤640px`.
 - **Botón flotante WhatsApp diferido en móvil** (`<768px`): permanece oculto (clase `.wa-defer`) hasta que el hero (`#inicio`) sale del viewport, vía `IntersectionObserver`; entonces gana `.wa-show` (fade + slide-up). Sin JS conserva la animación de entrada original. Además más compacto en móvil (icono 26px, padding reducido).
 - **Cards de servicio compactas en móvil**: `min-h-[280px]` de la card de Reparación pasa a solo-desktop (`md:min-h-[280px]`); márgenes internos (icono→título, CTA) reducidos en móvil (`mb-4`/`mt-4` vs `mb-6`/`mt-6` desktop); card TPMS con `gap-4` en móvil vs `gap-6` desktop.
@@ -107,12 +108,12 @@ Aviso de cierre temporal controlado por un único objeto de configuración, sin 
 
 | Formato | Dónde | Nº de apariciones |
 |---------|-------|-------------------|
-| `34963593087` (prefijo, sin `+` ni espacios) | `href="https://wa.me/34963593087?text=..."` — hero, menú móvil, `#contacto`, `#wa-float` | 4 |
-| `34963593087` | constante `WA_NUMBER` del script secundario | 1 |
+| `34963593087` (prefijo, sin `+` ni espacios) | `href="https://wa.me/34963593087?text=..."` — header desktop, menú móvil, `#contacto`, `#wa-float` | 4 |
+| `+34963593087` | `telephone` del JSON-LD del `<head>` | 1 |
 | `963593087` (sin prefijo ni espacios) | `href="tel:963593087"` — header, menú móvil, CTA banner, `#contacto` (2×), footer | 6 |
 | `963 593 087` (texto visible, agrupado 3-3-3) | texto de los enlaces `tel:` + **`<meta name="description">`** del `<head>` | — |
 
-- **Si el taller cambia de número, hay que revisar TODOS**: los 4 `wa.me`, `WA_NUMBER`, los 6 `tel:` y la meta description. No hay una única fuente de verdad.
+- **Si el taller cambia de número, hay que revisar TODOS**: los 4 `wa.me`, los 6 `tel:`, la meta description y el `telephone` del JSON-LD. No hay una única fuente de verdad. (`WA_NUMBER` y `waOpen()` se eliminaron de index.html — ya no cuentan.)
 - **DELIBERADO: el número no se inyecta por JS.** Los CTA de WhatsApp deben funcionar aunque el JS falle o no llegue a ejecutarse; un `href` construido en runtime dejaría los 4 botones muertos ante cualquier error de script. La duplicación es el precio de esa garantía.
 - **No confundir con Twilio**: el número que enviará los recordatorios automáticos es **distinto** (número Twilio pendiente de compra) y se configura aparte, en variables de entorno del backend.
 
@@ -129,7 +130,7 @@ Aviso de cierre temporal controlado por un único objeto de configuración, sin 
 
 ### JSON-LD schema.org (index.html)
 - Bloque `<script type="application/ld+json">` al **final del `<head>`** de index.html (~líneas 880-983), tipo **`AutoRepair`**, con `@id: https://neumaticosquesada.com/#business`.
-- **Contenido**: `name`, `url`, `telephone` (`+34963593087`), `image` (og-image), `logo`, `foundingDate` 1994, `priceRange`, `address`, `geo` (39.473826, -0.421161), `openingHoursSpecification`, `sameAs`, `areaServed` y `hasOfferCatalog` con los 5 servicios.
+- **Contenido**: `name`, `url`, `telephone` (`+34963593087`), `image` (og-image), `logo`, `foundingDate` 1978, `priceRange`, `address`, `geo` (39.473826, -0.421161), `openingHoursSpecification`, `sameAs`, `areaServed` y `hasOfferCatalog` con los 5 servicios.
 - **Dirección — coherencia NAP**: `C/ del Cardenal Benlloch, 67, bajo`, en **forma castellana**, exactamente la misma que la ficha de Google. Los datos Name-Address-Phone deben coincidir literalmente entre web, JSON-LD y ficha; una variante ortográfica distinta se lee como otro negocio.
 - **`openingHoursSpecification`: CUATRO entradas**, no dos:
   1. L–J mañana `08:00–14:00`
@@ -138,7 +139,7 @@ Aviso de cierre temporal controlado por un único objeto de configuración, sin 
   4. Sábado + domingo `00:00–00:00`
   El fin de semana se declara cerrado **EXPLÍCITAMENTE**: en schema.org omitir un día no significa "cerrado", significa "sin datos" — y Google podría rellenarlo desde otras fuentes.
 - **DELIBERADO: sin `aggregateRating` ni `review`.** Google penaliza el marcado de reseñas auto-declaradas sobre el propio negocio; las estrellas de los resultados de búsqueda vienen del Google Business Profile, no del JSON-LD.
-- **Si cambia el horario de la web, hay que actualizar TAMBIÉN el JSON-LD**: son dos fuentes independientes (la otra es `updateStatus()` en el script principal). No hay sincronización automática entre ambas.
+- **Si cambia el horario de la web, hay que actualizar TAMBIÉN el JSON-LD**: el horario vive en **CUATRO sitios** sin sincronización automática — JSON-LD, `updateStatus()` (index.html), `horarioTaller()` (server.js) y su copia literal en el `<script>` del panel (ver "Aviso de horario en el panel").
 - **VERIFICADO en producción** con `search.google.com/test/rich-results`: 2 elementos válidos (Empresas locales + Organización), sin errores.
 
 ### robots.txt y sitemap.xml
@@ -186,7 +187,7 @@ Botón "volver arriba" fijo (inferior izquierda) con forma de rueda de neumátic
 ## Endpoints server.js
 | Método | Ruta                              | Descripción                                    |
 |--------|-----------------------------------|------------------------------------------------|
-| GET    | /admin                            | Panel HTML con tabla de citas (auth básica)    |
+| GET    | /admin                            | Panel HTML con tabla de citas (auth básica). Por defecto solo citas con fecha >= hoy en ascendente; `?ver=todas` → histórico completo en descendente (ver "Panel /admin — vista de citas") |
 | POST   | /admin/cita/:id/estado            | Cambia estado (pendiente/confirmada/cancelada). 400 si body inválido o estado no válido; 404 si la cita no existe |
 | POST   | /admin/cita/:id/recordatorio      | Envía WhatsApp manual y marca recordatorioEnviado=true. 404 si no existe; 500 con mensaje genérico si Twilio falla (detalle solo en log, teléfonos enmascarados) |
 | POST   | /admin/cita                       | Crea cita nueva desde el panel admin con estado=confirmada directamente (auth básica). 400 si body inválido o falla `validarCita` (mensaje del campo concreto) |
@@ -197,6 +198,19 @@ Respuestas de error comunes a todas las rutas `/admin`:
 - **429** IP bloqueada por rate-limit (5 fallos de auth en 15 min → 15 min de bloqueo)
 - **403** POST/DELETE que falla el anti-CSRF (`Sec-Fetch-Site` cross-site, `Origin`/`Referer` que no coincide con el host, o `Origin: null`)
 - **413** body > 10 KB (rutas POST con `parseBody`)
+
+## Panel /admin — vista de citas (server.js)
+- **Vista por defecto ("Próximas")**: `GET /admin` filtra `c.fecha >= hoyMadrid()` y ordena por fecha y hora **ascendente** (la próxima cita arriba). **Solo filtro de visualización**: `citas.json` no se toca.
+- **Vista histórico**: `GET /admin?ver=todas` — listado completo en **descendente** (lo más reciente arriba).
+- **Orden por comparación de strings**: `` `${fecha} ${hora}`.localeCompare(...) `` — comparar `YYYY-MM-DD HH:MM` como texto equivale a comparar cronológicamente.
+- **Cabecera**: enlace que alterna "Ver todas las citas" ↔ "Volver a próximas citas"; el contador etiqueta la vista activa ("Próximas: N citas" / "Todas: N citas").
+- **Desplegable de estado**: ofrece solo `confirmada` y `cancelada`; `pendiente` aparece únicamente si la cita ya está en ese estado. La validación del servidor (`POST /admin/cita/:id/estado`) sigue aceptando los tres.
+
+## Aviso de horario en el panel (horarioTaller)
+- **`horarioTaller(fecha, hora)`** (server.js ~línea 357): devuelve `null` si la cita cae dentro del horario del taller, o el motivo (string) si no. L–J 8–14 y 15:30–20, V 8–16, sáb y dom cerrado. Límites **inclusivos** (una cita a la hora exacta de cierre no avisa). Formato inválido → `null` (eso ya lo reporta `validarCita`).
+- **Día de la semana en `Europe/Madrid`**: `Intl.DateTimeFormat` con `weekday`, anclado a `T12:00:00Z` (mediodía UTC) para que el offset de Madrid no desplace el día — nunca `getDay()` sobre un `Date` construido a pelo.
+- **Es AVISO, NO BLOQUEO**: no se llama desde `validarCita` ni impide guardar — las excepciones (urgencias, un sábado suelto) deben poder guardarse. En el formulario del panel el aviso sale en `#nc-horario-aviso` (texto ámbar) al cambiar fecha u hora (listeners `change` + `input`).
+- **DUPLICADA A PROPÓSITO**: copia literal de la función en el `<script>` de `adminHTML` (cliente), además de la del servidor. Con `updateStatus()` y el JSON-LD de index.html, **el horario vive en CUATRO sitios** — si cambia el horario del taller hay que tocar los cuatro.
 
 ## Persistencia y resiliencia (server.js) — sesión A
 - **Fix race condition en recordatorios**: tanto el cron como el envío manual (`POST /admin/cita/:id/recordatorio`) releen `citas.json` (`readCitas()`) justo antes de marcar `recordatorioEnviado=true`, en vez de reusar el array leído al principio del barrido — el array inicial queda obsoleto tras cada `await` a Twilio si el panel crea/borra/edita citas mientras tanto. Si la cita ya no existe al persistir, se loggea y se omite en vez de reescribirla.
@@ -293,12 +307,18 @@ Carga real contra `POST /admin/cita` en local con **autocannon**, para validar e
 - El WhatsApp Business actual del taller sigue gestionado manualmente por Vicky (sin cambios).
 - Número Twilio **nuevo pendiente de compra**, exclusivo para envío de recordatorios automáticos — no sustituye el canal de atención al cliente existente.
 
-## Deuda técnica / Pendiente
+## Deuda técnica
 - **Google Search Console: pendiente.** El SEO técnico de la web está hecho, pero falta verificar la propiedad y dar de alta el sitemap. **Bloqueado por acceso a la cuenta de Google del negocio.**
 - **Google Business Profile: ficha SIN RECLAMAR** (verificado). 295 reseñas, 4,9★. Es la **palanca de mayor impacto** para posicionar en "neumáticos Mislata" — más que cualquier cambio en la web. Requiere la cuenta de Google del negocio y verificación **por postal o vídeo presencial**.
-- **Contador de reseñas desactualizado**: index.html dice "245+ reseñas" (stats de `#nosotros` y kicker del hero) pero Google tiene 295. Revisar y actualizar; conviene comprobar la cifra real antes de tocarlo, y volver a revisarla periódicamente.
 - Status callback de Twilio: el SID devuelto significa "aceptado", no "entregado". Saber si el cliente recibió el recordatorio requiere un webhook de status. Pendiente, no bloquea la entrega.
-- **`waOpen()` es código muerto** (script secundario de index.html, ~línea 2305): construye una URL `wa.me` con mensaje contextual por servicio a partir de `WA_NUMBER`, pero **ningún `onclick` la referencia**. Decidir: o se conecta a los CTA "Solicitar servicio →" de las cards de `#servicios` (que es para lo que se escribió), o se elimina junto con `WA_NUMBER`.
+- **Doble toque en táctil en los CTA "Solicitar servicio"** de Reparación, Alineación y TPMS (1.ª, 2.ª y 5.ª cards). Descartado: hover (neutralizado en `@media (hover:none)`), reveal en movimiento (unobserve aplicado), cola del smooth scroll (falla también esperando 3s y con scroll manual), superposiciones, listeners táctiles y offset de header/banner. La comparativa estática está agotada: la card 2 es idéntica a la 3 y una falla y la otra no. En escritorio con ratón funciona. Siguiente paso si se retoma: instrumentar en móvil real con un listener de diagnóstico en captura. **Impacto bajo**: los CTA llevan a `#contacto`, en la misma página.
+- **Botón WhatsApp del panel sin filtro**: funciona para cualquier cita, incluidas canceladas y ya recordadas — sin filtro por estado ni por `recordatorioEnviado`.
+- **Política de privacidad y aviso legal: NO EXISTEN** y son obligatorios antes de la entrega. El formulario de citas trata nombres y teléfonos (RGPD) y la web carga fuentes de Google y Font Awesome desde CDN (transmisión de IP a terceros).
+
+## Pendiente (trabajo futuro acordado, no deuda)
+- **Detalle libre en el servicio de las citas**: el desplegable tiene 5 opciones fijas y Vicky necesita anotar detalle libre (medida, tipo de vehículo). Pendiente de definir con el cliente.
+- **Pantalla de solo lectura para el taller** (citas del día, sin edición). Acordada sin coste, después de la entrega.
+- **Informe mensual de citas en el panel.** Post-entrega.
 
 ## Reglas
 - Claude Code nunca ejecuta curl ni llamadas reales a Twilio para debuggear
