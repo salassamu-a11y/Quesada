@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description"
+    content="Aviso legal de neumaticosquesada.com, sitio web de NEUCERGON, S.L. — Neumáticos Quesada, taller de neumáticos en Mislata, Valencia.">
+  <meta name="robots" content="noindex, follow">
+  <link rel="canonical" href="https://neumaticosquesada.com/aviso-legal.html">
+  <title>Aviso legal | Neumáticos Quesada</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            'q-blue': '#2563EB',
+            'q-blue-d': '#1D4ED8',
+            'q-blue-pale': '#EFF6FF',
+            'q-yellow': '#FFD700',
+            'q-yellow-d': '#E6C200',
+            'q-navy': '#060D1F',
+            'q-navy-2': '#0D1B3E',
+            'q-cream': '#F4F6F9',
+          },
+          fontFamily: {
+            sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+            'barlow': ['Barlow Condensed', 'sans-serif'],
+          },
+        }
+      }
+    }
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,700;1,800;1,900&display=swap"
+    rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+  <style>
+    /* Subconjunto de estilos de index.html: solo lo que usan header,
+       menú móvil, banner de vacaciones y footer. Sin GSAP ni animaciones. */
+    body {
+      font-family: 'Inter', sans-serif;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* ── iOS touch fixes ── */
+    #burger {
+      cursor: pointer;
+      touch-action: manipulation;
+    }
+
+    #mob-menu a,
+    #mob-menu button {
+      touch-action: manipulation;
+    }
+
+    /* ── Glassmorphism nav ── */
+    .hdr-glass {
+      background: rgba(6, 13, 31, 0.72);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .hdr-scrolled {
+      background: rgba(6, 13, 31, 0.94);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, .5);
+    }
+
+    /* Nav underline yellow */
+    .nav-link {
+      position: relative;
+      padding-bottom: 2px;
+    }
+
+    .nav-link::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 0;
+      height: 2px;
+      background: #FFD700;
+      transition: width .25s ease;
+    }
+
+    .nav-link:hover::after {
+      width: 100%;
+    }
+
+    /* ── Yellow glow on CTA buttons ── */
+    .btn-yellow {
+      position: relative;
+      overflow: visible;
+    }
+
+    .btn-yellow::after {
+      content: '';
+      position: absolute;
+      inset: -3px;
+      border-radius: inherit;
+      background: #FFD700;
+      opacity: 0;
+      filter: blur(18px);
+      transition: opacity .3s ease;
+      z-index: -1;
+    }
+
+    .btn-yellow:hover::after {
+      opacity: .35;
+    }
+
+    /* ── WhatsApp: glow verde sutil en los wa-btn del header/menú ── */
+    .wa-btn {
+      position: relative;
+      overflow: hidden;
+      transition: all .28s cubic-bezier(.16, 1, .3, 1);
+    }
+
+    .wa-btn::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(37, 211, 102, .10) 0%, rgba(18, 140, 126, .05) 100%);
+      opacity: 0;
+      transition: opacity .28s ease;
+      border-radius: inherit;
+      pointer-events: none;
+    }
+
+    .wa-btn:hover::before {
+      opacity: 1;
+    }
+
+    .wa-btn::after {
+      content: '';
+      position: absolute;
+      inset: -3px;
+      border-radius: inherit;
+      background: rgba(37, 211, 102, .18);
+      opacity: 0;
+      filter: blur(14px);
+      transition: opacity .3s ease;
+      z-index: -1;
+    }
+
+    .wa-btn:hover::after {
+      opacity: .7;
+    }
+
+    .wa-btn:active {
+      transform: scale(.97) !important;
+    }
+
+    /* ── Prosa legal ── */
+    .legal h2 {
+      color: #fff;
+      font-weight: 700;
+      font-size: 1.15rem;
+      margin: 2.5rem 0 .75rem;
+    }
+
+    .legal p,
+    .legal li {
+      color: #9CA3AF;
+      font-size: .95rem;
+      line-height: 1.75;
+    }
+
+    .legal p+p {
+      margin-top: .75rem;
+    }
+
+    .legal ul {
+      margin: .75rem 0;
+      padding-left: 1.25rem;
+      list-style: disc;
+    }
+
+    .legal li {
+      margin: .35rem 0;
+    }
+
+    .legal li::marker {
+      color: rgba(255, 215, 0, .6);
+    }
+
+    .legal a {
+      color: #FFD700;
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+
+    .legal a:hover {
+      color: #E6C200;
+    }
+
+    .legal strong {
+      color: #E5E7EB;
+      font-weight: 600;
+    }
+  </style>
+  <link rel="icon" href="imagenes/nq2f-favicon.ico" sizes="any">
+  <link rel="icon" type="image/png" sizes="32x32" href="imagenes/nq2f-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="imagenes/nq2f-16.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="imagenes/nq2f-192.png">
+  <link rel="apple-touch-icon" href="imagenes/nq2f-apple-touch-icon.png">
+</head>
+
+<body class="bg-q-navy text-white antialiased">
+
+  <!-- Banner cierre por vacaciones: oculto por defecto, lo muestra el JS si enVacaciones() -->
+  <div id="vac-banner" style="display:none"
+    class="fixed top-0 inset-x-0 z-[60] bg-q-yellow text-q-navy text-center font-bold text-sm leading-snug px-4 py-2.5">
+  </div>
+
+  <!-- ════════════════════════════════════════════
+     HEADER — glassmorphism fijo (anclas → index.html)
+════════════════════════════════════════════ -->
+  <header id="hdr" class="fixed top-0 inset-x-0 z-50 hdr-glass transition-all duration-300">
+    <div class="max-w-7xl mx-auto px-6 lg:px-10 flex items-center justify-between h-16 lg:h-20">
+
+      <a href="index.html" class="flex-shrink-0 hover:opacity-90 transition-opacity">
+        <img src="imagenes/logo_quesada_navy.png" alt="Neumáticos Quesada" decoding="async"
+          class="h-12 w-auto object-contain block">
+      </a>
+
+      <nav class="hidden md:flex items-center gap-8">
+        <a href="index.html#servicios"
+          class="nav-link text-sm font-medium text-gray-300 hover:text-white transition-colors">Servicios</a>
+        <a href="index.html#nosotros"
+          class="nav-link text-sm font-medium text-gray-300 hover:text-white transition-colors">Nosotros</a>
+        <a href="index.html#galeria"
+          class="nav-link text-sm font-medium text-gray-300 hover:text-white transition-colors">Taller</a>
+        <a href="index.html#contacto"
+          class="nav-link text-sm font-medium text-gray-300 hover:text-white transition-colors">Contacto</a>
+      </nav>
+
+      <div class="flex items-center gap-3">
+        <a href="tel:963593087"
+          class="hidden sm:inline-flex items-center gap-2 bg-q-yellow hover:bg-q-yellow-d text-q-navy text-sm font-bold px-5 py-2.5 rounded-lg transition-colors btn-yellow">
+          <i class="fas fa-phone text-[11px]"></i> 963 593 087
+        </a>
+
+        <!-- WHATSAPP: Botón header desktop -->
+        <a href="https://wa.me/34963593087?text=Hola%2C%20me%20gustar%C3%ADa%20solicitar%20informaci%C3%B3n%20o%20pedir%20cita%20en%20Neum%C3%A1ticos%20Quesada.%20%C2%BFPodr%C3%ADais%20ayudarme%3F%20Gracias."
+          target="_blank" rel="noopener noreferrer" aria-label="Contactar por WhatsApp"
+          class="wa-btn hidden lg:inline-flex items-center gap-2 text-sm font-semibold px-4 py-2.5 rounded-lg"
+          style="border:1px solid rgba(37,211,102,.20); background:rgba(6,13,31,.5); color:rgba(220,252,231,.85); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px)">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"
+            style="flex-shrink:0; color:rgba(37,211,102,.9)">
+            <path
+              d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z" />
+          </svg>
+          WhatsApp
+        </a>
+
+        <button id="burger" aria-label="Abrir menú"
+          class="md:hidden w-9 h-9 flex items-center justify-center rounded-lg text-gray-300 hover:bg-white/10 transition-colors">
+          <i id="burger-icon" class="fas fa-bars"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Mobile menu -->
+    <div id="mob-menu" class="hidden md:hidden border-t border-white/10">
+      <div class="max-w-7xl mx-auto px-6 py-4 space-y-1">
+        <a href="index.html#servicios"
+          class="block text-sm font-medium text-gray-300 hover:bg-white/8 px-4 py-3 rounded-lg transition-colors">Servicios</a>
+        <a href="index.html#nosotros"
+          class="block text-sm font-medium text-gray-300 hover:bg-white/8 px-4 py-3 rounded-lg transition-colors">Nosotros</a>
+        <a href="index.html#galeria"
+          class="block text-sm font-medium text-gray-300 hover:bg-white/8 px-4 py-3 rounded-lg transition-colors">Taller</a>
+        <a href="index.html#contacto"
+          class="block text-sm font-medium text-gray-300 hover:bg-white/8 px-4 py-3 rounded-lg transition-colors">Contacto</a>
+        <a href="tel:963593087"
+          class="flex items-center gap-2 justify-center bg-q-yellow text-q-navy text-sm font-bold px-4 py-3 rounded-lg mt-2 transition-colors hover:bg-q-yellow-d">
+          <i class="fas fa-phone text-xs"></i> 963 593 087
+        </a>
+        <!-- WHATSAPP: Botón menú móvil -->
+        <a href="https://wa.me/34963593087?text=Hola%2C%20me%20gustar%C3%ADa%20solicitar%20informaci%C3%B3n%20o%20pedir%20cita%20en%20Neum%C3%A1ticos%20Quesada.%20%C2%BFPodr%C3%ADais%20ayudarme%3F%20Gracias."
+          target="_blank" rel="noopener noreferrer"
+          class="wa-btn flex items-center gap-2 justify-center text-sm font-semibold px-4 py-3 rounded-lg mt-2"
+          style="border:1px solid rgba(37,211,102,.18); background:rgba(37,211,102,.04); color:rgba(220,252,231,.88)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"
+            style="flex-shrink:0; color:rgba(37,211,102,.9)">
+            <path
+              d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z" />
+          </svg>
+          Reservar por WhatsApp
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- ════════════════════════════════════════════
+     CONTENIDO — Aviso legal
+════════════════════════════════════════════ -->
+  <main class="pt-28 lg:pt-36 pb-20">
+    <div class="legal max-w-3xl mx-auto px-6">
+
+      <div class="inline-flex items-center gap-2.5 text-q-yellow text-[11px] font-bold tracking-[.22em] uppercase mb-5">
+        <span class="w-6 h-px bg-q-yellow"></span>
+        Información legal
+      </div>
+
+      <h1 class="text-4xl sm:text-[3rem] font-black font-barlow text-white leading-[1.05] mb-3">
+        Aviso <span class="italic text-q-yellow">legal.</span>
+      </h1>
+      <p class="!text-gray-500 text-sm mb-2">Última actualización: 13 de agosto de 2026</p>
+
+      <h2>1. Datos identificativos del titular</h2>
+      <p>
+        En cumplimiento de la Ley 34/2002, de servicios de la sociedad de la información y de comercio electrónico
+        (LSSI-CE), se informa de que el titular de este sitio web es:
+      </p>
+      <ul>
+        <li><strong>NEUCERGON, S.L.</strong> (Neumáticos Quesada)</li>
+        <li>CIF: B75730085</li>
+        <li>C/ del Cardenal Benlloch, 67, bajo · 46920 Mislata (Valencia)</li>
+        <li>Teléfono: <a href="tel:963593087">963 593 087</a></li>
+        <li>Email: <a href="mailto:neucergon@hotmail.com">neucergon@hotmail.com</a></li>
+        <li>Dominio: neumaticosquesada.com</li>
+      </ul>
+
+      <h2>2. Objeto y condiciones de uso</h2>
+      <p>
+        Este sitio web tiene por objeto dar a conocer los servicios del taller Neumáticos Quesada y facilitar el
+        contacto y la solicitud de cita. El acceso y la navegación por el sitio implican la aceptación de este aviso
+        legal.
+      </p>
+      <p>
+        El usuario se compromete a hacer un uso adecuado del sitio y a no emplearlo para actividades contrarias a la
+        ley o que puedan dañar derechos de terceros.
+      </p>
+
+      <h2>3. Propiedad intelectual</h2>
+      <p>
+        Los contenidos de este sitio — textos, imágenes, logotipos y diseño — son titularidad de NEUCERGON, S.L. No
+        está permitida su reproducción, distribución o transformación sin autorización expresa del titular. Las marcas
+        de terceros que puedan aparecer en el sitio pertenecen a sus respectivos titulares.
+      </p>
+
+      <h2>4. Responsabilidad</h2>
+      <p>
+        La información sobre servicios, precios y disponibilidad que pueda mostrarse en este sitio tiene carácter
+        orientativo y no constituye oferta contractual. Las citas solicitadas a través de la web o por WhatsApp quedan
+        sujetas a confirmación por parte del taller.
+      </p>
+      <p>
+        NEUCERGON, S.L. no se hace responsable de los daños derivados de un uso incorrecto del sitio ni de
+        interrupciones o fallos técnicos ajenos a su control.
+      </p>
+
+      <h2>5. Enlaces a terceros</h2>
+      <p>
+        Este sitio contiene enlaces a servicios de terceros (por ejemplo, Google Maps o WhatsApp). NEUCERGON, S.L. no
+        se hace responsable de sus contenidos ni de sus políticas de privacidad, que se rigen por sus propias
+        condiciones.
+      </p>
+
+      <h2>6. Legislación aplicable</h2>
+      <p>
+        Las relaciones entre NEUCERGON, S.L. y los usuarios de este sitio se rigen por la legislación española.
+      </p>
+
+    </div>
+  </main>
+
+  <!-- ════════════════════════════════════════════
+     FOOTER (anclas → index.html)
+════════════════════════════════════════════ -->
+  <footer class="bg-[#040916] border-t border-white/5 py-14">
+    <div class="max-w-7xl mx-auto px-6 lg:px-10">
+
+      <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-10 mb-12">
+
+        <div class="lg:col-span-2">
+          <img src="imagenes/logo_quesada_navy.png" alt="Neumáticos Quesada" loading="lazy" decoding="async"
+            class="h-14 w-auto object-contain mb-5">
+          <p class="text-gray-500 text-sm leading-relaxed mb-4">
+            C/ del Cardenal Benlloch, 67, bajo<br>46920 Mislata, Valencia
+          </p>
+          <div class="space-y-2">
+            <a href="tel:963593087"
+              class="flex items-center gap-2 text-gray-500 hover:text-white text-sm transition-colors">
+              <i class="fas fa-phone text-q-yellow text-xs w-4"></i> 963 593 087
+            </a>
+            <a href="mailto:neucergon@hotmail.com"
+              class="flex items-center gap-2 text-gray-500 hover:text-white text-sm transition-colors">
+              <i class="fas fa-envelope text-q-yellow text-xs w-4"></i> neucergon@hotmail.com
+            </a>
+          </div>
+        </div>
+
+        <div>
+          <h4 class="text-white font-bold text-sm mb-4">Servicios</h4>
+          <ul class="space-y-2.5">
+            <li><a href="index.html#servicios"
+                class="text-gray-500 hover:text-white text-sm transition-colors">Reparación de neumáticos</a></li>
+            <li><a href="index.html#servicios"
+                class="text-gray-500 hover:text-white text-sm transition-colors">Alineación de dirección</a></li>
+            <li><a href="index.html#servicios"
+                class="text-gray-500 hover:text-white text-sm transition-colors">Montaje de neumáticos</a></li>
+            <li><a href="index.html#servicios"
+                class="text-gray-500 hover:text-white text-sm transition-colors">Equilibrado de ruedas</a></li>
+            <li><a href="index.html#servicios"
+                class="text-gray-500 hover:text-white text-sm transition-colors">Válvulas TPMS y codificadas</a></li>
+          </ul>
+        </div>
+
+        <div>
+          <h4 class="text-white font-bold text-sm mb-4">General</h4>
+          <ul class="space-y-2.5">
+            <li><a href="index.html#nosotros" class="text-gray-500 hover:text-white text-sm transition-colors">Sobre
+                nosotros</a></li>
+            <li><a href="index.html#galeria" class="text-gray-500 hover:text-white text-sm transition-colors">Galería
+                del taller</a></li>
+            <li><a href="index.html#contacto" class="text-gray-500 hover:text-white text-sm transition-colors">Contacto
+                y horarios</a></li>
+            <li>
+              <a href="https://g.co/kgs/uhA6gAq" target="_blank" rel="noopener"
+                class="text-gray-500 hover:text-white text-sm transition-colors">
+                Reseñas en Google
+              </a>
+            </li>
+            <li><a href="privacidad.html" class="text-gray-500 hover:text-white text-sm transition-colors">Política de
+                privacidad</a></li>
+            <li><a href="aviso-legal.html" aria-current="page"
+                class="text-gray-300 hover:text-white text-sm transition-colors">Aviso legal</a></li>
+          </ul>
+        </div>
+
+      </div>
+
+      <div class="border-t border-white/5 pt-7">
+        <p class="text-gray-600 text-xs">© 2026 Neumáticos Quesada Cdad. Todos los derechos reservados.</p>
+      </div>
+
+    </div>
+  </footer>
+
+  <!-- ════════════════════════════════════════════
+     JAVASCRIPT — subconjunto: glass on scroll, menú móvil,
+     banner de vacaciones y reescritura wa.me. Sin GSAP.
+════════════════════════════════════════════ -->
+  <script>
+    // ═══ CIERRE POR VACACIONES ═══
+    // OJO: este objeto está DUPLICADO en TRES archivos — index.html,
+    // privacidad.html y aviso-legal.html. Si cambian las fechas (o el texto),
+    // hay que tocar los tres.
+    // Rango INCLUSIVO en hora local (Europe/Madrid).
+    // Para desactivarlo: poner activo en false. NO borrar el bloque.
+    const VACACIONES = {
+      activo: true,
+      desde: '2026-08-08',
+      hasta: '2026-08-31',
+      textoCorto: 'Cerrado por vacaciones',
+      textoLargo: 'Cerrados por vacaciones hasta el 1 de septiembre · Escríbenos y te atendemos a la vuelta',
+      fechaVuelta: '1 de septiembre',
+    };
+
+    function enVacaciones() {
+      if (!VACACIONES.activo) return false;
+      const hoy = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'Europe/Madrid',
+        year: 'numeric', month: '2-digit', day: '2-digit'
+      }).format(new Date());
+      return hoy >= VACACIONES.desde && hoy <= VACACIONES.hasta;
+    }
+
+    // ── Header glass on scroll ──
+    const hdr = document.getElementById('hdr');
+    window.addEventListener('scroll', () => {
+      hdr.classList.toggle('hdr-scrolled', window.scrollY > 40);
+    }, { passive: true });
+
+    // ── Banner de vacaciones: mostrar y compensar la altura del header fijo ──
+    // Aquí se compensa con margin-top sobre <main> (no padding-top inline,
+    // que pisaría el pt-28 de Tailwind).
+    (function () {
+      if (!enVacaciones()) return;
+      const b = document.getElementById('vac-banner');
+      if (!b) return;
+      b.textContent = VACACIONES.textoLargo;
+      b.style.display = 'block';
+
+      const main = document.querySelector('main');
+      function aplicarAltura() {
+        const h = b.offsetHeight;
+        hdr.style.top = h + 'px';
+        if (main) main.style.marginTop = h + 'px';
+      }
+      aplicarAltura();
+
+      // El alto cambia al cargar las fuentes web y al rotar/redimensionar.
+      if (window.ResizeObserver) {
+        new ResizeObserver(aplicarAltura).observe(b);
+      } else {
+        window.addEventListener('resize', aplicarAltura, { passive: true });
+      }
+    })();
+
+    // ── Vacaciones: antepone el aviso al texto prerrellenado de los enlaces wa.me ──
+    (function () {
+      if (!enVacaciones()) return;
+      const aviso = 'Sé que estáis de vacaciones hasta el ' + VACACIONES.fechaVuelta + '. ';
+      document.querySelectorAll('a[href^="https://wa.me/"]').forEach(a => {
+        try {
+          const url = new URL(a.href);
+          url.searchParams.set('text', aviso + (url.searchParams.get('text') || ''));
+          a.href = url.toString();
+        } catch (e) { /* href malformado: se deja como está */ }
+      });
+    })();
+
+    // ── Mobile menu ──
+    const burger = document.getElementById('burger');
+    const burgerIcon = document.getElementById('burger-icon');
+    const mobMenu = document.getElementById('mob-menu');
+
+    burger.addEventListener('click', () => {
+      const open = !mobMenu.classList.contains('hidden');
+      mobMenu.classList.toggle('hidden', open);
+      burgerIcon.className = open ? 'fas fa-bars' : 'fas fa-times';
+    });
+
+    function closeMenu() {
+      mobMenu.classList.add('hidden');
+      burgerIcon.className = 'fas fa-bars';
+    }
+
+    document.addEventListener('click', e => {
+      if (!burger.contains(e.target) && !mobMenu.contains(e.target)) closeMenu();
+    });
+  </script>
+</body>
+
+</html>
