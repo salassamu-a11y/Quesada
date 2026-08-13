@@ -227,11 +227,16 @@ async function sendWhatsApp(cita) {
 
   const clean = cita.telefono.replace(/[\s\-]/g, '').replace(/^(\+34|34)/, '');
   const to = `whatsapp:+34${clean}`;
+  // {{4}} lleva servicio + detalle en una sola variable: la plantilla de Meta
+  // tiene exactamente 5 y añadir una sexta obligaría a reaprobarla entera.
+  const servicioDetalle = cita.detalle
+    ? `${cita.servicio} — ${cita.detalle}`
+    : cita.servicio;
   const contentVariables = JSON.stringify({
     1: contentVar(cita.nombre, 'nombre'),
     2: contentVar(fechaLegible(cita.fecha), 'fecha'),
     3: contentVar(cita.hora, 'hora'),
-    4: contentVar(cita.servicio, 'servicio'),
+    4: contentVar(servicioDetalle, 'servicio'),
     5: contentVar(process.env.TALLER_TELEFONO, 'TALLER_TELEFONO'),
   });
 
@@ -415,6 +420,10 @@ function validarCita(body) {
     return 'El servicio no puede superar los 100 caracteres';
   }
 
+  if (typeof body.detalle === 'string' && body.detalle.length > 100) {
+    return 'El detalle no puede superar los 100 caracteres';
+  }
+
   return null;
 }
 
@@ -433,7 +442,7 @@ function adminHTML(citas, verTodas = false) {
         <td class="px-4 py-3 text-white font-medium">${escapeHtml(c.nombre)}</td>
         <td class="px-4 py-3 text-gray-300">${escapeHtml(c.telefono)}</td>
         <td class="px-4 py-3 text-gray-300 whitespace-nowrap">${escapeHtml(c.fecha)} ${escapeHtml(c.hora)}</td>
-        <td class="px-4 py-3 text-gray-300">${escapeHtml(c.servicio)}</td>
+        <td class="px-4 py-3 text-gray-300">${escapeHtml(c.servicio)}${c.detalle ? `<div class="text-xs text-gray-500 mt-0.5">${escapeHtml(c.detalle)}</div>` : ''}</td>
         <td class="px-4 py-3">
           <span class="px-2 py-1 rounded-full text-xs font-medium ${estadoBadge(c.estado)}">${escapeHtml(c.estado)}</span>
         </td>
@@ -516,12 +525,19 @@ function adminHTML(citas, verTodas = false) {
             <label class="block text-xs text-gray-400 mb-1.5 uppercase tracking-wide">Servicio</label>
             <select id="nc-servicio" class="w-full bg-[#060D1F] border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-[#2563EB]">
               <option value="">— Selecciona servicio —</option>
-              <option value="Reparación de neumáticos">Reparación de neumáticos</option>
-              <option value="Alineación y geometría">Alineación y geometría</option>
+              <option value="Pinchazo turismo">Pinchazo turismo</option>
+              <option value="Pinchazo furgoneta">Pinchazo furgoneta</option>
+              <option value="Pinchazo moto">Pinchazo moto</option>
               <option value="Montaje de neumáticos">Montaje de neumáticos</option>
-              <option value="Equilibrado de ruedas">Equilibrado de ruedas</option>
-              <option value="Válvulas TPMS y codificadas">Válvulas TPMS y codificadas</option>
+              <option value="Alineado">Alineado</option>
+              <option value="Cruce">Cruce</option>
+              <option value="Equilibrado">Equilibrado</option>
+              <option value="Válvulas TPMS">Válvulas TPMS</option>
             </select>
+          </div>
+          <div class="col-span-2">
+            <label class="block text-xs text-gray-400 mb-1.5 uppercase tracking-wide">Detalle (opcional)</label>
+            <input id="nc-detalle" type="text" maxlength="100" placeholder="4 ruedas, 205/55 R16" class="w-full bg-[#060D1F] border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#2563EB]">
           </div>
         </div>
         <div class="mt-5 flex gap-3">
@@ -616,6 +632,7 @@ function adminHTML(citas, verTodas = false) {
       const fecha    = document.getElementById('nc-fecha').value;
       const hora     = document.getElementById('nc-hora').value;
       const servicio = document.getElementById('nc-servicio').value;
+      const detalle  = document.getElementById('nc-detalle').value.trim();
       const errEl    = document.getElementById('nc-error');
 
       if (!nombre || !telefono || !fecha || !hora || !servicio) {
@@ -628,7 +645,7 @@ function adminHTML(citas, verTodas = false) {
       const res = await fetch('/admin/cita', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nombre, telefono, fecha, hora, servicio })
+        body: JSON.stringify({ nombre, telefono, fecha, hora, servicio, detalle })
       });
 
       if (res.ok) {
@@ -753,6 +770,7 @@ const server = http.createServer(async (req, res) => {
         fecha: body.fecha || '',
         hora: body.hora || '',
         servicio: body.servicio || '',
+        detalle: typeof body.detalle === 'string' ? body.detalle.trim() : '',
         mensaje: '',
         estado: 'confirmada',
         recordatorioEnviado: false,
