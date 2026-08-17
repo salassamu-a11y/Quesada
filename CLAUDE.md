@@ -25,6 +25,8 @@ Web + sistema de citas con recordatorio WhatsApp para taller de neumáticos en M
 ## Estructura de archivos
 proyecto/
 ├── index.html        ← web pública (completa)
+├── privacidad.html   ← política de privacidad (noindex, ver "Páginas legales")
+├── aviso-legal.html  ← aviso legal (noindex, ver "Páginas legales")
 ├── server.js         ← backend Node.js (completo)
 ├── citas.json        ← se crea automáticamente al registrar la primera cita
 ├── config.json       ← no creado, no usado en el código actual
@@ -90,7 +92,7 @@ proyecto/
 - **`#contacto` — tarjetas teléfono/email**: grid pasa de 2 columnas fijas a 1 columna en móvil (`grid-cols-1 md:grid-cols-2`); email usa `break-words` en vez de `break-all` (evita cortes agresivos en pantallas anchas).
 - **`#resenas`**: `scroll-mt-20` en móvil para que el ancla de navegación no quede tapada por el header fijo (`md:scroll-mt-0` en desktop, sin header fijo que lo requiera).
 
-## Cierre por vacaciones (index.html)
+## Cierre por vacaciones (index.html + páginas legales)
 Aviso de cierre temporal controlado por un único objeto de configuración, sin backend.
 
 - **Objeto `VACACIONES`** (cabecera del script principal, ~línea 1822): `{activo, desde, hasta, textoCorto, textoLargo, fechaVuelta}`. Rango actual **2026-08-08 → 2026-08-31** (inclusivo), `fechaVuelta: '1 de septiembre'`.
@@ -100,7 +102,19 @@ Aviso de cierre temporal controlado por un único objeto de configuración, sin 
   2. **Corte previo en `updateStatus()`** (`#status-pill`): sale antes del cálculo horario reutilizando el estilo "cerrado" existente (punto rojo, `ping` a opacidad 0) con `VACACIONES.textoCorto`.
   3. **Reescritura del `?text=` de los enlaces `wa.me`**: recorre `a[href^="https://wa.me/"]` y antepone `"Sé que estáis de vacaciones hasta el <fechaVuelta>. "` al texto prerrellenado, vía `new URL()` + `searchParams.set` (href malformado → `try/catch` que lo deja intacto).
 - **Compensación de altura (`vacBannerH`)**: el banner desplaza todo hacia abajo, así que `aplicarAltura()` mide `b.offsetHeight` y ajusta `hdr.style.top`, el `padding-top` de `#inicio` y el offset del smooth-scroll de anclas. **Se remide con `ResizeObserver`** sobre el banner (fallback: listener de `resize`): medir `offsetHeight` una sola vez falla porque las fuentes web cambian el alto del texto al cargar y el banner puede pasar de una a dos líneas.
+- **DUPLICADO EN TRES ARCHIVOS**: el objeto `VACACIONES` vive literal en `index.html`, `privacidad.html` y `aviso-legal.html`. **Cambiar las fechas obliga a tocar los tres.**
 - **Desactivación**: poner `activo: false` — o simplemente dejar que el rango expire (`enVacaciones()` devuelve `false` fuera de `desde`–`hasta`). **No borrar el bloque**: se reutiliza en el siguiente cierre cambiando las fechas.
+
+## Páginas legales
+`privacidad.html` y `aviso-legal.html` en la raíz del repo, enlazadas desde la columna "General" del footer de **las tres páginas** (index incluida).
+
+- **`noindex, follow`** en ambas: son páginas obligatorias por ley, no contenido a posicionar. Por eso **NO están en `sitemap.xml`** (una sola URL sigue siendo lo correcto).
+- **Duplican un subconjunto de index.html**: head común, ~110 líneas de CSS (header, menú móvil, nav, `btn-yellow`, `wa-btn`), banner de vacaciones, header, footer y un script corto. **SIN** GSAP, sin `.js-anim`, sin scroll reveal, sin `updateStatus()`, sin `#wa-float`, sin smooth scroll y sin JSON-LD.
+- **Por qué no un CSS compartido**: dos páginas que se tocarán una vez al año no justifican una dependencia de red adicional. La duplicación es deliberada.
+- **Responsable del tratamiento**: NEUCERGON, S.L., CIF **B75730085**. Contacto: **963 593 087** y **neucergon@hotmail.com**.
+- **Dirección — dos formas, no confundirlas**:
+  - Forma **NAP** `C/ del Cardenal Benlloch, 67, bajo` → web, JSON-LD y páginas legales (debe coincidir literalmente con la ficha de Google).
+  - Forma **fiscal** del censal `Calle Cardenal Benlloch 67, Planta B` → **solo** para trámites regulatorios (p. ej. el bundle de Twilio). Nunca en la web.
 
 ## Teléfono del taller en index.html
 - **963 593 087** — fijo del taller, verificado en WhatsApp Business (mismo número para llamadas y WhatsApp).
@@ -177,12 +191,15 @@ Botón "volver arriba" fijo (inferior izquierda) con forma de rueda de neumátic
   "fecha": "YYYY-MM-DD",
   "hora": "HH:MM",
   "servicio": "",
+  "detalle": "",
   "mensaje": "",
   "estado": "pendiente|confirmada|cancelada",
   "recordatorioEnviado": false,
   "creadaEn": "ISO timestamp"
 }
 ```
+
+- **`detalle`**: string **opcional**, máximo 100 caracteres. Para lo que Vicky anota en la agenda de papel (medida del neumático, tipo de vehículo). Las citas anteriores **no lo tienen**: el código tolera `undefined` en todas partes (listado, plantilla de WhatsApp).
 
 ## Endpoints server.js
 | Método | Ruta                              | Descripción                                    |
@@ -206,6 +223,12 @@ Respuestas de error comunes a todas las rutas `/admin`:
 - **Cabecera**: enlace que alterna "Ver todas las citas" ↔ "Volver a próximas citas"; el contador etiqueta la vista activa ("Próximas: N citas" / "Todas: N citas").
 - **Desplegable de estado**: ofrece solo `confirmada` y `cancelada`; `pendiente` aparece únicamente si la cita ya está en ese estado. La validación del servidor (`POST /admin/cita/:id/estado`) sigue aceptando los tres.
 
+## Servicios del panel (desglose operativo)
+- **8 opciones en el desplegable** del formulario de nueva cita: Pinchazo turismo, Pinchazo furgoneta, Pinchazo moto, Montaje de neumáticos, Alineado, Cruce, Equilibrado, Válvulas TPMS. **Sustituyen a las 5 anteriores.**
+- **NO tocan la web pública**: `#servicios` de index.html sigue con las **5 categorías comerciales** (Reparación, Alineación, Montaje, Equilibrado, TPMS). El desplegable del panel es el **desglose operativo interno**, otra cosa distinta — no hay que sincronizarlos.
+- **Citas antiguas sin migrar**: conservan sus servicios originales ("Reparación de neumáticos", "Alineación y geometría"…). Son **datos históricos** y el listado los muestra tal cual. Deliberado: no se migró nada.
+- **Detalle en el listado**: va **bajo el servicio, en la misma celda**, en gris y tamaño menor. Sin detalle no se muestra nada (ni etiqueta ni línea vacía).
+
 ## Aviso de horario en el panel (horarioTaller)
 - **`horarioTaller(fecha, hora)`** (server.js ~línea 357): devuelve `null` si la cita cae dentro del horario del taller, o el motivo (string) si no. L–J 8–14 y 15:30–20, V 8–16, sáb y dom cerrado. Límites **inclusivos** (una cita a la hora exacta de cierre no avisa). Formato inválido → `null` (eso ya lo reporta `validarCita`).
 - **Día de la semana en `Europe/Madrid`**: `Intl.DateTimeFormat` con `weekday`, anclado a `T12:00:00Z` (mediodía UTC) para que el offset de Madrid no desplace el día — nunca `getDay()` sobre un `Date` construido a pelo.
@@ -225,7 +248,7 @@ Respuestas de error comunes a todas las rutas `/admin`:
 - **Log de intentos fallidos**: IP + timestamp en `console.warn`, nunca las credenciales probadas.
 - **Anti-CSRF en tres niveles** (`isSameOrigin`, toda petición POST/DELETE bajo `/admin`): 1) `Sec-Fetch-Site` si el navegador la manda (inmune a la referrer policy) — solo `same-origin`/`none` pasan; 2) si no, `Origin` (o `Referer` de reserva) debe coincidir con el host propio, y el literal `"null"` (iframe sandbox, `file://`, redirect cross-origin) se rechaza explícitamente; 3) sin ninguna de las tres cabeceras (curl, herramientas API) se permite. Petición cross-origin desde navegador → 403.
 - **Anti-XSS en el panel**: `escapeHtml` escapa todo dato variable (`nombre`, `telefono`, `fecha`, `hora`, `servicio`, `estado`, `id`, `TALLER_NOMBRE`) antes de interpolarlo en `adminHTML`.
-- **Validación de entrada** (`validarCita`, `POST /admin/cita`): nombre obligatorio (≤100 car.), teléfono móvil español (`^[67]\d{8}` tras limpiar prefijo/espacios/guiones), fecha `YYYY-MM-DD` con calendario real **y no anterior a hoy** (`hoyMadrid()`, hoy sí se permite), hora `HH:MM` válida, servicio ≤100 car. — primer campo inválido → 400 con mensaje específico. `POST /admin/cita/:id/estado` valida que el estado sea `pendiente|confirmada|cancelada` → 400 si no.
+- **Validación de entrada** (`validarCita`, `POST /admin/cita`): nombre obligatorio (≤100 car.), teléfono móvil español (`^[67]\d{8}` tras limpiar prefijo/espacios/guiones), fecha `YYYY-MM-DD` con calendario real **y no anterior a hoy** (`hoyMadrid()`, hoy sí se permite), hora `HH:MM` válida, servicio ≤100 car., `detalle` **opcional** ≤100 car. — primer campo inválido → 400 con mensaje específico. `POST /admin/cita/:id/estado` valida que el estado sea `pendiente|confirmada|cancelada` → 400 si no.
 - **`hoyMadrid()`**: "hoy" en zona `Europe/Madrid` vía `Intl.DateTimeFormat('en-CA', {timeZone:'Europe/Madrid', ...})`, no `toISOString()` — el proceso corre en UTC en Render y entre las 22–24h hora local `toISOString()` seguiría en el día anterior, desfasando la validación de fecha mínima. El input `type="date"` del panel (`nc-fecha`) lleva `min="${hoy}"` en el HTML, pero es saltable (devtools/curl) — la validación real la hace el servidor.
 - **Inputs `date`/`time` del panel en tema oscuro**: `#nc-fecha`/`#nc-hora` llevan `color-scheme: dark` (si no, el navegador los dibuja en tema claro — icono invisible sobre fondo navy y desplegable de calendario blanco) + estilo del icono `::-webkit-calendar-picker-indicator` (opacity .75→1 en hover).
 - **`parseBody` estricto**: JSON que no sea un objeto (array, primitivo, inválido) resuelve `null` → 400 "Cuerpo de la petición inválido", en vez de `{}` silencioso.
@@ -233,7 +256,7 @@ Respuestas de error comunes a todas las rutas `/admin`:
 - **Errores genéricos al cliente**: `POST /admin/cita/:id/recordatorio` ya no devuelve `err.message` de Twilio en la respuesta (mensaje genérico "No se pudo enviar el recordatorio"); el detalle real se loggea en servidor con `maskPhones()`.
 - **Teléfonos enmascarados en logs**: `maskPhones()` sustituye cualquier número de teléfono en un texto de log por `***XX` (últimos 2 dígitos), aplicado a los errores de Twilio (cron y envío manual) antes de loggear.
 - **Cabeceras de seguridad** (`setSecurityHeaders`, todas las respuestas): `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: same-origin`, `Strict-Transport-Security: max-age=31536000; includeSubDomains`. **OJO — no volver a `no-referrer`**: por el Fetch Standard obliga al navegador a mandar `Origin: null` en peticiones no-CORS con método != GET/HEAD (los `<form method="post">` del panel), lo que hacía que `isSameOrigin` bloqueara con 403 los propios formularios del admin. `same-origin` conserva Origin/Referer reales en same-origin y los suprime hacia cualquier otro host.
-- **Panel — opción TPMS**: el select de servicio del formulario "nueva cita" (`POST /admin/cita`) incluye ahora "Válvulas TPMS y codificadas", en línea con el 5.º servicio de la web pública.
+- **Panel — servicios y detalle**: el select de servicio del formulario "nueva cita" (`POST /admin/cita`) pasa a **8 opciones operativas** y se añade el campo libre `detalle` (ver "Servicios del panel"). `escapeHtml` también se aplica a `detalle` antes de interpolarlo en `adminHTML`.
 
 ## Variables de entorno (.env)
 ```
@@ -266,7 +289,9 @@ TALLER_NOMBRE=Neumáticos Quesada
 
 ## WhatsApp — envío por plantilla Meta (server.js)
 - **Sin texto libre**: `sendWhatsApp(cita)` envía siempre vía `contentSid` (Content Template Builder de Twilio/Meta) + `contentVariables` — no existe fallback a body suelto, porque fuera de la ventana de 24h Meta lo rechaza.
-- **Variables de la plantilla**: `{{1}}` nombre, `{{2}}` fecha legible (`fechaLegible()`, ej. "martes, 12 de agosto"), `{{3}}` hora, `{{4}}` servicio, `{{5}}` `TALLER_TELEFONO`. `contentVar()` valida cada una (colapsa espacios, `trim()`) y lanza si queda vacía — falla en el log a las 19:00 en vez de un error opaco de Meta. **El orden de las 5 variables debe coincidir exactamente con la plantilla aprobada en Meta.** Cambiarlo obliga a repetir el ciclo de aprobación entero. Si no coinciden, el mensaje sale con los datos cruzados y no hay error — solo un cliente confundido.
+- **Variables de la plantilla**: `{{1}}` nombre, `{{2}}` fecha legible (`fechaLegible()`, ej. "martes, 12 de agosto"), `{{3}}` hora, `{{4}}` **servicio + detalle** concatenados con `" — "` (sin detalle, solo el servicio), `{{5}}` `TALLER_TELEFONO`. `contentVar()` valida cada una (colapsa espacios, `trim()`) y lanza si queda vacía — falla en el log a las 19:00 en vez de un error opaco de Meta. **El orden de las 5 variables debe coincidir exactamente con la plantilla aprobada en Meta.** Cambiarlo obliga a repetir el ciclo de aprobación entero. Si no coinciden, el mensaje sale con los datos cruzados y no hay error — solo un cliente confundido.
+- **SIGUEN SIENDO EXACTAMENTE 5 VARIABLES.** El detalle se concatenó dentro de `{{4}}` precisamente para no añadir una sexta: cambiar el número de variables obliga a repetir el **ciclo de aprobación de Meta entero**.
+- **Longitud**: peor caso ~**203 caracteres**, muy por debajo del límite de **1024** de Meta. No hace falta truncar.
 - **Cliente Twilio perezoso**: `getTwilioClient()` instancia y cachea en el primer envío, ya no al cargar el módulo — credenciales ausentes/erróneas ya no tumban el servidor entero (incluido `/admin`) al arrancar, solo el envío de recordatorios.
 - **Modo simulación** (`TWILIO_DRY_RUN=true`): `sendWhatsApp` no llama a Twilio, solo loggea el payload enmascarado (`maskPhones`) y devuelve `{sid:'DRYRUN', dryRun:true}`. Ni el cron ni el envío manual marcan `recordatorioEnviado` en dry-run (repetible en local).
 - **Aviso al arrancar**: `server.listen` comprueba `TWILIO_ACCOUNT_SID/AUTH_TOKEN/WHATSAPP_FROM/CONTENT_SID/TALLER_TELEFONO` y avisa por `console.warn` si falta alguna — no aborta, la web y el panel siguen operativos sin Twilio.
@@ -296,7 +321,7 @@ Carga real contra `POST /admin/cita` en local con **autocannon**, para validar e
 | server.js     | ✅     | Completo — todos los endpoints implementados           |
 | citas.json    | ⚠️     | Se crea al guardar la primera cita                     |
 | config.json   | ❌     | No creado, no referenciado en el código                |
-| Twilio        | ⚠️     | Código migrado a plantilla y verificado en dry-run. Bloqueado por: bundle regulatorio ES → número → sender/WABA → plantilla aprobada. Falta `TWILIO_CONTENT_SID` real. |
+| Twilio        | ⚠️     | Bundle regulatorio **APROBADO** (12/08/2026). Bloqueado ahora por **falta de inventario de números españoles** en Twilio — ver "Twilio — estado del bundle y del número" |
 | Deploy Render | ✅     | En producción — plan Starter, Frankfurt, disco 1 GB en /data, auto-deploy desde main (ver sección propia) |
 | Enlaces wa.me | ✅     | Los 4 apuntan ya al fijo del taller (34963593087), no al número personal — ver "Teléfono del taller en index.html" |
 | Vacaciones    | ✅     | Aviso activo 2026-08-08 → 2026-08-31 (banner + pill + texto wa.me) — ver sección propia |
@@ -307,18 +332,30 @@ Carga real contra `POST /admin/cita` en local con **autocannon**, para validar e
 - El WhatsApp Business actual del taller sigue gestionado manualmente por Vicky (sin cambios).
 - Número Twilio **nuevo pendiente de compra**, exclusivo para envío de recordatorios automáticos — no sustituye el canal de atención al cliente existente.
 
+## Twilio — estado del bundle y del número
+- **Bundle regulatorio APROBADO el 12/08/2026**
+  - SID: `BU0ffed7d91ff7a2d5cdf61554fa058b56`
+  - Nombre: `Neumaticos Quesada - ES Mobile`
+  - Tipo: **Mobile** · End user: Business (NEUCERGON, S.L.)
+- **Address SID validado**: `AD29705a0c0d287badd5a2a096d3b272e3`
+- **BLOQUEADO: no hay inventario de números españoles** en la consola de Twilio (búsqueda sin filtros → 0 resultados). **Ticket de solicitud de número exclusivo enviado el 17/08/2026**, esperando respuesta.
+- **Alternativa si Twilio no responde**: **SIM prepago española** a nombre del taller. Meta solo necesita recibir el OTP **una vez**; el número **no tiene por qué ser de Twilio**. Requiere estar físicamente con la SIM → **no se puede hacer hasta que el taller reabra el 1 de septiembre**.
+- **OJO — el bundle es específico por tipo de número**: si finalmente se compra un número **Local (fijo)** en vez de Mobile, hará falta un **bundle NUEVO de tipo Local**. Misma documentación, y ya se sabe que se aprueba.
+- **Un fijo sirve igual como remitente de WhatsApp**: Meta verifica por OTP y admite **llamada de voz**, no solo SMS.
+
 ## Deuda técnica
 - **Google Search Console: pendiente.** El SEO técnico de la web está hecho, pero falta verificar la propiedad y dar de alta el sitemap. **Bloqueado por acceso a la cuenta de Google del negocio.**
 - **Google Business Profile: ficha SIN RECLAMAR** (verificado). 295 reseñas, 4,9★. Es la **palanca de mayor impacto** para posicionar en "neumáticos Mislata" — más que cualquier cambio en la web. Requiere la cuenta de Google del negocio y verificación **por postal o vídeo presencial**.
 - Status callback de Twilio: el SID devuelto significa "aceptado", no "entregado". Saber si el cliente recibió el recordatorio requiere un webhook de status. Pendiente, no bloquea la entrega.
 - **Doble toque en táctil en los CTA "Solicitar servicio"** de Reparación, Alineación y TPMS (1.ª, 2.ª y 5.ª cards). Descartado: hover (neutralizado en `@media (hover:none)`), reveal en movimiento (unobserve aplicado), cola del smooth scroll (falla también esperando 3s y con scroll manual), superposiciones, listeners táctiles y offset de header/banner. La comparativa estática está agotada: la card 2 es idéntica a la 3 y una falla y la otra no. En escritorio con ratón funciona. Siguiente paso si se retoma: instrumentar en móvil real con un listener de diagnóstico en captura. **Impacto bajo**: los CTA llevan a `#contacto`, en la misma página.
 - **Botón WhatsApp del panel sin filtro**: funciona para cualquier cita, incluidas canceladas y ya recordadas — sin filtro por estado ni por `recordatorioEnviado`.
-- **Política de privacidad y aviso legal: NO EXISTEN** y son obligatorios antes de la entrega. El formulario de citas trata nombres y teléfonos (RGPD) y la web carga fuentes de Google y Font Awesome desde CDN (transmisión de IP a terceros).
+- **Backup de `citas.json`: NO EXISTE.** No hay copias de seguridad de ningún tipo; el archivo vive en un **único disco de Render**. Un fallo del disco y se pierden **todas** las citas.
 
 ## Pendiente (trabajo futuro acordado, no deuda)
-- **Detalle libre en el servicio de las citas**: el desplegable tiene 5 opciones fijas y Vicky necesita anotar detalle libre (medida, tipo de vehículo). Pendiente de definir con el cliente.
 - **Pantalla de solo lectura para el taller** (citas del día, sin edición). Acordada sin coste, después de la entrega.
 - **Informe mensual de citas en el panel.** Post-entrega.
+- **Citas de HOY cuya hora ya pasó**: siguen arriba del listado toda la jornada porque el filtro de "Próximas" es **por día, no por hora**. **Decisión aplazada** a cuando se haga la pantalla de solo lectura: la respuesta correcta es distinta para cada vista.
+- **Botón WhatsApp del panel — refinamiento acordado**: ocultarlo en citas canceladas, marcar visualmente las ya enviadas y pedir confirmación al pulsar. Acordado hacerlo **cuando haya número de Twilio operativo** (resuelve la deuda "Botón WhatsApp del panel sin filtro").
 
 ## Reglas
 - Claude Code nunca ejecuta curl ni llamadas reales a Twilio para debuggear
