@@ -10,6 +10,9 @@ const cron = require('node-cron');
 const PORT = process.env.PORT || 3001;
 const DATA_DIR = process.env.DATA_DIR || __dirname;
 const CITAS_PATH = path.join(DATA_DIR, 'citas.json');
+const BACKUP_DIR = path.join(DATA_DIR, 'backups');
+const BACKUP_KEEP_DAYS = 30;
+const BACKUP_KEEP_MIN = 7;
 
 // Cliente perezoso: instanciarlo al cargar el módulo hace que unas
 // credenciales ausentes o mal escritas tumben TODO el servidor al arrancar
@@ -58,6 +61,110 @@ function writeCitas(citas) {
   const tmp = `${CITAS_PATH}.tmp`;
   fs.writeFileSync(tmp, JSON.stringify(citas, null, 2));
   fs.renameSync(tmp, CITAS_PATH);
+}
+
+const BACKUP_RE = /^citas-\d{4}-\d{2}-\d{2}\.json$/;
+const BACKUP_TMP_RE = /^citas-\d{4}-\d{2}-\d{2}\.json\.tmp$/;
+
+// Copia diaria de citas.json a BACKUP_DIR. Lee el archivo CRUDO, nunca vía
+// readCitas(): esa función renombra citas.json a .corrupt-* si no parsea,
+// y desde un backup eso sería destructivo. Si el JSON no parsea NO se
+// escribe nada: la última copia buena vale más que una corrupta de hoy.
+function backupCitas() {
+  try {
+    if (!fs.existsSync(CITAS_PATH)) {
+      console.log('[backup] citas.json no existe todavía; nada que copiar');
+      return;
+    }
+    const raw = fs.readFileSync(CITAS_PATH, 'utf8');
+    let citas;
+    try {
+      citas = JSON.parse(raw);
+    } catch (err) {
+      console.error(`[backup] GRAVE: citas.json no parsea (${err.message}); backup OMITIDO para no pisar la última copia buena`);
+      return;
+    }
+    fs.mkdirSync(BACKUP_DIR, { recursive: true });
+    const nombreHoy = `citas-${hoyMadrid()}.json`;
+    const destino = path.join(BACKUP_DIR, nombreHoy);
+
+    // Caída brusca respecto al backup previo (vacío o por debajo de la
+    // mitad): puede ser legítimo (limpieza de citas) o un DATA_DIR mal
+    // montado tras un deploy. Se avisa fuerte pero se escribe igualmente:
+    // las copias previas no se tocan.
+    if (Array.isArray(citas)) {
+      const previo = fs.readdirSync(BACKUP_DIR)
+        .filter(f => BACKUP_RE.test(f) && f < nombreHoy)
+        .sort()
+        .pop();
+      if (previo) {
+        try {
+          const previas = JSON.parse(fs.readFileSync(path.join(BACKUP_DIR, previo), 'utf8'));
+          if (Array.isArray(previas) && previas.length > 0 && citas.length < previas.length * 0.5) {
+            console.warn(`[backup] ¡ATENCIÓN! citas.json ${citas.length === 0 ? 'está VACÍO' : `ha caído a ${citas.length} citas`} y ${previo} tenía ${previas.length}. Posible pérdida de datos.`);
+          }
+        } catch (err) {
+          console.warn(`[backup] No se pudo comparar con ${previo}: ${err.message}`);
+        }
+      }
+    }
+
+    const tmp = `${destino}.tmp`;
+    fs.writeFileSync(tmp, raw);
+    fs.renameSync(tmp, destino);
+    console.log(`[backup] Copia diaria escrita: ${nombreHoy} (${Buffer.byteLength(raw)} bytes)`);
+
+    purgarBackups();
+  } catch (err) {
+    console.error(`[backup] Error inesperado: ${err.message}`);
+  }
+}
+
+// Purga SOLO archivos de BACKUP_DIR que casan exactamente con los patrones
+// esperados; .corrupt-*, citas.json o cualquier otro nombre se ignora. La
+// antigüedad de los backups se mide por la fecha del NOMBRE, nunca por
+// mtime (un restore o una copia lo alteran). Conserva siempre los
+// BACKUP_KEEP_MIN más recientes, aunque todos superen BACKUP_KEEP_DAYS.
+function purgarBackups() {
+  const entradas = fs.readdirSync(BACKUP_DIR);
+  const backups = entradas
+    .filter(f => BACKUP_RE.test(f))
+    .sort()
+    .reverse(); // descendente: el más reciente primero
+
+  // Nombre-límite: caduca todo backup con fecha ESTRICTAMENTE anterior.
+  // Restar días en ms es seguro: un desfase de ±1h por DST solo movería
+  // el límite un día en llamadas pegadas a medianoche, y BACKUP_KEEP_MIN
+  // garantiza igualmente las copias recientes.
+  const limite = `citas-${fechaMadrid(new Date(Date.now() - BACKUP_KEEP_DAYS * 24 * 60 * 60 * 1000))}.json`;
+  const caducados = backups.slice(BACKUP_KEEP_MIN).filter(f => f < limite);
+  if (caducados.length > 0) {
+    const borrados = [];
+    for (const f of caducados) {
+      try {
+        fs.unlinkSync(path.join(BACKUP_DIR, f));
+        borrados.push(f);
+      } catch (err) {
+        console.warn(`[backup] No se pudo borrar ${f}: ${err.message}`);
+      }
+    }
+    console.log(`[backup] Purga: ${borrados.length} backups antiguos borrados (${borrados.join(', ')})`);
+  }
+
+  // .tmp huérfanos: restos de una escritura interrumpida. Solo con más de
+  // 24h de antigüedad (uno reciente puede ser una escritura en curso).
+  // Bucle aparte: no cuentan para BACKUP_KEEP_MIN / BACKUP_KEEP_DAYS.
+  for (const f of entradas.filter(f => BACKUP_TMP_RE.test(f))) {
+    try {
+      const ruta = path.join(BACKUP_DIR, f);
+      if (Date.now() - fs.statSync(ruta).mtimeMs > 24 * 60 * 60 * 1000) {
+        fs.unlinkSync(ruta);
+        console.log(`[backup] .tmp huérfano borrado: ${f}`);
+      }
+    } catch (err) {
+      console.warn(`[backup] No se pudo borrar ${f}: ${err.message}`);
+    }
+  }
 }
 
 // Tope de body (#10): 10 KB sobra para cualquier formulario del panel.
@@ -303,6 +410,10 @@ cron.schedule('0 19 * * *', async () => {
 
   console.log(`[cron] Recordatorios: ${enviados} enviados de ${pendientes.length} pendientes`);
 }, { timezone: 'Europe/Madrid' });
+
+// Backup diario de citas.json a las 03:00 — bloque independiente; no toca
+// el cron de recordatorios de las 19:00.
+cron.schedule('0 3 * * *', backupCitas, { timezone: 'Europe/Madrid' });
 
 // Escapa datos variables antes de interpolarlos en el HTML del panel (anti-XSS).
 function escapeHtml(str) {
@@ -891,5 +1002,12 @@ server.listen(PORT, () => {
   ].filter(k => !process.env[k]);
   if (faltan.length) {
     console.warn(`[twilio] Variables sin configurar: ${faltan.join(', ')}. Los recordatorios de WhatsApp fallarán hasta que se definan.`);
+  }
+
+  // Backup de arranque: cubre huecos si el proceso estaba caído a las 03:00.
+  // Solo si aún no existe el archivo del día — un redeploy posterior no debe
+  // pisar el backup bueno de la madrugada con un estado más reciente.
+  if (!fs.existsSync(path.join(BACKUP_DIR, `citas-${hoyMadrid()}.json`))) {
+    backupCitas();
   }
 });
