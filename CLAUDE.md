@@ -3,6 +3,11 @@
 ## Proyecto
 Web + sistema de citas con recordatorio WhatsApp para taller de neumáticos en Mislata, Valencia.
 
+## Ubicación del proyecto
+- **Ruta local: `C:\dev\Quesada`** — clon limpio desde GitHub del **17/08/2026**.
+- **Ya NO está en OneDrive.** La carpeta antigua quedó renombrada como `Prueba 3 - VIEJO` y se eliminará.
+- **Motivo del traslado**: OneDrive sincronizando una carpeta con `.git` dentro es fuente conocida de **corrupción del repositorio**. No devolver el proyecto a una ruta sincronizada.
+
 ## Stack
 - Frontend: index.html único, Tailwind CDN, Inter + Barlow Condensed (Google Fonts, títulos) + Font Awesome 6.5
 - Backend: Node.js + http nativo (sin frameworks)
@@ -30,6 +35,7 @@ proyecto/
 ├── server.js         ← backend Node.js (completo)
 ├── citas.json        ← se crea automáticamente al registrar la primera cita
 ├── config.json       ← no creado, no usado en el código actual
+├── favicon.ico       ← raíz del repo, solo para el rastreador (ver "Favicon")
 ├── imagenes/         ← favicons nq2f (5), logos de marca .svg (7 — `logo-dunlop.svg` y `logo-pirelli.svg` saneados: sin fondos "horneados", el detalle interior vuelve como transparencia real evenodd/máscara, imprescindible para el filtro monocromo del marquee), `logo_quesada_navy.png` (logo de empresa para header+footer, transparente y sin pastilla blanca, sobre fondo navy), fotos del taller (audi/benelli/honda/jeep/michelin-taller.jpeg), taller-fachada.jpeg (fallback hero), rueda-scroll.png (rueda-progreso, verificado: carga en producción). `logo-empresa.jpg` sigue en la carpeta pero **ya no se referencia** (huérfano tras adoptar logo_quesada_navy.png). `og-image.jpg` (1200×630, preview social Open Graph — ver sección propia)
 ├── videos/           ← hero-quesada.mp4, hero-quesada-movil.mp4, hero-poster.jpg, hero-poster-movil.jpg (ver sección Hero — vídeo de fondo)
 ├── .env              ← credenciales (nunca al repo)
@@ -39,6 +45,8 @@ proyecto/
 └── package.json
 
 > Nota: `taller-interior.jpeg` y `Horario.jpeg` (fotos reales del taller) se archivaron fuera del repo en `..\Quesada-archivo\` — posible uso futuro en revisión visual o slider antes/después.
+
+> **Limpieza del repo (17/08/2026)**: eliminados **12 PNG de capturas de desarrollo** de la raíz (~14 MB); no los referenciaba nada. `imagenes/` y `videos/` revisados uno a uno: **sin peso muerto, todo se usa**.
 
 ## Frontend — Secciones de index.html (en orden)
 
@@ -129,11 +137,12 @@ Aviso de cierre temporal controlado por un único objeto de configuración, sin 
 
 - **Si el taller cambia de número, hay que revisar TODOS**: los 4 `wa.me`, los 6 `tel:`, la meta description y el `telephone` del JSON-LD. No hay una única fuente de verdad. (`WA_NUMBER` y `waOpen()` se eliminaron de index.html — ya no cuentan.)
 - **DELIBERADO: el número no se inyecta por JS.** Los CTA de WhatsApp deben funcionar aunque el JS falle o no llegue a ejecutarse; un `href` construido en runtime dejaría los 4 botones muertos ante cualquier error de script. La duplicación es el precio de esa garantía.
-- **No confundir con Twilio**: el número que enviará los recordatorios automáticos es **distinto** (número Twilio pendiente de compra) y se configura aparte, en variables de entorno del backend.
+- **No confundir con Twilio**: el número que enviará los recordatorios automáticos es **distinto** (`+34 931 55 01 88`, comprado en Twilio) y se configura aparte, en variables de entorno del backend.
 
 ## Favicon
 - Set completo en `imagenes/`: `nq2f-favicon.ico`, `nq2f-16.png`, `nq2f-32.png`, `nq2f-192.png`, `nq2f-apple-touch-icon.png`.
 - Declarado en `<head>` con 5 `<link>` (icon .ico `sizes="any"`, icon png 16/32/192, apple-touch-icon).
+- **`favicon.ico` también en la RAÍZ del repo**: Google lo busca por defecto en `/favicon.ico` y devolvía **404**. Es solo para el rastreador — **las 5 declaraciones del `<head>` siguen apuntando a `imagenes/` y siguen siendo válidas**. No hay que cambiarlas ni borrar el de la raíz.
 
 ## Open Graph / Meta social (`<head>`)
 - `<link rel="canonical" href="https://neumaticosquesada.com/">` justo tras `<meta name="description">`.
@@ -278,7 +287,7 @@ TALLER_NOMBRE=Neumáticos Quesada
 - **Panel admin**: `https://neumaticos-quesada.onrender.com/admin` — este es el acceso real de Vicky, sustituye a `localhost:3001/admin` (que queda solo para desarrollo).
 - **Plan Starter**, región **Frankfurt (EU Central)**, **auto-deploy desde `main`**: cada push a `main` redespliega automáticamente.
 - **Disco persistente de 1 GB montado en `/data`**, con `DATA_DIR=/data` en variables de entorno. **VERIFICADO**: las citas sobreviven a los redeploys.
-- **Variables de entorno configuradas en el dashboard de Render** (no en `.env`): `DATA_DIR`, `ADMIN_USER`, `ADMIN_PASS` (contraseña fuerte, ya **no** `quesada123`), `TALLER_NOMBRE`, `TALLER_TELEFONO`. Las `TWILIO_*` están **pendientes** de crear la cuenta.
+- **Variables de entorno configuradas en el dashboard de Render** (no en `.env`): `DATA_DIR`, `ADMIN_USER`, `ADMIN_PASS` (contraseña fuerte, ya **no** `quesada123`), `TALLER_NOMBRE`, `TALLER_TELEFONO`. Las `TWILIO_*` están **pendientes de cargar**: es el **último paso** del proceso, cuando Meta apruebe display name y plantilla (el `TWILIO_CONTENT_SID` no existe hasta entonces).
 - **`PORT` lo inyecta Render automáticamente** — no configurarlo a mano.
 
 ## Cron job
@@ -321,31 +330,59 @@ Carga real contra `POST /admin/cita` en local con **autocannon**, para validar e
 | server.js     | ✅     | Completo — todos los endpoints implementados           |
 | citas.json    | ⚠️     | Se crea al guardar la primera cita                     |
 | config.json   | ❌     | No creado, no referenciado en el código                |
-| Twilio        | ⚠️     | Bundle regulatorio **APROBADO** (12/08/2026). Bloqueado ahora por **falta de inventario de números españoles** en Twilio — ver "Twilio — estado del bundle y del número" |
+| Twilio        | ✅     | Bundle aprobado + **número comprado** `+34 931 55 01 88` (SMS, solo a España) — ver "Twilio + Meta" |
+| Meta / WABA   | ⚠️     | WABA `2362194940977658` creada. **Display name y plantilla en PENDING**; verificación de empresa parada (falta DNI de Dani o Carles) — ver "Twilio + Meta" |
 | Deploy Render | ✅     | En producción — plan Starter, Frankfurt, disco 1 GB en /data, auto-deploy desde main (ver sección propia) |
 | Enlaces wa.me | ✅     | Los 4 apuntan ya al fijo del taller (34963593087), no al número personal — ver "Teléfono del taller en index.html" |
 | Vacaciones    | ✅     | Aviso activo 2026-08-08 → 2026-08-31 (banner + pill + texto wa.me) — ver sección propia |
 | SEO técnico   | ✅     | JSON-LD AutoRepair + robots.txt + sitemap.xml en producción, validados en Rich Results Test — ver sección propia |
 | Concurrencia  | ✅     | Probada con autocannon: 50 citas / 20 conexiones, sin pérdidas — ver sección propia |
+| Google Business | ✅   | Ficha reclamada, servicios ampliados, web corregida a neumaticosquesada.com — ver sección propia |
+| Entrega       | ⚠️     | Manual de Vicky hecho; contrato firmado por Samuel y Carles, **falta Dani** (mancomunados) — ver "Entrega" |
+| Limpieza repo | ✅     | 12 PNG de capturas fuera (~14 MB), favicon.ico en raíz, assets sin peso muerto — 17/08/2026 |
 
 ## WhatsApp — Aclaración operativa
 - El WhatsApp Business actual del taller sigue gestionado manualmente por Vicky (sin cambios).
-- Número Twilio **nuevo pendiente de compra**, exclusivo para envío de recordatorios automáticos — no sustituye el canal de atención al cliente existente.
+- Número Twilio **`+34 931 55 01 88`**, exclusivo para envío de recordatorios automáticos — no sustituye el canal de atención al cliente existente.
 
-## Twilio — estado del bundle y del número
-- **Bundle regulatorio APROBADO el 12/08/2026**
-  - SID: `BU0ffed7d91ff7a2d5cdf61554fa058b56`
-  - Nombre: `Neumaticos Quesada - ES Mobile`
-  - Tipo: **Mobile** · End user: Business (NEUCERGON, S.L.)
+## Twilio + Meta — estado del número y de la WABA
+
+### Bundle regulatorio (Twilio)
+- **APROBADO el 12/08/2026** · SID `BU0ffed7d91ff7a2d5cdf61554fa058b56` · Nombre `Neumaticos Quesada - ES Mobile` · Tipo **Mobile** · End user: Business (NEUCERGON, S.L.)
 - **Address SID validado**: `AD29705a0c0d287badd5a2a096d3b272e3`
-- **BLOQUEADO: no hay inventario de números españoles** en la consola de Twilio (búsqueda sin filtros → 0 resultados). **Ticket de solicitud de número exclusivo enviado el 17/08/2026**, esperando respuesta.
-- **Alternativa si Twilio no responde**: **SIM prepago española** a nombre del taller. Meta solo necesita recibir el OTP **una vez**; el número **no tiene por qué ser de Twilio**. Requiere estar físicamente con la SIM → **no se puede hacer hasta que el taller reabra el 1 de septiembre**.
-- **OJO — el bundle es específico por tipo de número**: si finalmente se compra un número **Local (fijo)** en vez de Mobile, hará falta un **bundle NUEVO de tipo Local**. Misma documentación, y ya se sabe que se aprueba.
-- **Un fijo sirve igual como remitente de WhatsApp**: Meta verifica por OTP y admite **llamada de voz**, no solo SMS.
+
+### Número
+- **COMPRADO: `+34 931 55 01 88`** (número de Twilio, prefijo de **Barcelona**, capability **SMS**).
+- **OJO — solo envía SMS a números españoles.** Limitación del número, no de la configuración.
+
+### Meta
+- **Business Portfolio**: `Neumaticos Quesada`, ID **`822408117559544`**. Creado por **Dani Rubio (propietario)**; **Samuel** como administrador.
+- **WABA creada**, ID **`2362194940977658`**.
+- **Display name "Neumáticos Quesada": PENDING** de aprobación de Meta.
+- **Plantilla `recordatorio_cita_taller` enviada a aprobación** (categoría **Utility**, español, **5 variables** — ver "WhatsApp — envío por plantilla Meta").
+- **Verificación de empresa: INICIADA pero PARADA.** Meta pide documento de identidad de un **representante legal** — tiene que ser de **Dani o Carles, NO del desarrollador**.
+  - **No bloquea el envío**: solo afecta a que el cliente vea el **nombre del negocio** como remitente en vez del número.
+
+## Registro de WhatsApp Business API — lecciones
+Aprendido a base de errores durante el alta. Releer esto ANTES de repetir el proceso en otro proyecto.
+
+- **EL BLOQUEO PRINCIPAL — datos del portfolio antes que la WABA**: el Business Portfolio de Meta debe tener **rellenos** denominación legal, dirección, teléfono, web y **Tax ID** *antes* de crear la WABA. Con el portfolio vacío Meta devuelve **`Error #2593030: Your account couldn't be created`** **sin explicar la causa**. En cuanto se rellenan los datos, el error desaparece.
+- **La identidad de Meta necesita Facebook, no solo Instagram**: una cuenta de solo-Instagram da **"You don't have access"**. Además, **las cuentas de Facebook creadas el mismo día suelen ser rechazadas** — hay que usar una cuenta con antigüedad.
+- **Una sola sesión de Meta por navegador**: con varias sesiones abiertas, el popup de Twilio **coge una arbitraria** y ofrece el portfolio equivocado.
+- **El código de verificación del número aparece en el PASO 3 de la pantalla de Twilio** — **NO llega a ningún móvil**. No esperar un SMS.
+- **Orden correcto del proceso**: bundle → número → **datos del portfolio** → WABA + sender → plantilla → aprobación (~24 h) → variables en Render.
+
+## Google Business Profile
+- **Ficha RECLAMADA** — lo estaba desde el principio, por la **cuenta personal de Carles** (`carlesvespino46@gmail.com`). **No hizo falta verificación por carta ni por vídeo.**
+- **`neucergon@gmail.com` añadido como Propietario.** Carles sigue como **Propietario principal**.
+- **Horario semanal y vacaciones (10-31 de agosto)**: ya estaban bien cargados, no se tocaron.
+- **Servicios**: había solo 2 (Neumáticos, Calibración de ruedas) → **añadidos el resto**.
+- **Sitio web de la ficha**: apuntaba al **enlace de WhatsApp**; corregido a **`neumaticosquesada.com`**.
+- **295 reseñas**, respondidas habitualmente por el cliente — **sin atasco que resolver**.
+- **1.324 interacciones de clientes**: es el **canal con más movimiento del negocio**, por encima de la web.
 
 ## Deuda técnica
-- **Google Search Console: pendiente.** El SEO técnico de la web está hecho, pero falta verificar la propiedad y dar de alta el sitemap. **Bloqueado por acceso a la cuenta de Google del negocio.**
-- **Google Business Profile: ficha SIN RECLAMAR** (verificado). 295 reseñas, 4,9★. Es la **palanca de mayor impacto** para posicionar en "neumáticos Mislata" — más que cualquier cambio en la web. Requiere la cuenta de Google del negocio y verificación **por postal o vídeo presencial**.
+- **Google Search Console: pendiente.** El SEO técnico de la web está hecho, pero falta verificar la propiedad y dar de alta el sitemap. Ya hay acceso a una cuenta del negocio (`neucergon@gmail.com`, propietaria de la ficha) — el bloqueo por acceso **ya no aplica**, queda solo la tarea.
 - Status callback de Twilio: el SID devuelto significa "aceptado", no "entregado". Saber si el cliente recibió el recordatorio requiere un webhook de status. Pendiente, no bloquea la entrega.
 - **Doble toque en táctil en los CTA "Solicitar servicio"** de Reparación, Alineación y TPMS (1.ª, 2.ª y 5.ª cards). Descartado: hover (neutralizado en `@media (hover:none)`), reveal en movimiento (unobserve aplicado), cola del smooth scroll (falla también esperando 3s y con scroll manual), superposiciones, listeners táctiles y offset de header/banner. La comparativa estática está agotada: la card 2 es idéntica a la 3 y una falla y la otra no. En escritorio con ratón funciona. Siguiente paso si se retoma: instrumentar en móvil real con un listener de diagnóstico en captura. **Impacto bajo**: los CTA llevan a `#contacto`, en la misma página.
 - **Botón WhatsApp del panel sin filtro**: funciona para cualquier cita, incluidas canceladas y ya recordadas — sin filtro por estado ni por `recordatorioEnviado`.
@@ -356,6 +393,13 @@ Carga real contra `POST /admin/cita` en local con **autocannon**, para validar e
 - **Informe mensual de citas en el panel.** Post-entrega.
 - **Citas de HOY cuya hora ya pasó**: siguen arriba del listado toda la jornada porque el filtro de "Próximas" es **por día, no por hora**. **Decisión aplazada** a cuando se haga la pantalla de solo lectura: la respuesta correcta es distinta para cada vista.
 - **Botón WhatsApp del panel — refinamiento acordado**: ocultarlo en citas canceladas, marcar visualmente las ya enviadas y pedir confirmación al pulsar. Acordado hacerlo **cuando haya número de Twilio operativo** (resuelve la deuda "Botón WhatsApp del panel sin filtro").
+
+## Entrega
+- **Manual de una página para Vicky: HECHO** (PDF A4). Soporte indicado en el manual: **637 62 18 80**.
+- **Contrato**: firmado con certificado por **Samuel** y **Carles**. **Falta Dani** — los administradores son **MANCOMUNADOS**, así que su firma es **necesaria**, no opcional.
+  - Su certificado está **en la gestoría, de vacaciones**.
+  - **Alternativa acordada**: **firma manuscrita escaneada + correo de aceptación**.
+- **`citas.json` de producción: VACÍO**, sin citas de prueba. **Verificado.**
 
 ## Reglas
 - Claude Code nunca ejecuta curl ni llamadas reales a Twilio para debuggear
