@@ -606,6 +606,7 @@ function adminHTML(citas, verTodas = false) {
       </div>
       <div class="flex items-center gap-3">
         <a href="${verTodas ? '/admin' : '/admin?ver=todas'}" class="text-sm text-gray-400 hover:text-white transition-colors">${verTodas ? 'Volver a próximas citas' : 'Ver todas las citas'}</a>
+        <a href="/admin/backup" download class="text-sm text-gray-400 hover:text-white transition-colors">Descargar copia de seguridad</a>
         <span class="bg-[#0D1B3E] text-gray-400 text-sm px-4 py-2 rounded-full border border-white/10">${verTodas ? 'Todas' : 'Próximas'}: ${citas.length} cita${citas.length !== 1 ? 's' : ''}</span>
       </div>
     </header>
@@ -834,6 +835,31 @@ const server = http.createServer(async (req, res) => {
     if ((req.method === 'POST' || req.method === 'DELETE') && !isSameOrigin(req)) {
       res.writeHead(403, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ ok: false, error: 'Origen no permitido' }));
+      return;
+    }
+
+    // GET /admin/backup — descarga directa de citas.json (bytes crudos, sin
+    // parsear: si estuviera corrupto, la copia también sirve para forense).
+    if (req.method === 'GET' && p === '/admin/backup') {
+      if (!fs.existsSync(CITAS_PATH)) {
+        res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
+        res.end('No encontrado');
+        return;
+      }
+      try {
+        const buf = fs.readFileSync(CITAS_PATH);
+        res.writeHead(200, {
+          'Content-Type': 'application/json; charset=utf-8',
+          'Content-Disposition': `attachment; filename="citas-${hoyMadrid()}.json"`,
+          'Content-Length': buf.length,
+          'Cache-Control': 'no-store',
+        });
+        res.end(buf);
+      } catch (err) {
+        console.error(`[backup] Error al servir citas.json para descarga: ${err.message}`);
+        res.writeHead(500, { 'Content-Type': 'text/plain; charset=utf-8' });
+        res.end('Error interno');
+      }
       return;
     }
 
