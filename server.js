@@ -450,6 +450,51 @@ function fechaLegible(fecha) {
   return FMT_FECHA_LEGIBLE.format(new Date(`${fecha}T12:00:00Z`));
 }
 
+// ---- Vista manual de recordatorios (GET /admin/recordatorios) ----
+// Camino paralelo al de Twilio: genera enlaces wa.me para que Vicky mande los
+// recordatorios a mano desde el WhatsApp del taller. No toca sendWhatsApp(),
+// ni el cron, ni la plantilla de Meta.
+
+// "Mañana" en Europe/Madrid.
+//
+// OJO — NO se copia el `Date.now() + 24h` del cron. Esa forma solo es segura
+// AHÍ porque el cron dispara a las 19:00: desde ese punto, el salto de ±1h del
+// cambio de hora no llega a cruzar medianoche. Un handler HTTP se ejecuta a
+// cualquier hora del día, así que no hereda esa garantía. Aquí se parte de
+// hoyMadrid() anclado a MEDIODÍA UTC: sumar 24h desde ahí cae siempre bien
+// dentro del día siguiente, haya cambio de hora o no.
+function fechaManana() {
+  const base = new Date(`${hoyMadrid()}T12:00:00Z`);
+  return fechaMadrid(new Date(base.getTime() + 24 * 60 * 60 * 1000));
+}
+
+// Teléfono en formato wa.me ('34XXXXXXXXX'), o null si no es un móvil español
+// válido. Misma normalización que sendWhatsApp(), pero aquí un número mal
+// metido no puede romper nada: se devuelve null y la fila muestra un aviso.
+function telefonoWa(tel) {
+  const clean = String(tel ?? '').replace(/[\s\-]/g, '').replace(/^(\+34|34)/, '');
+  return /^[67]\d{8}$/.test(clean) ? `34${clean}` : null;
+}
+
+// Texto prerrellenado del enlace wa.me. Texto plano, sin plantilla de Meta: lo
+// envía Vicky desde su propia conversación, dentro de la ventana de 24h.
+//
+// DELIBERADO: no se usa contentVar(). Esa función LANZA con cualquier campo
+// vacío, y aquí una sola cita mal metida tumbaría la vista entera en vez de
+// mostrar una fila incompleta. Fallback a cadena vacía.
+function textoRecordatorio(cita) {
+  const nombre = String(cita.nombre ?? '').trim();
+  const hora = String(cita.hora ?? '').trim();
+  const servicio = String(cita.servicio ?? '').trim();
+  const detalle = String(cita.detalle ?? '').trim();
+  // Misma concatenación que la variable {{4}} de la plantilla.
+  const servicioDetalle = detalle ? `${servicio} — ${detalle}` : servicio;
+  const taller = process.env.TALLER_NOMBRE || 'Neumáticos Quesada';
+  return `Hola ${nombre}, te recordamos tu cita en ${taller} mañana `
+    + `${fechaLegible(cita.fecha)} a las ${hora} para ${servicioDetalle}. `
+    + `Si no puedes venir, respóndenos a este mensaje. ¡Gracias!`;
+}
+
 // Meta rechaza variables de plantilla vacías, con saltos de línea o con
 // series largas de espacios. Fallar aquí, antes de llamar a Twilio, da un
 // error legible en el log en vez de un código opaco de Meta a las 19:00.
@@ -611,9 +656,10 @@ function adminHTML(citas, verTodas = false) {
       </div>
     </header>
 
-    <div class="mb-5">
+    <div class="mb-5 flex flex-wrap items-center gap-3">
       <button onclick="toggleNuevaCita()" class="bg-[#FFD700] hover:bg-[#E6C200] text-[#060D1F] text-sm font-bold px-5 py-2.5 rounded-lg transition-colors">+ Nueva cita</button>
-      <div id="nueva-cita-form" class="hidden mt-4 bg-[#0D1B3E] border border-white/10 rounded-xl p-6 max-w-2xl">
+      <a href="/admin/recordatorios" class="bg-[#0D1B3E] hover:bg-white/10 text-gray-300 border border-white/10 text-sm font-semibold px-5 py-2.5 rounded-lg transition-colors">Recordatorios de mañana</a>
+      <div id="nueva-cita-form" class="hidden mt-4 w-full bg-[#0D1B3E] border border-white/10 rounded-xl p-6 max-w-2xl">
         <h2 class="text-base font-semibold text-white mb-5">Nueva cita</h2>
         <div class="grid grid-cols-2 gap-4">
           <div>
@@ -772,6 +818,97 @@ function adminHTML(citas, verTodas = false) {
 </html>`;
 }
 
+// HTML propio de la vista de recordatorios. NO reutiliza adminHTML: es otra
+// tabla, otros botones y nada de formularios de edición. Mismo lenguaje visual
+// (fondo #060D1F, tarjetas #0D1B3E, acento #FFD700).
+function recordatoriosHTML(citas, fecha) {
+  const taller = escapeHtml(process.env.TALLER_NOMBRE || 'Panel de Citas');
+  const fechaTxt = escapeHtml(fechaLegible(fecha));
+
+  const cuerpo = citas.length === 0
+    ? `<div class="bg-[#0D1B3E] border border-white/10 rounded-xl p-10 text-center">
+        <p class="text-white font-medium mb-1">No hay citas confirmadas para mañana</p>
+        <p class="text-sm text-gray-500">Nada que recordar el ${fechaTxt}. Las citas pendientes o canceladas no aparecen aquí.</p>
+      </div>`
+    : citas.map(c => {
+      const id = escapeHtml(c.id);
+      const enviado = c.recordatorioEnviado === true;
+      const wa = telefonoWa(c.telefono);
+
+      // DOS ESCAPADOS DISTINTOS, no intercambiables:
+      //  - encodeURIComponent SOLO para el valor de ?text= (es una URL).
+      //  - escapeHtml para todo lo demás (es HTML).
+      // El href queda seguro dentro del atributo entrecomillado porque
+      // encodeURIComponent ya percent-codifica " < > y &; y `wa` viene de
+      // telefonoWa(), que solo devuelve dígitos validados por regex.
+      const accionWa = wa
+        ? `<a href="https://wa.me/${wa}?text=${encodeURIComponent(textoRecordatorio(c))}"
+              target="_blank" rel="noopener"
+              class="text-sm bg-green-600 hover:bg-green-500 text-white font-semibold px-4 py-2 rounded-lg transition-colors whitespace-nowrap">Enviar por WhatsApp</a>`
+        : `<span class="text-sm bg-red-900/50 text-red-400 border border-red-700/50 px-4 py-2 rounded-lg whitespace-nowrap">Teléfono no válido</span>`;
+
+      const botonMarcar = enviado
+        ? ''
+        : `<button onclick="marcarEnviado('${id}')"
+              class="text-sm bg-[#060D1F] hover:bg-white/10 text-gray-300 border border-white/10 px-4 py-2 rounded-lg transition-colors whitespace-nowrap">Marcar enviado</button>`;
+
+      return `
+      <div class="bg-[#0D1B3E] border border-white/10 rounded-xl p-5 mb-3 flex flex-col md:flex-row md:items-center gap-4${enviado ? ' opacity-50' : ''}">
+        <div class="shrink-0">
+          <span class="inline-block bg-[#060D1F] border border-white/10 text-[#FFD700] font-bold px-3 py-1.5 rounded-lg">${escapeHtml(c.hora)}</span>
+        </div>
+        <div class="flex-1 min-w-0">
+          <p class="text-white font-semibold">
+            ${escapeHtml(c.nombre)}
+            ${enviado ? '<span class="ml-2 align-middle text-[11px] font-medium uppercase tracking-wide bg-green-900/50 text-green-400 border border-green-700/50 px-2 py-0.5 rounded-full">Ya enviado</span>' : ''}
+          </p>
+          <p class="text-sm text-gray-300 mt-1">${escapeHtml(c.servicio)}${c.detalle ? ` <span class="text-gray-500">— ${escapeHtml(c.detalle)}</span>` : ''}</p>
+          <p class="text-xs text-gray-500 mt-1">${escapeHtml(c.telefono)}</p>
+        </div>
+        <div class="flex items-center gap-2 shrink-0">
+          ${accionWa}
+          ${botonMarcar}
+        </div>
+      </div>`;
+    }).join('');
+
+  return `<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>${taller} — Recordatorios</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-[#060D1F] min-h-screen p-6 font-sans">
+  <div class="max-w-4xl mx-auto">
+    <header class="flex flex-wrap items-center justify-between gap-4 mb-8">
+      <div>
+        <p class="text-[#FFD700] text-xs font-semibold uppercase tracking-widest mb-1">Recordatorios de mañana</p>
+        <h1 class="text-2xl font-bold text-white">${fechaTxt}</h1>
+      </div>
+      <div class="flex items-center gap-3">
+        <a href="/admin" class="text-sm text-gray-400 hover:text-white transition-colors">← Volver al panel</a>
+        <span class="bg-[#0D1B3E] text-gray-400 text-sm px-4 py-2 rounded-full border border-white/10">${citas.length} cita${citas.length !== 1 ? 's' : ''} confirmada${citas.length !== 1 ? 's' : ''}</span>
+      </div>
+    </header>
+
+    <p class="text-sm text-gray-500 mb-5">Cada enlace abre WhatsApp con el mensaje ya escrito. Envíalo desde el WhatsApp del taller y pulsa «Marcar enviado».</p>
+
+    ${cuerpo}
+  </div>
+
+  <script>
+    async function marcarEnviado(id) {
+      const res = await fetch('/admin/cita/' + id + '/enviado', { method: 'POST' });
+      if (res.ok) location.reload();
+      else alert('No se pudo marcar el recordatorio como enviado.');
+    }
+  </script>
+</body>
+</html>`;
+}
+
 // Cabeceras de seguridad para TODAS las respuestas (#9). Se fijan con
 // setHeader antes de cualquier writeHead: nosniff evita el sniffing de
 // MIME, DENY impide embeber el panel en iframes, same-origin no filtra
@@ -860,6 +997,20 @@ const server = http.createServer(async (req, res) => {
         res.writeHead(500, { 'Content-Type': 'text/plain; charset=utf-8' });
         res.end('Error interno');
       }
+      return;
+    }
+
+    // GET /admin/recordatorios — citas confirmadas de mañana con enlaces wa.me
+    // listos para enviar a mano. Camino manual: ni Twilio ni plantilla de Meta.
+    // Hereda auth y rate-limit del bloque /admin; al ser GET no pasa por
+    // isSameOrigin (solo aplica a POST/DELETE).
+    if (req.method === 'GET' && p === '/admin/recordatorios') {
+      const manana = fechaManana();
+      const visibles = readCitas()
+        .filter(c => c.fecha === manana && c.estado === 'confirmada')
+        .sort((a, b) => String(a.hora).localeCompare(String(b.hora)));
+      res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' });
+      res.end(recordatoriosHTML(visibles, manana));
       return;
     }
 
@@ -966,6 +1117,27 @@ const server = http.createServer(async (req, res) => {
         return;
       }
       citas.splice(idx, 1);
+      writeCitas(citas);
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: true }));
+      return;
+    }
+
+    // POST /admin/cita/:id/enviado — marca el recordatorio como enviado a mano
+    // desde la vista /admin/recordatorios. NO llama a Twilio: solo persiste la
+    // marca. Dentro del bloque POST/DELETE, así hereda isSameOrigin.
+    const enviadoMatch = p.match(/^\/admin\/cita\/([^/]+)\/enviado$/);
+    if (req.method === 'POST' && enviadoMatch) {
+      // Lectura fresca justo antes de escribir y parcheo de un solo registro
+      // (regla del proyecto): nunca se reescribe un array leído antes de tiempo.
+      const citas = readCitas();
+      const cita = citas.find(c => c.id === enviadoMatch[1]);
+      if (!cita) {
+        res.writeHead(404, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: false, error: 'Cita no encontrada' }));
+        return;
+      }
+      cita.recordatorioEnviado = true;
       writeCitas(citas);
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ ok: true }));
