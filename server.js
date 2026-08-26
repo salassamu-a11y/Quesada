@@ -59,6 +59,11 @@ function readCitas() {
 
 function writeCitas(citas) {
   const tmp = `${CITAS_PATH}.tmp`;
+  // Sin esto, un DATA_DIR inexistente lanza ENOENT: el handler global lo
+  // recoge como unhandledRejection, el panel responde igual, el formulario
+  // se cierra y la cita se pierde SIN aviso. Mismo remedio que backupCitas()
+  // aplica a BACKUP_DIR. La escritura atómica tmp + rename no cambia.
+  fs.mkdirSync(path.dirname(CITAS_PATH), { recursive: true });
   fs.writeFileSync(tmp, JSON.stringify(citas, null, 2));
   fs.renameSync(tmp, CITAS_PATH);
 }
@@ -482,7 +487,11 @@ function telefonoWa(tel) {
 // DELIBERADO: no se usa contentVar(). Esa función LANZA con cualquier campo
 // vacío, y aquí una sola cita mal metida tumbaría la vista entera en vez de
 // mostrar una fila incompleta. Fallback a cadena vacía.
-function textoRecordatorio(cita) {
+//
+// `incluirManana` por defecto TRUE para /admin/recordatorios, que solo lista
+// citas del día siguiente. El listado general de /admin pasa false: ahí la
+// cita puede ser de cualquier fecha y "mañana" sería sencillamente falso.
+function textoRecordatorio(cita, incluirManana = true) {
   const nombre = String(cita.nombre ?? '').trim();
   const hora = String(cita.hora ?? '').trim();
   const servicio = String(cita.servicio ?? '').trim();
@@ -490,7 +499,8 @@ function textoRecordatorio(cita) {
   // Misma concatenación que la variable {{4}} de la plantilla.
   const servicioDetalle = detalle ? `${servicio} — ${detalle}` : servicio;
   const taller = process.env.TALLER_NOMBRE || 'Neumáticos Quesada';
-  return `Hola ${nombre}, te recordamos tu cita en ${taller} mañana `
+  const cuando = incluirManana ? 'mañana' : 'el';
+  return `Hola ${nombre}, te recordamos tu cita en ${taller} ${cuando} `
     + `${fechaLegible(cita.fecha)} a las ${hora} para ${servicioDetalle}. `
     + `Si no puedes venir, respóndenos a este mensaje. ¡Gracias!`;
 }
@@ -593,6 +603,23 @@ function adminHTML(citas, verTodas = false) {
     ? '<tr><td colspan="6" class="px-4 py-8 text-center text-gray-500">Sin citas registradas</td></tr>'
     : citas.map(c => {
       const id = escapeHtml(c.id);
+      const wa = telefonoWa(c.telefono);
+
+      // El POST a /admin/cita/:id/recordatorio (Twilio) devuelve 500 mientras
+      // Meta tenga la plantilla bloqueada. Hasta entonces la fila abre wa.me
+      // con el texto ya escrito, igual que /admin/recordatorios. El endpoint y
+      // sendWhatsApp() siguen ahí, solo dejan de llamarse desde aquí.
+      //
+      // textoRecordatorio(c, false): este listado incluye citas de cualquier
+      // fecha, no solo las de mañana.
+      //
+      // DOS ESCAPADOS DISTINTOS, no intercambiables: encodeURIComponent SOLO
+      // para el valor de ?text= (es una URL), escapeHtml para el resto (HTML).
+      const accionWa = wa
+        ? `<a href="https://wa.me/${wa}?text=${encodeURIComponent(textoRecordatorio(c, false))}"
+              target="_blank" rel="noopener"
+              class="text-xs bg-[#2563EB] hover:bg-[#1D4ED8] text-white px-3 py-1.5 rounded-lg transition-colors font-medium whitespace-nowrap">WhatsApp</a>`
+        : `<span class="text-xs bg-white/5 text-gray-500 border border-white/10 px-3 py-1.5 rounded-lg font-medium whitespace-nowrap">Sin WhatsApp</span>`;
       return `
       <tr class="border-b border-white/5 hover:bg-white/5 transition-colors">
         <td class="px-4 py-3 text-white font-medium">${escapeHtml(c.nombre)}</td>
@@ -610,9 +637,7 @@ function adminHTML(citas, verTodas = false) {
               <option ${c.estado === 'cancelada'   ? 'selected' : ''}>cancelada</option>
             </select>
           </form>
-          <form method="post" action="/admin/cita/${id}/recordatorio" class="inline">
-            <button class="text-xs bg-[#2563EB] hover:bg-[#1D4ED8] text-white px-3 py-1.5 rounded-lg transition-colors font-medium">WhatsApp</button>
-          </form>
+          ${accionWa}
           <button onclick="eliminarCita('${id}')" class="text-xs bg-red-900/50 hover:bg-red-800/60 text-red-400 border border-red-700/50 px-3 py-1.5 rounded-lg transition-colors font-medium">Eliminar</button>
         </td>
       </tr>`;
