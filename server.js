@@ -172,6 +172,80 @@ function purgarBackups() {
   }
 }
 
+// --- Backup remoto a GitHub (tercera capa de copia) ---------------------
+// Las dos capas locales (citas.json y BACKUP_DIR) viven en el MISMO disco
+// de Render; esta sube la copia del día a un repo privado vía Contents API.
+// Fallo SIEMPRE silencioso: todo el cuerpo va en try/catch — un backup
+// remoto que falla solo loggea, nunca tumba el proceso ni afecta a los
+// recordatorios de las 19:00.
+let githubBackupAvisado = false;
+async function subirBackupGitHub(fecha = hoyMadrid()) {
+  try {
+    if (process.env.GITHUB_BACKUP_ENABLED !== 'true') return;
+    const token = process.env.GITHUB_BACKUP_TOKEN;
+    const repo = process.env.GITHUB_BACKUP_REPO;
+    if (!token || !repo) {
+      if (!githubBackupAvisado) {
+        githubBackupAvisado = true;
+        console.warn('[backup-remoto] GITHUB_BACKUP_ENABLED=true pero falta GITHUB_BACKUP_TOKEN o GITHUB_BACKUP_REPO; subida omitida');
+      }
+      return;
+    }
+
+    const nombre = `citas-${fecha}.json`;
+    const origen = path.join(BACKUP_DIR, nombre);
+    if (!fs.existsSync(origen)) {
+      console.warn(`[backup-remoto] No existe ${nombre} en el disco; el backup local de las 03:00 debió fallar. Subida omitida`);
+      return;
+    }
+    const raw = fs.readFileSync(origen, 'utf8');
+
+    const url = `https://api.github.com/repos/${repo}/contents/backups/${nombre}`;
+    const headers = {
+      'Authorization': `Bearer ${token}`,
+      'Accept': 'application/vnd.github+json',
+      'X-GitHub-Api-Version': '2022-11-28',
+      'User-Agent': 'neumaticos-quesada-backup', // GitHub rechaza peticiones sin User-Agent
+    };
+
+    // PASO 1: sha del archivo si ya existe (re-subida del mismo día).
+    // 404 = primera subida, no es error.
+    let sha;
+    const resGet = await fetch(url, { headers, signal: AbortSignal.timeout(15000) });
+    if (resGet.ok) {
+      sha = (await resGet.json()).sha;
+    } else if (resGet.status !== 404) {
+      console.error(`[backup-remoto] GET previo falló con ${resGet.status}: ${(await resGet.text()).slice(0, 200)}`);
+      return;
+    }
+
+    // PASO 2: crear (201) o actualizar (200) el archivo en el repo.
+    const resPut = await fetch(url, {
+      method: 'PUT',
+      headers: { ...headers, 'Content-Type': 'application/json' },
+      signal: AbortSignal.timeout(15000),
+      body: JSON.stringify({
+        message: `backup: citas ${fecha}`,
+        content: Buffer.from(raw, 'utf8').toString('base64'),
+        ...(sha ? { sha } : {}),
+      }),
+    });
+
+    if (resPut.status === 200 || resPut.status === 201) {
+      console.log(`[backup-remoto] ${nombre} subido a ${repo} (${Buffer.byteLength(raw)} bytes)`);
+      return;
+    }
+    const extracto = (await resPut.text()).slice(0, 200);
+    if (resPut.status === 409) {
+      console.error(`[backup-remoto] PUT devolvió 409: el repo no tiene rama inicial (crear un commit inicial en ${repo}). ${extracto}`);
+    } else {
+      console.error(`[backup-remoto] PUT falló con ${resPut.status}: ${extracto}`);
+    }
+  } catch (err) {
+    console.error(`[backup-remoto] Error inesperado: ${err.message}`);
+  }
+}
+
 // Tope de body (#10): 10 KB sobra para cualquier formulario del panel.
 // Sentinel que parseBody resuelve al superarlo; el caller responde 413.
 const MAX_BODY_BYTES = 10 * 1024;
@@ -419,6 +493,13 @@ cron.schedule('0 19 * * *', async () => {
 // Backup diario de citas.json a las 03:00 — bloque independiente; no toca
 // el cron de recordatorios de las 19:00.
 cron.schedule('0 3 * * *', backupCitas, { timezone: 'Europe/Madrid' });
+
+// Subida del backup del día a GitHub a las 03:15 — 15 min después del backup
+// local para que el archivo ya exista. Bloque independiente: no toca el cron
+// de las 03:00 ni el de recordatorios de las 19:00.
+cron.schedule('15 3 * * *', () => {
+  subirBackupGitHub().catch(err => console.error('[backup-remoto]', err.message));
+}, { timezone: 'Europe/Madrid' });
 
 // Escapa datos variables antes de interpolarlos en el HTML del panel (anti-XSS).
 function escapeHtml(str) {
@@ -1225,6 +1306,12 @@ server.listen(PORT, () => {
   ].filter(k => !process.env[k]);
   if (faltan.length) {
     console.warn(`[twilio] Variables sin configurar: ${faltan.join(', ')}. Los recordatorios de WhatsApp fallarán hasta que se definan.`);
+  }
+
+  // Misma filosofía que el aviso de Twilio: se avisa, no se aborta.
+  if (process.env.GITHUB_BACKUP_ENABLED === 'true' &&
+      (!process.env.GITHUB_BACKUP_TOKEN || !process.env.GITHUB_BACKUP_REPO)) {
+    console.warn('[backup-remoto] GITHUB_BACKUP_ENABLED=true pero falta GITHUB_BACKUP_TOKEN o GITHUB_BACKUP_REPO; la subida diaria a GitHub no funcionará.');
   }
 
   // Backup de arranque: cubre huecos si el proceso estaba caído a las 03:00.
