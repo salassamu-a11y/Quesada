@@ -576,13 +576,10 @@ function textoRecordatorio(cita, incluirManana = true) {
   const nombre = String(cita.nombre ?? '').trim();
   const hora = String(cita.hora ?? '').trim();
   const servicio = String(cita.servicio ?? '').trim();
-  const detalle = String(cita.detalle ?? '').trim();
-  // Misma concatenación que la variable {{4}} de la plantilla.
-  const servicioDetalle = detalle ? `${servicio} — ${detalle}` : servicio;
   const taller = process.env.TALLER_NOMBRE || 'Neumáticos Quesada';
   const cuando = incluirManana ? 'mañana' : 'el';
   return `Hola ${nombre}, te recordamos tu cita en ${taller} ${cuando} `
-    + `${fechaLegible(cita.fecha)} a las ${hora} para ${servicioDetalle}. `
+    + `${fechaLegible(cita.fecha)} a las ${hora} para ${servicio}. `
     + `Si no puedes venir, respóndenos a este mensaje. ¡Gracias!`;
 }
 
