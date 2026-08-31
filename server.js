@@ -1018,6 +1018,118 @@ function recordatoriosHTML(citas, fecha) {
 </html>`;
 }
 
+// ---- Pantalla del taller (GET /taller) ----
+// Vista de SOLO LECTURA para una pantalla colgada en el taller, encendida
+// todo el día y visible por cualquiera que pase. Por eso muestra el MÍNIMO
+// de datos personales: hora, nombre de pila, servicio y detalle. Nunca
+// apellidos, teléfono ni id. Sin enlaces a /admin ni a ninguna otra vista:
+// es un callejón sin salida a propósito.
+//
+// HTML autocontenido con CSS inline: cero JS y cero dependencias de red
+// (ni Tailwind CDN, a diferencia del panel). Una pantalla que pasa semanas
+// abierta no puede quedarse sin estilos porque un CDN falle en uno de los
+// refrescos. El lenguaje visual del panel (navy #060D1F, tarjetas #0D1B3E,
+// acento #FFD700) se replica en el <style> propio.
+function tallerHTML(citas, fecha) {
+  const taller = escapeHtml(process.env.TALLER_NOMBRE || 'Taller');
+  const fechaCruda = fechaLegible(fecha);
+  const fechaTxt = escapeHtml(fechaCruda.charAt(0).toUpperCase() + fechaCruda.slice(1));
+
+  const cuerpo = citas.length === 0
+    ? `<div class="vacio">No hay citas confirmadas para hoy</div>`
+    : citas.map(c => {
+      // Solo el nombre de pila: lo anterior al primer espacio del nombre
+      // completo. Sin espacio, el nombre entero.
+      const pila = String(c.nombre || '').trim().split(/\s+/)[0];
+      return `
+      <div class="cita">
+        <div class="hora">${escapeHtml(c.hora)}</div>
+        <div class="datos">
+          <div class="nombre">${escapeHtml(pila)}</div>
+          <div class="servicio">${escapeHtml(c.servicio)}</div>
+          ${c.detalle ? `<div class="detalle">${escapeHtml(c.detalle)}</div>` : ''}
+        </div>
+      </div>`;
+    }).join('');
+
+  // AUTO-REFRESH sin JS: <meta refresh> SIN URL en el content. El HTML
+  // Standard define ese caso como navegación a la URL COMPLETA del documento
+  // (query string incluida), así que el ?k= se conserva en cada refresco —
+  // verificado: es el comportamiento de Chrome, Firefox, Safari y Edge.
+  // Deliberadamente NO se pone la URL en el content: sería redundante y
+  // dejaría el token escrito también dentro del HTML.
+  return `<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="refresh" content="60">
+  <title>${taller} — Citas de hoy</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #060D1F;
+      color: #fff;
+      font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+      min-height: 100vh;
+      padding: 2.5rem 3rem;
+    }
+    header {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 1rem;
+      flex-wrap: wrap;
+      border-bottom: 1px solid rgba(255,255,255,.1);
+      padding-bottom: 1.5rem;
+      margin-bottom: 2rem;
+    }
+    .fecha { font-size: 2.2rem; font-weight: 700; }
+    .contador { font-size: 1.4rem; color: #8fa3c7; }
+    .contador strong { color: #FFD700; }
+    .cita {
+      display: flex;
+      align-items: center;
+      gap: 2rem;
+      background: #0D1B3E;
+      border: 1px solid rgba(255,255,255,.1);
+      border-left: 4px solid #FFD700;
+      border-radius: 14px;
+      padding: 1.6rem 2rem;
+      margin-bottom: 1.2rem;
+    }
+    .hora {
+      font-size: 3.2rem;
+      font-weight: 800;
+      color: #FFD700;
+      font-variant-numeric: tabular-nums;
+      min-width: 9.5rem;
+    }
+    .nombre { font-size: 2.2rem; font-weight: 700; }
+    .servicio { font-size: 1.5rem; color: #b9c4da; margin-top: .3rem; }
+    .detalle { font-size: 1.25rem; color: #8fa3c7; margin-top: .35rem; }
+    .vacio {
+      background: #0D1B3E;
+      border: 1px solid rgba(255,255,255,.1);
+      border-radius: 14px;
+      padding: 5rem 2rem;
+      text-align: center;
+      font-size: 2.4rem;
+      font-weight: 700;
+      color: #b9c4da;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="fecha">${fechaTxt}</div>
+    <div class="contador"><strong>${citas.length}</strong> cita${citas.length !== 1 ? 's' : ''}</div>
+  </header>
+  ${cuerpo}
+</body>
+</html>`;
+}
+
 // Cabeceras de seguridad para TODAS las respuestas (#9). Se fijan con
 // setHeader antes de cualquier writeHead: nosniff evita el sniffing de
 // MIME, DENY impide embeber el panel en iframes, same-origin no filtra
@@ -1051,6 +1163,32 @@ const server = http.createServer(async (req, res) => {
     }
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
     res.end(fs.readFileSync(htmlPath));
+    return;
+  }
+
+  // GET /taller — pantalla de solo lectura (citas confirmadas de HOY).
+  // RUTA PÚBLICA a propósito, FUERA del bloque /admin: NO usa checkAuth,
+  // porque una pantalla permanentemente logueada con auth básica daría el
+  // panel completo a cualquiera que se sentara delante. Autoriza por token
+  // en la query (?k=TALLER_TOKEN), comparado en tiempo constante con el
+  // mismo safeEqual del login (SHA-256 + timingSafeEqual, nunca !==).
+  // Cualquier fallo — TALLER_TOKEN sin definir en el entorno, token ausente
+  // o incorrecto — responde el MISMO 404 genérico del final del handler,
+  // byte a byte: la ruta no revela que existe (nunca 401 ni 500).
+  if (req.method === 'GET' && p === '/taller') {
+    const token = process.env.TALLER_TOKEN;
+    const k = url.searchParams.get('k');
+    if (!token || !safeEqual(k || '', token)) {
+      res.writeHead(404, { 'Content-Type': 'text/plain' });
+      res.end('Not found');
+      return;
+    }
+    const hoy = hoyMadrid();
+    const visibles = readCitas()
+      .filter(c => c.fecha === hoy && c.estado === 'confirmada')
+      .sort((a, b) => String(a.hora).localeCompare(String(b.hora)));
+    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' });
+    res.end(tallerHTML(visibles, hoy));
     return;
   }
 
