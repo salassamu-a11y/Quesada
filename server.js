@@ -675,6 +675,7 @@ function adminHTML(citas, verTodas = false) {
   const estadoBadge = e =>
     e === 'confirmada' ? 'bg-green-900/50 text-green-400 border border-green-700/50' :
     e === 'cancelada'  ? 'bg-red-900/50 text-red-400 border border-red-700/50' :
+    e === 'atendida'   ? 'bg-gray-900/50 text-gray-400 border border-gray-700/50' :
                          'bg-yellow-900/50 text-yellow-400 border border-yellow-700/50';
 
   const rows = citas.length === 0
@@ -682,6 +683,10 @@ function adminHTML(citas, verTodas = false) {
     : citas.map(c => {
       const id = escapeHtml(c.id);
       const wa = telefonoWa(c.telefono);
+      // Atendida = ya realizada: fila atenuada (como "Ya enviado" en
+      // /admin/recordatorios) y solo el nombre tachado — hora, servicio y
+      // acciones siguen legibles. No se oculta ni cambia de posición.
+      const atendida = c.estado === 'atendida';
 
       // El POST a /admin/cita/:id/recordatorio (Twilio) devuelve 500 mientras
       // Meta tenga la plantilla bloqueada. Hasta entonces la fila abre wa.me
@@ -699,8 +704,8 @@ function adminHTML(citas, verTodas = false) {
               class="text-xs bg-[#2563EB] hover:bg-[#1D4ED8] text-white px-3 py-1.5 rounded-lg transition-colors font-medium whitespace-nowrap">WhatsApp</a>`
         : `<span class="text-xs bg-white/5 text-gray-500 border border-white/10 px-3 py-1.5 rounded-lg font-medium whitespace-nowrap">Sin WhatsApp</span>`;
       return `
-      <tr class="border-b border-white/5 hover:bg-white/5 transition-colors">
-        <td class="px-4 py-3 text-white font-medium">${escapeHtml(c.nombre)}</td>
+      <tr class="border-b border-white/5 hover:bg-white/5 transition-colors${atendida ? ' opacity-50' : ''}">
+        <td class="px-4 py-3 text-white font-medium${atendida ? ' line-through' : ''}">${escapeHtml(c.nombre)}</td>
         <td class="px-4 py-3 text-gray-300">${escapeHtml(c.telefono)}</td>
         <td class="px-4 py-3 text-gray-300 whitespace-nowrap">${escapeHtml(c.fecha)} ${escapeHtml(c.hora)}</td>
         <td class="px-4 py-3 text-gray-300">${escapeHtml(c.servicio)}${c.detalle ? `<div class="text-xs text-gray-500 mt-0.5">${escapeHtml(c.detalle)}</div>` : ''}</td>
@@ -712,6 +717,7 @@ function adminHTML(citas, verTodas = false) {
             <select name="estado" onchange="this.form.submit()" class="text-xs bg-[#060D1F] border border-white/10 text-gray-300 rounded-lg px-2 py-1.5 cursor-pointer focus:outline-none focus:border-[#2563EB]">
               ${c.estado === 'pendiente' ? '<option selected>pendiente</option>' : ''}
               <option ${c.estado === 'confirmada'  ? 'selected' : ''}>confirmada</option>
+              <option ${c.estado === 'atendida'    ? 'selected' : ''}>atendida</option>
               <option ${c.estado === 'cancelada'   ? 'selected' : ''}>cancelada</option>
             </select>
           </form>
@@ -931,7 +937,7 @@ function recordatoriosHTML(citas, fecha) {
   const cuerpo = citas.length === 0
     ? `<div class="bg-[#0D1B3E] border border-white/10 rounded-xl p-10 text-center">
         <p class="text-white font-medium mb-1">No hay citas confirmadas para mañana</p>
-        <p class="text-sm text-gray-500">Nada que recordar el ${fechaTxt}. Las citas pendientes o canceladas no aparecen aquí.</p>
+        <p class="text-sm text-gray-500">Nada que recordar el ${fechaTxt}. Solo aparecen las citas confirmadas.</p>
       </div>`
     : citas.map(c => {
       const id = escapeHtml(c.id);
@@ -1196,10 +1202,10 @@ const server = http.createServer(async (req, res) => {
         res.end(JSON.stringify({ ok: false, error: 'Cita no encontrada' }));
         return;
       }
-      const validos = ['pendiente', 'confirmada', 'cancelada'];
+      const validos = ['pendiente', 'confirmada', 'cancelada', 'atendida'];
       if (!validos.includes(body.estado)) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ ok: false, error: 'Estado inválido: debe ser pendiente, confirmada o cancelada' }));
+        res.end(JSON.stringify({ ok: false, error: 'Estado inválido: debe ser pendiente, confirmada, cancelada o atendida' }));
         return;
       }
       cita.estado = body.estado;
