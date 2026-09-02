@@ -729,7 +729,19 @@ function validarCita(body, permitirPasado = false) {
 // cancelar se hace desde el desplegable.
 const SIGUIENTE_ESTADO = { confirmada: 'atendida', atendida: 'acabada', acabada: 'pagada' };
 
-function adminHTML(citas, verTodas = false) {
+// Citas 'acabada' pendientes de llamar al cliente. Cuenta TODAS, sin filtrar
+// por fecha: un coche acabado ayer al que nadie llamó sigue pendiente. La usan
+// GET /admin (pintado inicial de la banda) y GET /admin/acabadas (sondeo).
+function contarAcabadas(citas) {
+  return citas.filter(c => c.estado === 'acabada').length;
+}
+// Copia literal en el <script> de adminHTML (el sondeo la necesita en cliente).
+function textoAcabadas(n) {
+  return n === 1 ? '1 coche acabado · llamar al cliente'
+                 : `${n} coches acabados · llamar al cliente`;
+}
+
+function adminHTML(citas, verTodas = false, nAcabadas = 0) {
   // 'acabada' en amarillo sólido (reclama acción), 'pagada' gris apagado
   // (ciclo cerrado), 'atendida' azul (coche en el taller). 'pendiente' cae al
   // amarillo oscuro de siempre, distinto del sólido de 'acabada'.
@@ -865,6 +877,9 @@ function adminHTML(citas, verTodas = false) {
       <div>
         <p class="text-[#FFD700] text-xs font-semibold uppercase tracking-widest mb-1">Panel de administración</p>
         <h1 class="text-2xl font-bold text-white">${taller}</h1>
+        <!-- Banda de coches acabados: solo indicador, sin enlace. Se pinta ya
+             con el valor real para no esperar al primer sondeo (30 s). -->
+        <div id="aviso-acabadas" class="${nAcabadas > 0 ? '' : 'hidden'} mt-3 inline-block bg-[#FFD700] text-[#060D1F] text-lg font-bold px-5 py-2.5 rounded-lg" aria-live="polite">${textoAcabadas(nAcabadas)}</div>
       </div>
       <div class="flex items-center gap-3">
         <a href="${verTodas ? '/admin' : '/admin?ver=todas'}" class="text-sm text-gray-400 hover:text-white transition-colors">${verTodas ? 'Volver a próximas citas' : 'Ver todas las citas'}</a>
@@ -1136,6 +1151,35 @@ function adminHTML(citas, verTodas = false) {
         errEl.classList.remove('hidden');
       }
     }
+
+    // Sondeo de coches acabados cada 30 s. SOLO actualiza la banda
+    // #aviso-acabadas: nunca recarga la página (Vicky perdería lo que esté
+    // tecleando en el formulario). Sin sonido, sin popups, sin notificaciones:
+    // en el mostrador serían ruido. Un fallo de red se ignora en silencio y se
+    // reintenta en el siguiente ciclo.
+    function textoAcabadas(n) {
+      return n === 1 ? '1 coche acabado · llamar al cliente'
+                     : n + ' coches acabados · llamar al cliente';
+    }
+    async function sondearAcabadas() {
+      try {
+        var res = await fetch('/admin/acabadas', { cache: 'no-store' });
+        if (!res.ok) return;
+        var data = await res.json();
+        var n = Number(data && data.n);
+        if (!Number.isFinite(n)) return;
+        var banda = document.getElementById('aviso-acabadas');
+        if (n > 0) {
+          banda.textContent = textoAcabadas(n);
+          banda.classList.remove('hidden');
+        } else {
+          banda.classList.add('hidden');
+        }
+      } catch (e) {
+        // Silencio a propósito: sin console.error cada 30 s.
+      }
+    }
+    setInterval(sondearAcabadas, 10000);
   </script>
 </body>
 </html>`;
@@ -1671,6 +1715,15 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
+    // GET /admin/acabadas — sondeo del panel cada 30 s. Devuelve SOLO el
+    // número de citas en 'acabada': ni nombres, ni teléfonos, ni ids. Hereda
+    // auth y rate-limit del bloque /admin; al ser GET no pasa por isSameOrigin.
+    if (req.method === 'GET' && p === '/admin/acabadas') {
+      res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+      res.end(JSON.stringify({ n: contarAcabadas(readCitas()) }));
+      return;
+    }
+
     // GET /admin/recordatorios — citas confirmadas de mañana con enlaces wa.me
     // listos para enviar a mano. Camino manual: ni Twilio ni plantilla de Meta.
     // Hereda auth y rate-limit del bloque /admin; al ser GET no pasa por
@@ -1699,7 +1752,8 @@ const server = http.createServer(async (req, res) => {
         ? [...citas].sort((a, b) => cmpAsc(b, a))
         : citas.filter(c => c.fecha >= hoy).sort(cmpAsc);
       res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-      res.end(adminHTML(visibles, verTodas));
+      // nAcabadas sobre el array COMPLETO, no sobre 'visibles' (excluye pasadas).
+      res.end(adminHTML(visibles, verTodas, contarAcabadas(citas)));
       return;
     }
 
