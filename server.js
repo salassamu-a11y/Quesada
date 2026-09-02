@@ -1030,13 +1030,20 @@ function recordatoriosHTML(citas, fecha) {
 // abierta no puede quedarse sin estilos porque un CDN falle en uno de los
 // refrescos. El lenguaje visual del panel (navy #060D1F, tarjetas #0D1B3E,
 // acento #FFD700) se replica en el <style> propio.
-function tallerHTML(citas, fecha) {
+//
+// esManana=true cuando el handler ha saltado a las citas del día siguiente
+// (ver GET /taller): la cabecera antepone un rótulo "MAÑANA" grande en
+// amarillo para que sea imposible confundir la vista con la de hoy desde
+// varios metros. Con false la cabecera queda exactamente igual que antes.
+function tallerHTML(citas, fecha, esManana = false) {
   const taller = escapeHtml(process.env.TALLER_NOMBRE || 'Taller');
   const fechaCruda = fechaLegible(fecha);
   const fechaTxt = escapeHtml(fechaCruda.charAt(0).toUpperCase() + fechaCruda.slice(1));
+  const rotulo = esManana ? `<span class="manana">MAÑANA</span>` : '';
+  const textoVacio = esManana ? 'No hay citas para mañana' : 'No hay citas confirmadas para hoy';
 
   const cuerpo = citas.length === 0
-    ? `<div class="vacio">No hay citas confirmadas para hoy</div>`
+    ? `<div class="vacio">${textoVacio}</div>`
     : citas.map(c => {
       // Solo el nombre de pila: lo anterior al primer espacio del nombre
       // completo. Sin espacio, el nombre entero.
@@ -1064,7 +1071,7 @@ function tallerHTML(citas, fecha) {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta http-equiv="refresh" content="60">
-  <title>${taller} — Citas de hoy</title>
+  <title>${taller} — Citas de ${esManana ? 'mañana' : 'hoy'}</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -1085,6 +1092,15 @@ function tallerHTML(citas, fecha) {
       margin-bottom: 2rem;
     }
     .fecha { font-size: 2.2rem; font-weight: 700; }
+    .manana {
+      display: inline-block;
+      color: #FFD700;
+      font-size: 3.4rem;
+      font-weight: 900;
+      letter-spacing: .08em;
+      margin-right: 1.2rem;
+      vertical-align: baseline;
+    }
     .contador { font-size: 1.4rem; color: #8fa3c7; }
     .contador strong { color: #FFD700; }
     .cita {
@@ -1122,7 +1138,7 @@ function tallerHTML(citas, fecha) {
 </head>
 <body>
   <header>
-    <div class="fecha">${fechaTxt}</div>
+    <div class="fecha">${rotulo}${fechaTxt}</div>
     <div class="contador"><strong>${citas.length}</strong> cita${citas.length !== 1 ? 's' : ''}</div>
   </header>
   ${cuerpo}
@@ -1166,7 +1182,8 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // GET /taller — pantalla de solo lectura (citas confirmadas de HOY).
+  // GET /taller — pantalla de solo lectura (citas confirmadas de HOY; si
+  // no queda ninguna, las de MAÑANA — ver más abajo).
   // RUTA PÚBLICA a propósito, FUERA del bloque /admin: NO usa checkAuth,
   // porque una pantalla permanentemente logueada con auth básica daría el
   // panel completo a cualquiera que se sentara delante. Autoriza por token
@@ -1183,12 +1200,29 @@ const server = http.createServer(async (req, res) => {
       res.end('Not found');
       return;
     }
-    const hoy = hoyMadrid();
-    const visibles = readCitas()
-      .filter(c => c.fecha === hoy && c.estado === 'confirmada')
+    const citas = readCitas();
+    const confirmadasDe = (dia) => citas
+      .filter(c => c.fecha === dia && c.estado === 'confirmada')
       .sort((a, b) => String(a.hora).localeCompare(String(b.hora)));
+
+    // Sin citas confirmadas HOY (jornada terminada o día vacío) la pantalla
+    // salta sola a MAÑANA, para ver lo que viene sin pasar por el panel.
+    // Si mañana tampoco hay nada, se muestra la lista vacía con la fecha de
+    // mañana: la jornada de hoy ya no aporta nada. Sin enlaces ni query para
+    // alternar: la pantalla no es táctil. Como cada refresco de 60s vuelve a
+    // calcular todo, al cambiar el día en Madrid la vista regresa a "hoy"
+    // sin que nadie toque nada. fechaManana() va anclada a mediodía UTC,
+    // nunca Date.now() + 24h.
+    let fecha = hoyMadrid();
+    let visibles = confirmadasDe(fecha);
+    let esManana = false;
+    if (visibles.length === 0) {
+      fecha = fechaManana();
+      visibles = confirmadasDe(fecha);
+      esManana = true;
+    }
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' });
-    res.end(tallerHTML(visibles, hoy));
+    res.end(tallerHTML(visibles, fecha, esManana));
     return;
   }
 
