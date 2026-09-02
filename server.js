@@ -1232,9 +1232,10 @@ function recordatoriosHTML(citas, fecha) {
 </html>`;
 }
 
-// ---- Pantalla del taller (GET /taller) ----
-// Vista de SOLO LECTURA para una pantalla colgada en el taller, encendida
-// todo el día y visible por cualquiera que pase. Por eso muestra el MÍNIMO
+// ---- Pantalla del taller (GET /taller + POST /taller/acabar) ----
+// Vista para una pantalla colgada en el taller, encendida todo el día y
+// visible por cualquiera que pase. Solo lectura salvo UNA acción acotada: el
+// botón "ACABADO" de cada tarjeta (ver POST /taller/acabar). Muestra el MÍNIMO
 // de datos personales: hora, nombre de pila, servicio, detalle, matrícula y
 // vehículo (es como se identifica el coche en el taller). Nunca apellidos,
 // teléfono ni id. PROHIBIDO mostrar precio y kilómetros: los ve el cliente
@@ -1251,12 +1252,23 @@ function recordatoriosHTML(citas, fecha) {
 // (ver GET /taller): la cabecera antepone un rótulo "MAÑANA" grande en
 // amarillo para que sea imposible confundir la vista con la de hoy desde
 // varios metros. Con false la cabecera queda exactamente igual que antes.
-function tallerHTML(citas, fecha, esManana = false) {
+//
+// token: TALLER_TOKEN ya validado por el handler. Con él, y SOLO si no es la
+// vista de mañana, cada tarjeta lleva el botón "ACABADO": un <form
+// method="post"> a /taller/acabar con id y token en campos hidden. SIN JS a
+// propósito: la pantalla pasa semanas abierta y no puede depender de que un
+// script siga vivo. En la vista de MAÑANA no hay botón: no tiene sentido
+// acabar un coche que aún no ha llegado, y evita marcar por error una cita
+// del día siguiente. Sin confirmación ("¿estás seguro?"): en un taller es
+// fricción, y el error se corrige en dos clics desde el panel.
+function tallerHTML(citas, fecha, esManana = false, token = null) {
   const taller = escapeHtml(process.env.TALLER_NOMBRE || 'Taller');
   const fechaCruda = fechaLegible(fecha);
   const fechaTxt = escapeHtml(fechaCruda.charAt(0).toUpperCase() + fechaCruda.slice(1));
   const rotulo = esManana ? `<span class="manana">MAÑANA</span>` : '';
   const textoVacio = esManana ? 'No hay citas para mañana' : 'No hay citas para hoy';
+  const conBoton = !esManana && !!token;
+  const tokenEsc = conBoton ? escapeHtml(token) : '';
 
   const cuerpo = citas.length === 0
     ? `<div class="vacio">${textoVacio}</div>`
@@ -1264,15 +1276,28 @@ function tallerHTML(citas, fecha, esManana = false) {
       // Solo el nombre de pila: lo anterior al primer espacio del nombre
       // completo. Sin espacio, el nombre entero.
       const pila = String(c.nombre || '').trim().split(/\s+/)[0];
+      // 'atendida' = el coche YA está en el taller: borde izquierdo azul y
+      // etiqueta "EN TALLER" junto al nombre, para distinguirla a varios
+      // metros de una 'confirmada' (aún por llegar). Mismo azul que el badge
+      // 'atendida' del panel (blue-900/50, blue-300, blue-700/50), inline
+      // porque esta vista no carga Tailwind. El botón ACABADO NO depende del
+      // estado: si Vicky olvida marcar 'atendida' o el cliente llega sin
+      // cita previa, los mecánicos deben poder marcar acabado igual.
+      const enTaller = c.estado === 'atendida';
       return `
-      <div class="cita">
+      <div class="cita${enTaller ? ' en-taller' : ''}">
         <div class="hora">${escapeHtml(c.hora)}</div>
         <div class="datos">
-          <div class="nombre">${escapeHtml(pila)}</div>
+          <div class="nombre">${escapeHtml(pila)}${enTaller ? '<span class="etiqueta">EN TALLER</span>' : ''}</div>
           <div class="servicio">${escapeHtml(c.servicio)}</div>
           ${c.detalle ? `<div class="detalle">${escapeHtml(c.detalle)}</div>` : ''}
           ${c.matricula || c.vehiculo ? `<div class="coche">${c.matricula ? `<span class="matricula">${escapeHtml(c.matricula)}</span>` : ''}${c.vehiculo ? escapeHtml(c.vehiculo) : ''}</div>` : ''}
         </div>
+        ${conBoton ? `<form method="post" action="/taller/acabar" class="acabar">
+          <input type="hidden" name="k" value="${tokenEsc}">
+          <input type="hidden" name="id" value="${escapeHtml(c.id)}">
+          <button type="submit">ACABADO</button>
+        </form>` : ''}
       </div>`;
     }).join('');
 
@@ -1331,6 +1356,24 @@ function tallerHTML(citas, fecha, esManana = false) {
       padding: 1.6rem 2rem;
       margin-bottom: 1.2rem;
     }
+    /* Coche ya en el taller: borde izquierdo azul en vez de amarillo. */
+    .cita.en-taller { border-left-color: #60A5FA; }
+    /* Pastilla "EN TALLER": discreta a propósito, no compite con la hora ni
+       con el nombre (0.95rem frente a 3.2rem y 2.2rem). */
+    .etiqueta {
+      display: inline-block;
+      vertical-align: middle;
+      margin-left: .8rem;
+      font-size: .95rem;
+      font-weight: 700;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: #93C5FD;
+      background: rgba(30,58,138,.5);
+      border: 1px solid rgba(29,78,216,.5);
+      border-radius: 999px;
+      padding: .15em .7em;
+    }
     .hora {
       font-size: 3.2rem;
       font-weight: 800;
@@ -1354,6 +1397,33 @@ function tallerHTML(citas, fecha, esManana = false) {
       padding: .05em .45em;
       margin-right: .6rem;
     }
+    .datos { flex: 1; min-width: 0; }
+    /* Botón ACABADO: pegado a la DERECHA de la tarjeta (margin-left:auto),
+       separado de los datos para que no se pulse al mirar la pantalla.
+       Grande a propósito: se pulsa con el dedo, en tablet a un metro o en
+       móvil, a veces con las manos sucias. Verde #15803D sobre blanco:
+       contraste 4.7:1. touch-action:manipulation quita el retardo de
+       doble-tap en táctil. */
+    .acabar { margin-left: auto; flex-shrink: 0; }
+    .acabar button {
+      display: block;
+      min-height: 5.5rem;
+      min-width: 13rem;
+      padding: 0 2.2rem;
+      font: inherit;
+      font-size: 1.9rem;
+      font-weight: 900;
+      letter-spacing: .08em;
+      color: #fff;
+      background: #15803D;
+      border: 2px solid rgba(255,255,255,.18);
+      border-radius: 12px;
+      cursor: pointer;
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .acabar button:hover { background: #16A34A; }
+    .acabar button:active { background: #166534; transform: scale(.97); }
     .vacio {
       background: #0D1B3E;
       border: 1px solid rgba(255,255,255,.1);
@@ -1379,9 +1449,13 @@ function tallerHTML(citas, fecha, esManana = false) {
       }
       .hora { font-size: 2.4rem; min-width: 0; }
       .nombre { font-size: 1.7rem; }
+      .etiqueta { font-size: .75rem; margin-left: .5rem; padding: .1em .55em; }
       .servicio { font-size: 1.2rem; }
       .detalle { font-size: 1.05rem; }
       .coche { font-size: 1.1rem; }
+      /* El botón pasa a ancho completo BAJO los datos, no a la derecha. */
+      .acabar { width: 100%; margin-left: 0; margin-top: .4rem; }
+      .acabar button { width: 100%; min-height: 4.4rem; font-size: 1.6rem; }
     }
   </style>
 </head>
@@ -1431,9 +1505,9 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // GET /taller — pantalla de solo lectura (citas de HOY aún en el taller:
+  // GET /taller — pantalla del taller (citas de HOY aún en el taller:
   // 'confirmada' o 'atendida'; si no queda ninguna, las de MAÑANA — ver más
-  // abajo).
+  // abajo). Solo lectura salvo el botón "ACABADO" (POST /taller/acabar).
   // RUTA PÚBLICA a propósito, FUERA del bloque /admin: NO usa checkAuth,
   // porque una pantalla permanentemente logueada con auth básica daría el
   // panel completo a cualquiera que se sentara delante. Autoriza por token
@@ -1478,7 +1552,67 @@ const server = http.createServer(async (req, res) => {
       esManana = true;
     }
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' });
-    res.end(tallerHTML(visibles, fecha, esManana));
+    // k ya validado contra TALLER_TOKEN: va a los campos hidden del botón.
+    res.end(tallerHTML(visibles, fecha, esManana, k));
+    return;
+  }
+
+  // POST /taller/acabar — la ÚNICA escritura desde la pantalla del taller.
+  // Ruta pública, FUERA del bloque /admin, con el MISMO TALLER_TOKEN (aquí
+  // en el body, campo hidden del formulario) y el MISMO safeEqual que GET
+  // /taller. Endpoint lo más ESTRECHO posible: solo pasa a 'acabada', y solo
+  // desde 'confirmada' o 'atendida'; no edita ningún otro campo, no borra,
+  // no retrocede y no devuelve datos de la cita. Si el token se filtrara, el
+  // daño máximo es marcar citas como acabadas: molesto y reversible en dos
+  // clics desde el panel.
+  // Token ausente/incorrecto, TALLER_TOKEN sin definir o body ilegible → el
+  // MISMO 404 genérico que GET /taller, nunca 401: la ruta no revela que
+  // existe. Sin isSameOrigin: el secreto es el token, y quien lo tenga puede
+  // llamar directamente igual.
+  if (req.method === 'POST' && p === '/taller/acabar') {
+    const token = process.env.TALLER_TOKEN;
+    const body = await parseBody(req);
+    // BODY_TOO_LARGE y null caen aquí también: sin body legible no hay token
+    // que validar. parseBody drena el stream aunque supere el tope, así que
+    // no hace falta cerrar la conexión.
+    const k = body && body !== BODY_TOO_LARGE ? body.k : undefined;
+    if (!token || typeof k !== 'string' || !safeEqual(k, token)) {
+      res.writeHead(404, { 'Content-Type': 'text/plain' });
+      res.end('Not found');
+      return;
+    }
+    const volver = `/taller?k=${encodeURIComponent(k)}`;
+    // Errores DESPUÉS de validar el token (404 cita / 409 estado): HTML
+    // mínimo que vuelve solo a la pantalla en 4 s. Un texto plano dejaría la
+    // pantalla clavada en el error, sin meta refresh, hasta que alguien
+    // tocara. No incluye ningún dato de la cita.
+    const errorHtml = (status, msg) => {
+      res.writeHead(status, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' });
+      res.end(`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta http-equiv="refresh" content="4; url=${escapeHtml(volver)}"><title>${escapeHtml(msg)}</title><style>body{background:#060D1F;color:#fff;font-family:system-ui,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;padding:2rem;font-size:2rem;text-align:center}a{color:#FFD700}</style></head><body><p>${escapeHtml(msg)}<br><a href="${escapeHtml(volver)}">Volver a la pantalla</a></p></body></html>`);
+    };
+    // Lectura fresca y parcheo de UN SOLO campo de UN SOLO registro (regla
+    // del proyecto): ni id, ni creadaEn, ni recordatorioEnviado ni nada más.
+    const citas = readCitas();
+    const cita = citas.find(c => c.id === body.id);
+    if (!cita) {
+      errorHtml(404, 'Esa cita ya no existe');
+      return;
+    }
+    // Solo desde 'confirmada' o 'atendida' Y solo si la cita es de HOY.
+    // Cualquier otro caso → 409 sin tocar nada: cubre el doble clic (ya está
+    // en 'acabada'), los estados ya avanzados ('pagada') o cerrados
+    // ('cancelada', 'pendiente') y, con la fecha, un token filtrado: sin ese
+    // filtro se podría acabar una cita futura y, como la pantalla solo
+    // muestra las de hoy, nadie lo vería hasta que el cliente apareciera.
+    if (!['confirmada', 'atendida'].includes(cita.estado) || cita.fecha !== hoyMadrid()) {
+      errorHtml(409, 'Esa cita ya no está en el taller');
+      return;
+    }
+    cita.estado = 'acabada';
+    writeCitas(citas);
+    // 302 a la pantalla con el mismo token: se refresca sola tras pulsar.
+    res.writeHead(302, { Location: volver, 'Cache-Control': 'no-store' });
+    res.end();
     return;
   }
 
