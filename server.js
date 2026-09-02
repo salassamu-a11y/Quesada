@@ -1222,6 +1222,24 @@ function tallerHTML(citas, fecha, esManana = false) {
       font-weight: 700;
       color: #b9c4da;
     }
+    /* Móvil: la pantalla fija del taller es el uso principal (CSS de arriba);
+       en pantallas estrechas el .hora de 9.5rem empujaba nombre y servicio
+       fuera del viewport, así que la cita pasa a columna. */
+    @media (max-width: 700px) {
+      body { padding: 1.2rem; }
+      .fecha { font-size: 1.5rem; }
+      .manana { font-size: 2.2rem; }
+      .cita {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: .6rem;
+        padding: 1.1rem 1.2rem;
+      }
+      .hora { font-size: 2.4rem; min-width: 0; }
+      .nombre { font-size: 1.7rem; }
+      .servicio { font-size: 1.2rem; }
+      .detalle { font-size: 1.05rem; }
+    }
   </style>
 </head>
 <body>
