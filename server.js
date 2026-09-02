@@ -720,11 +720,25 @@ function validarCita(body, permitirPasado = false) {
   return null;
 }
 
+// Ciclo de estados del taller (ver POST /admin/cita/:id/estado):
+//   confirmada → atendida (el coche está en el taller) → acabada (trabajo
+//   terminado, Vicky tiene que llamar) → pagada (avisado, pagado, se lo llevó).
+// Más 'cancelada' (no vino) y 'pendiente' (solo datos históricos).
+// El botón ✓ del listado avanza UN paso según esta tabla; 'pagada',
+// 'cancelada' y 'pendiente' no tienen siguiente → sin botón. Retroceder o
+// cancelar se hace desde el desplegable.
+const SIGUIENTE_ESTADO = { confirmada: 'atendida', atendida: 'acabada', acabada: 'pagada' };
+
 function adminHTML(citas, verTodas = false) {
+  // 'acabada' en amarillo sólido (reclama acción), 'pagada' gris apagado
+  // (ciclo cerrado), 'atendida' azul (coche en el taller). 'pendiente' cae al
+  // amarillo oscuro de siempre, distinto del sólido de 'acabada'.
   const estadoBadge = e =>
     e === 'confirmada' ? 'bg-green-900/50 text-green-400 border border-green-700/50' :
+    e === 'atendida'   ? 'bg-blue-900/50 text-blue-300 border border-blue-700/50' :
+    e === 'acabada'    ? 'bg-[#FFD700] text-[#060D1F] border border-[#FFD700]' :
+    e === 'pagada'     ? 'bg-gray-900/50 text-gray-500 border border-gray-700/50' :
     e === 'cancelada'  ? 'bg-red-900/50 text-red-400 border border-red-700/50' :
-    e === 'atendida'   ? 'bg-gray-900/50 text-gray-400 border border-gray-700/50' :
                          'bg-yellow-900/50 text-yellow-400 border border-yellow-700/50';
 
   const rows = citas.length === 0
@@ -732,10 +746,29 @@ function adminHTML(citas, verTodas = false) {
     : citas.map(c => {
       const id = escapeHtml(c.id);
       const wa = telefonoWa(c.telefono);
-      // Atendida = ya realizada: fila atenuada (como "Ya enviado" en
-      // /admin/recordatorios) y solo el nombre tachado — hora, servicio y
-      // acciones siguen legibles. No se oculta ni cambia de posición.
-      const atendida = c.estado === 'atendida';
+      // COLOR DE FILA — solo UN estado destaca, si no el color pierde sentido:
+      //  - 'acabada': borde izquierdo amarillo grueso + fondo amarillo muy
+      //    tenue. Es el único que reclama acción de Vicky (llamar al cliente).
+      //  - 'pagada': atenuada + nombre tachado (ciclo cerrado). Hora, servicio
+      //    y acciones siguen legibles; no se oculta ni cambia de posición.
+      //  - 'cancelada': solo atenuada.
+      //  - 'confirmada' y 'atendida' (coche en el taller): sin adorno.
+      const acabada = c.estado === 'acabada';
+      const pagada = c.estado === 'pagada';
+      const claseFila = acabada
+        ? ' border-l-4 border-l-[#FFD700] bg-[#FFD700]/5'
+        : (pagada || c.estado === 'cancelada') ? ' opacity-50' : '';
+
+      // Botón ✓: avanza UN paso reutilizando POST /admin/cita/:id/estado
+      // (formulario con el destino en un hidden). Sin siguiente paso, sin botón.
+      const siguiente = SIGUIENTE_ESTADO[c.estado];
+      const accionTic = siguiente
+        ? `<form method="post" action="/admin/cita/${id}/estado" class="inline">
+            <input type="hidden" name="estado" value="${siguiente}">
+            <button type="submit" title="Marcar como ${siguiente}" aria-label="Marcar como ${siguiente}"
+                    class="text-xs bg-white/5 hover:bg-[#FFD700]/20 text-[#FFD700] border border-[#FFD700]/40 px-3 py-1.5 rounded-lg transition-colors font-bold">✓</button>
+          </form>`
+        : '';
 
       // El POST a /admin/cita/:id/recordatorio (Twilio) devuelve 500 mientras
       // Meta tenga la plantilla bloqueada. Hasta entonces la fila abre wa.me
@@ -761,8 +794,8 @@ function adminHTML(citas, verTodas = false) {
         c.kilometros ? `${escapeHtml(c.kilometros)} km` : ''
       ].filter(Boolean).join(' · ');
       return `
-      <tr class="border-b border-white/5 hover:bg-white/5 transition-colors${atendida ? ' opacity-50' : ''}">
-        <td class="px-4 py-3 text-white font-medium${atendida ? ' line-through' : ''}">${escapeHtml(c.nombre)}</td>
+      <tr class="border-b border-white/5 hover:bg-white/5 transition-colors${claseFila}">
+        <td class="px-4 py-3 text-white font-medium${pagada ? ' line-through' : ''}">${escapeHtml(c.nombre)}</td>
         <td class="px-4 py-3 text-gray-300">${c.telefono ? escapeHtml(c.telefono) : '<span class="text-gray-500">—</span>'}</td>
         <td class="px-4 py-3 text-gray-300 whitespace-nowrap">${escapeHtml(c.fecha)} ${escapeHtml(c.hora)}</td>
         <td class="px-4 py-3 text-gray-300">${escapeHtml(c.servicio)}${c.detalle ? `<div class="text-xs text-gray-500 mt-0.5">${escapeHtml(c.detalle)}</div>` : ''}</td>
@@ -775,11 +808,14 @@ function adminHTML(citas, verTodas = false) {
           <form method="post" action="/admin/cita/${id}/estado" class="inline">
             <select name="estado" onchange="this.form.submit()" class="text-xs bg-[#060D1F] border border-white/10 text-gray-300 rounded-lg px-2 py-1.5 cursor-pointer focus:outline-none focus:border-[#2563EB]">
               ${c.estado === 'pendiente' ? '<option selected>pendiente</option>' : ''}
-              <option ${c.estado === 'confirmada'  ? 'selected' : ''}>confirmada</option>
-              <option ${c.estado === 'atendida'    ? 'selected' : ''}>atendida</option>
-              <option ${c.estado === 'cancelada'   ? 'selected' : ''}>cancelada</option>
+              <option ${c.estado === 'confirmada' ? 'selected' : ''}>confirmada</option>
+              <option ${c.estado === 'atendida'   ? 'selected' : ''}>atendida</option>
+              <option ${c.estado === 'acabada'    ? 'selected' : ''}>acabada</option>
+              <option ${c.estado === 'pagada'     ? 'selected' : ''}>pagada</option>
+              <option ${c.estado === 'cancelada'  ? 'selected' : ''}>cancelada</option>
             </select>
           </form>
+          ${accionTic}
           ${accionWa}
           <button onclick="editarCita(this)"
                   data-id="${id}"
@@ -1220,7 +1256,7 @@ function tallerHTML(citas, fecha, esManana = false) {
   const fechaCruda = fechaLegible(fecha);
   const fechaTxt = escapeHtml(fechaCruda.charAt(0).toUpperCase() + fechaCruda.slice(1));
   const rotulo = esManana ? `<span class="manana">MAÑANA</span>` : '';
-  const textoVacio = esManana ? 'No hay citas para mañana' : 'No hay citas confirmadas para hoy';
+  const textoVacio = esManana ? 'No hay citas para mañana' : 'No hay citas para hoy';
 
   const cuerpo = citas.length === 0
     ? `<div class="vacio">${textoVacio}</div>`
@@ -1395,8 +1431,9 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // GET /taller — pantalla de solo lectura (citas confirmadas de HOY; si
-  // no queda ninguna, las de MAÑANA — ver más abajo).
+  // GET /taller — pantalla de solo lectura (citas de HOY aún en el taller:
+  // 'confirmada' o 'atendida'; si no queda ninguna, las de MAÑANA — ver más
+  // abajo).
   // RUTA PÚBLICA a propósito, FUERA del bloque /admin: NO usa checkAuth,
   // porque una pantalla permanentemente logueada con auth básica daría el
   // panel completo a cualquiera que se sentara delante. Autoriza por token
@@ -1414,12 +1451,18 @@ const server = http.createServer(async (req, res) => {
       return;
     }
     const citas = readCitas();
-    const confirmadasDe = (dia) => citas
-      .filter(c => c.fecha === dia && c.estado === 'confirmada')
+    // 'confirmada' (aún no ha llegado) y 'atendida' (el coche YA está en el
+    // taller): al recibir el coche la cita debe seguir en pantalla, que es
+    // justo cuando el mecánico la necesita. 'acabada' sale de la pantalla
+    // (el trabajo terminó); 'pagada' y 'cancelada' tampoco se muestran.
+    const EN_TALLER = ['confirmada', 'atendida'];
+    const visiblesDe = (dia) => citas
+      .filter(c => c.fecha === dia && EN_TALLER.includes(c.estado))
       .sort((a, b) => String(a.hora).localeCompare(String(b.hora)));
 
-    // Sin citas confirmadas HOY (jornada terminada o día vacío) la pantalla
-    // salta sola a MAÑANA, para ver lo que viene sin pasar por el panel.
+    // Sin citas HOY que sigan en el taller (todas acabadas/pagadas, jornada
+    // terminada o día vacío) la pantalla salta sola a MAÑANA, para ver lo que
+    // viene sin pasar por el panel.
     // Si mañana tampoco hay nada, se muestra la lista vacía con la fecha de
     // mañana: la jornada de hoy ya no aporta nada. Sin enlaces ni query para
     // alternar: la pantalla no es táctil. Como cada refresco de 60s vuelve a
@@ -1427,11 +1470,11 @@ const server = http.createServer(async (req, res) => {
     // sin que nadie toque nada. fechaManana() va anclada a mediodía UTC,
     // nunca Date.now() + 24h.
     let fecha = hoyMadrid();
-    let visibles = confirmadasDe(fecha);
+    let visibles = visiblesDe(fecha);
     let esManana = false;
     if (visibles.length === 0) {
       fecha = fechaManana();
-      visibles = confirmadasDe(fecha);
+      visibles = visiblesDe(fecha);
       esManana = true;
     }
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' });
@@ -1588,10 +1631,12 @@ const server = http.createServer(async (req, res) => {
         res.end(JSON.stringify({ ok: false, error: 'Cita no encontrada' }));
         return;
       }
-      const validos = ['pendiente', 'confirmada', 'cancelada', 'atendida'];
+      // Ciclo real: confirmada → atendida → acabada → pagada, más cancelada.
+      // 'pendiente' se conserva solo por datos históricos.
+      const validos = ['pendiente', 'confirmada', 'atendida', 'acabada', 'pagada', 'cancelada'];
       if (!validos.includes(body.estado)) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ ok: false, error: 'Estado inválido: debe ser pendiente, confirmada, cancelada o atendida' }));
+        res.end(JSON.stringify({ ok: false, error: 'Estado inválido: debe ser pendiente, confirmada, atendida, acabada, pagada o cancelada' }));
         return;
       }
       cita.estado = body.estado;
