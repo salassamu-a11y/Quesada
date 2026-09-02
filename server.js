@@ -541,6 +541,17 @@ function fechaLegible(fecha) {
   return FMT_FECHA_LEGIBLE.format(new Date(`${fecha}T12:00:00Z`));
 }
 
+// "2026-09-03" → "03/09/2026". SOLO para pintar en el listado del panel:
+// los datos siguen en ISO (el sort de GET /admin y el input type="date"
+// del botón Editar dependen de ello). Parte el string por guiones, sin
+// new Date(): el proceso corre en UTC en Render y un Date por medio es
+// cómo se cuela un desfase de un día. Si no casa con YYYY-MM-DD la
+// devuelve tal cual para no romper la fila.
+function fechaCorta(fecha) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(fecha));
+  return m ? `${m[3]}/${m[2]}/${m[1]}` : fecha;
+}
+
 // ---- Vista manual de recordatorios (GET /admin/recordatorios) ----
 // Camino paralelo al de Twilio: genera enlaces wa.me para que Vicky mande los
 // recordatorios a mano desde el WhatsApp del taller. No toca sendWhatsApp(),
@@ -809,7 +820,10 @@ function adminHTML(citas, verTodas = false, nAcabadas = 0) {
       <tr class="border-b border-white/5 hover:bg-white/5 transition-colors${claseFila}">
         <td class="px-4 py-3 text-white font-medium${pagada ? ' line-through' : ''}">${escapeHtml(c.nombre)}</td>
         <td class="px-4 py-3 text-gray-300">${c.telefono ? escapeHtml(c.telefono) : '<span class="text-gray-500">—</span>'}</td>
-        <td class="px-4 py-3 text-gray-300 whitespace-nowrap">${escapeHtml(c.fecha)} ${escapeHtml(c.hora)}</td>
+        <td class="px-4 py-3 whitespace-nowrap">
+          <div class="text-gray-300">${escapeHtml(fechaCorta(c.fecha))}</div>
+          <div class="text-[#FFD700] font-bold text-base mt-0.5">${escapeHtml(c.hora)}</div>
+        </td>
         <td class="px-4 py-3 text-gray-300">${escapeHtml(c.servicio)}${c.detalle ? `<div class="text-xs text-gray-500 mt-0.5">${escapeHtml(c.detalle)}</div>` : ''}</td>
         <td class="px-4 py-3 whitespace-nowrap">${c.matricula ? `<div class="text-white font-semibold">${escapeHtml(c.matricula)}</div>` : ''}${lineaVehiculo ? `<div class="text-xs text-gray-500${c.matricula ? ' mt-0.5' : ''}">${lineaVehiculo}</div>` : ''}</td>
         <td class="px-4 py-3 text-right whitespace-nowrap">${c.precio ? `<div class="text-gray-300">${escapeHtml(c.precio)} €</div>` : ''}</td>
@@ -963,7 +977,7 @@ function adminHTML(citas, verTodas = false, nAcabadas = 0) {
           <tr class="border-b border-white/10">
             <th class="px-4 py-3.5 text-left text-xs font-semibold text-[#FFD700] uppercase tracking-wider">Nombre</th>
             <th class="px-4 py-3.5 text-left text-xs font-semibold text-[#FFD700] uppercase tracking-wider">Teléfono</th>
-            <th class="px-4 py-3.5 text-left text-xs font-semibold text-[#FFD700] uppercase tracking-wider">Fecha / Hora</th>
+            <th class="px-4 py-3.5 text-left text-xs font-semibold text-[#FFD700] uppercase tracking-wider">Fecha y hora</th>
             <th class="px-4 py-3.5 text-left text-xs font-semibold text-[#FFD700] uppercase tracking-wider">Servicio</th>
             <th class="px-4 py-3.5 text-left text-xs font-semibold text-[#FFD700] uppercase tracking-wider">Vehículo</th>
             <th class="px-4 py-3.5 text-right text-xs font-semibold text-[#FFD700] uppercase tracking-wider">Precio</th>
