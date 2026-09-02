@@ -634,7 +634,12 @@ function horarioTaller(fecha, hora) {
 
 // Validación de entrada del panel admin (#7). Devuelve el mensaje de error
 // del primer campo inválido, o null si todo es correcto.
-function validarCita(body) {
+// permitirPasado: SOLO la edición (PUT /admin/cita/:id) lo pasa a true, para
+// corregir citas ya pasadas (nombre mal escrito, precisar el servicio de un
+// trabajo hecho). Salta ÚNICAMENTE la regla "fecha no anterior a hoy"; el
+// resto (formato, calendario real, hora, longitudes) aplica igual. El alta
+// no pasa el argumento y conserva el comportamiento actual.
+function validarCita(body, permitirPasado = false) {
   const nombre = typeof body.nombre === 'string' ? body.nombre.trim() : '';
   if (!nombre) return 'El nombre es obligatorio';
   if (nombre.length > 100) return 'El nombre no puede superar los 100 caracteres';
@@ -655,7 +660,7 @@ function validarCita(body) {
   // El atributo min del input es saltable (devtools, curl): manda el servidor.
   // Comparación de cadenas YYYY-MM-DD = comparación cronológica.
   // Hoy mismo se permite: solo se rechaza estrictamente anterior.
-  if (fecha < hoyMadrid()) return 'La fecha no puede ser anterior a hoy';
+  if (!permitirPasado && fecha < hoyMadrid()) return 'La fecha no puede ser anterior a hoy';
 
   const hora = typeof body.hora === 'string' ? body.hora : '';
   if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(hora)) return 'La hora debe tener formato HH:MM válido';
@@ -722,6 +727,15 @@ function adminHTML(citas, verTodas = false) {
             </select>
           </form>
           ${accionWa}
+          <button onclick="editarCita(this)"
+                  data-id="${id}"
+                  data-nombre="${escapeHtml(c.nombre)}"
+                  data-telefono="${escapeHtml(c.telefono)}"
+                  data-fecha="${escapeHtml(c.fecha)}"
+                  data-hora="${escapeHtml(c.hora)}"
+                  data-servicio="${escapeHtml(c.servicio)}"
+                  data-detalle="${escapeHtml(c.detalle || '')}"
+                  class="text-xs bg-white/5 hover:bg-white/10 text-gray-300 border border-white/10 px-3 py-1.5 rounded-lg transition-colors font-medium">Editar</button>
           <button onclick="eliminarCita('${id}')" class="text-xs bg-red-900/50 hover:bg-red-800/60 text-red-400 border border-red-700/50 px-3 py-1.5 rounded-lg transition-colors font-medium">Eliminar</button>
         </td>
       </tr>`;
@@ -769,7 +783,7 @@ function adminHTML(citas, verTodas = false) {
       <button onclick="toggleNuevaCita()" class="bg-[#FFD700] hover:bg-[#E6C200] text-[#060D1F] text-sm font-bold px-5 py-2.5 rounded-lg transition-colors">+ Nueva cita</button>
       <a href="/admin/recordatorios" class="bg-[#0D1B3E] hover:bg-white/10 text-gray-300 border border-white/10 text-sm font-semibold px-5 py-2.5 rounded-lg transition-colors">Recordatorios de mañana</a>
       <div id="nueva-cita-form" class="hidden mt-4 w-full bg-[#0D1B3E] border border-white/10 rounded-xl p-6 max-w-2xl">
-        <h2 class="text-base font-semibold text-white mb-5">Nueva cita</h2>
+        <h2 id="nc-titulo" class="text-base font-semibold text-white mb-5">Nueva cita</h2>
         <div class="grid grid-cols-2 gap-4">
           <div>
             <label class="block text-xs text-gray-400 mb-1.5 uppercase tracking-wide">Nombre</label>
@@ -808,8 +822,8 @@ function adminHTML(citas, verTodas = false) {
           </div>
         </div>
         <div class="mt-5 flex gap-3">
-          <button onclick="guardarNuevaCita()" class="bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-sm font-medium px-5 py-2 rounded-lg transition-colors">Guardar cita</button>
-          <button onclick="toggleNuevaCita()" class="text-sm text-gray-400 hover:text-white px-4 py-2 transition-colors">Cancelar</button>
+          <button id="nc-guardar" onclick="guardarNuevaCita()" class="bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-sm font-medium px-5 py-2 rounded-lg transition-colors">Guardar cita</button>
+          <button onclick="cerrarFormularioCita()" class="text-sm text-gray-400 hover:text-white px-4 py-2 transition-colors">Cancelar</button>
         </div>
         <p id="nc-error" class="hidden mt-3 text-red-400 text-sm"></p>
       </div>
@@ -832,8 +846,76 @@ function adminHTML(citas, verTodas = false) {
     </div>
   </div>
   <script>
+    // Modo edición: id de la cita que se está editando, o null en modo alta.
+    // Un ÚNICO formulario (#nueva-cita-form) para alta y edición; lo que
+    // cambia es el título, el botón y a qué endpoint se envía.
+    var citaEditandoId = null;
+
+    function resetFormularioCita() {
+      citaEditandoId = null;
+      ['nc-nombre', 'nc-telefono', 'nc-fecha', 'nc-hora', 'nc-detalle'].forEach(function (id) {
+        document.getElementById(id).value = '';
+      });
+      var sel = document.getElementById('nc-servicio');
+      // Opción temporal añadida por editarCita() para un servicio antiguo
+      // (citas previas al desglose de 8 servicios): se retira al limpiar.
+      var legacy = sel.querySelector('option[data-legacy]');
+      if (legacy) legacy.remove();
+      sel.value = '';
+      document.getElementById('nc-titulo').textContent = 'Nueva cita';
+      document.getElementById('nc-guardar').textContent = 'Guardar cita';
+      document.getElementById('nc-error').classList.add('hidden');
+      document.getElementById('nc-horario-aviso').classList.add('hidden');
+    }
+
+    // "+ Nueva cita": si el formulario está cerrado o en modo edición, lo
+    // abre VACÍO en modo alta; si ya está abierto en modo alta, lo cierra.
     function toggleNuevaCita() {
-      document.getElementById('nueva-cita-form').classList.toggle('hidden');
+      var form = document.getElementById('nueva-cita-form');
+      if (form.classList.contains('hidden') || citaEditandoId !== null) {
+        resetFormularioCita();
+        form.classList.remove('hidden');
+      } else {
+        cerrarFormularioCita();
+      }
+    }
+
+    // "Cancelar": cierra y limpia SIEMPRE el modo edición, para que el
+    // siguiente "+ Nueva cita" salga vacío y vuelva a crear, no a editar.
+    function cerrarFormularioCita() {
+      document.getElementById('nueva-cita-form').classList.add('hidden');
+      resetFormularioCita();
+    }
+
+    // Abre el mismo formulario relleno con los datos de la fila (vienen en
+    // data-attributes escapados por el servidor; dataset ya los decodifica).
+    function editarCita(btn) {
+      var d = btn.dataset;
+      resetFormularioCita();
+      citaEditandoId = d.id;
+      document.getElementById('nc-nombre').value   = d.nombre;
+      document.getElementById('nc-telefono').value = d.telefono;
+      document.getElementById('nc-fecha').value    = d.fecha;
+      document.getElementById('nc-hora').value     = d.hora;
+      document.getElementById('nc-detalle').value  = d.detalle;
+      var sel = document.getElementById('nc-servicio');
+      sel.value = d.servicio;
+      if (d.servicio && sel.value !== d.servicio) {
+        // Servicio que no está en el desplegable actual (dato histórico):
+        // se ofrece tal cual para no obligar a cambiarlo al editar otro campo.
+        var opt = document.createElement('option');
+        opt.value = d.servicio;
+        opt.textContent = d.servicio;
+        opt.setAttribute('data-legacy', '');
+        sel.appendChild(opt);
+        sel.value = d.servicio;
+      }
+      document.getElementById('nc-titulo').textContent = 'Editar cita';
+      document.getElementById('nc-guardar').textContent = 'Guardar cambios';
+      avisoHorario();
+      var form = document.getElementById('nueva-cita-form');
+      form.classList.remove('hidden');
+      form.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
 
     // OJO: esta función está DUPLICADA a propósito (servidor y cliente).
@@ -909,8 +991,10 @@ function adminHTML(citas, verTodas = false) {
       }
       errEl.classList.add('hidden');
 
-      const res = await fetch('/admin/cita', {
-        method: 'POST',
+      // Modo edición → PUT /admin/cita/:id; modo alta → POST /admin/cita.
+      const editando = citaEditandoId !== null;
+      const res = await fetch(editando ? '/admin/cita/' + citaEditandoId : '/admin/cita', {
+        method: editando ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ nombre, telefono, fecha, hora, servicio, detalle })
       });
@@ -918,7 +1002,11 @@ function adminHTML(citas, verTodas = false) {
       if (res.ok) {
         location.reload();
       } else {
-        errEl.textContent = 'Error al guardar la cita.';
+        // El servidor devuelve el motivo concreto (validarCita); se muestra
+        // para que Vicky sepa qué corregir (p. ej. una fecha ya pasada).
+        let motivo = '';
+        try { motivo = (await res.json()).error || ''; } catch (e) {}
+        errEl.textContent = 'Error al guardar la cita.' + (motivo ? ' ' + motivo : '');
         errEl.classList.remove('hidden');
       }
     }
@@ -1249,8 +1337,8 @@ const server = http.createServer(async (req, res) => {
     }
     clearAuthFails(ip);
 
-    // Anti-CSRF: POST/DELETE con Origin/Referer ajeno → 403.
-    if ((req.method === 'POST' || req.method === 'DELETE') && !isSameOrigin(req)) {
+    // Anti-CSRF: POST/PUT/DELETE con Origin/Referer ajeno → 403.
+    if (['POST', 'PUT', 'DELETE'].includes(req.method) && !isSameOrigin(req)) {
       res.writeHead(403, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ ok: false, error: 'Origen no permitido' }));
       return;
@@ -1398,6 +1486,52 @@ const server = http.createServer(async (req, res) => {
         return;
       }
       citas.splice(idx, 1);
+      writeCitas(citas);
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: true }));
+      return;
+    }
+
+    // PUT /admin/cita/:id — edita los datos de una cita existente (Vicky
+    // precisa el servicio o la rueda cuando llega el coche). Misma validación
+    // que el alta (validarCita, sin reglas duplicadas). CONSERVA id, creadaEn,
+    // estado y recordatorioEnviado: corregir datos no reabre un recordatorio
+    // ya enviado ni cambia el estado. Dentro del bloque POST/PUT/DELETE, así
+    // hereda isSameOrigin.
+    const putMatch = p.match(/^\/admin\/cita\/([^/]+)$/);
+    if (req.method === 'PUT' && putMatch) {
+      const body = await parseBody(req);
+      if (body === BODY_TOO_LARGE) {
+        res.writeHead(413, { 'Content-Type': 'application/json', 'Connection': 'close' });
+        res.end(JSON.stringify({ ok: false, error: 'Cuerpo demasiado grande' }));
+        return;
+      }
+      if (!body) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: false, error: 'Cuerpo de la petición inválido' }));
+        return;
+      }
+      // Releer DESPUÉS del await de parseBody y parchear solo esta cita.
+      const citas = readCitas();
+      const cita = citas.find(c => c.id === putMatch[1]);
+      if (!cita) {
+        res.writeHead(404, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: false, error: 'Cita no encontrada' }));
+        return;
+      }
+      // permitirPasado=true: se edita una cita ya existente, puede ser pasada.
+      const errorValidacion = validarCita(body, true);
+      if (errorValidacion) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: false, error: errorValidacion }));
+        return;
+      }
+      cita.nombre   = body.nombre || '';
+      cita.telefono = body.telefono || '';
+      cita.fecha    = body.fecha || '';
+      cita.hora     = body.hora || '';
+      cita.servicio = body.servicio || '';
+      cita.detalle  = typeof body.detalle === 'string' ? body.detalle.trim() : '';
       writeCitas(citas);
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ ok: true }));
