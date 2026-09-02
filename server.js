@@ -456,7 +456,12 @@ cron.schedule('0 19 * * *', async () => {
   const pendientes = citas.filter(c =>
     c.estado === 'confirmada' &&
     c.fecha === tomorrowStr &&
-    !c.recordatorioEnviado
+    !c.recordatorioEnviado &&
+    // Sin móvil válido no hay WhatsApp: fijos y vacíos se quedan fuera. Sin
+    // este filtro sendWhatsApp() construiría 'whatsapp:+34' (vacío) o un
+    // destino a un fijo, y llamaría a Twilio igual. Esas citas siguen
+    // visibles en /admin/recordatorios como "Teléfono no válido".
+    telefonoWa(c.telefono) !== null
   );
 
   let enviados = 0;
@@ -644,10 +649,17 @@ function validarCita(body, permitirPasado = false) {
   if (!nombre) return 'El nombre es obligatorio';
   if (nombre.length > 100) return 'El nombre no puede superar los 100 caracteres';
 
-  const tel = typeof body.telefono === 'string'
-    ? body.telefono.replace(/[\s\-]/g, '').replace(/^(\+34|34)/, '')
-    : '';
-  if (!/^[67]\d{8}$/.test(tel)) return 'El teléfono debe ser un móvil español (9 dígitos, empieza por 6 o 7)';
+  // Teléfono OPCIONAL: clientes empresa sin móvil o solo con fijo. Vacío,
+  // ausente o solo espacios → válido. Con contenido: 9 dígitos que empiecen
+  // por 6, 7, 8 o 9 tras limpiar espacios, guiones y prefijo +34/34.
+  // El WhatsApp sigue exigiendo móvil: eso lo decide telefonoWa(), no aquí.
+  const telRaw = typeof body.telefono === 'string' ? body.telefono.trim() : '';
+  if (telRaw) {
+    const tel = telRaw.replace(/[\s\-]/g, '').replace(/^(\+34|34)/, '');
+    if (!/^[6789]\d{8}$/.test(tel)) {
+      return 'El teléfono debe tener 9 dígitos y empezar por 6, 7, 8 o 9, o dejarse vacío';
+    }
+  }
 
   const fecha = typeof body.fecha === 'string' ? body.fecha : '';
   const fm = fecha.match(/^(\d{4})-(\d{2})-(\d{2})$/);
@@ -711,7 +723,7 @@ function adminHTML(citas, verTodas = false) {
       return `
       <tr class="border-b border-white/5 hover:bg-white/5 transition-colors${atendida ? ' opacity-50' : ''}">
         <td class="px-4 py-3 text-white font-medium${atendida ? ' line-through' : ''}">${escapeHtml(c.nombre)}</td>
-        <td class="px-4 py-3 text-gray-300">${escapeHtml(c.telefono)}</td>
+        <td class="px-4 py-3 text-gray-300">${c.telefono ? escapeHtml(c.telefono) : '<span class="text-gray-500">—</span>'}</td>
         <td class="px-4 py-3 text-gray-300 whitespace-nowrap">${escapeHtml(c.fecha)} ${escapeHtml(c.hora)}</td>
         <td class="px-4 py-3 text-gray-300">${escapeHtml(c.servicio)}${c.detalle ? `<div class="text-xs text-gray-500 mt-0.5">${escapeHtml(c.detalle)}</div>` : ''}</td>
         <td class="px-4 py-3">
@@ -984,8 +996,8 @@ function adminHTML(citas, verTodas = false) {
       const detalle  = document.getElementById('nc-detalle').value.trim();
       const errEl    = document.getElementById('nc-error');
 
-      if (!nombre || !telefono || !fecha || !hora || !servicio) {
-        errEl.textContent = 'Todos los campos son obligatorios.';
+      if (!nombre || !fecha || !hora || !servicio) {
+        errEl.textContent = 'Nombre, fecha, hora y servicio son obligatorios.';
         errEl.classList.remove('hidden');
         return;
       }
@@ -1060,7 +1072,7 @@ function recordatoriosHTML(citas, fecha) {
             ${enviado ? '<span class="ml-2 align-middle text-[11px] font-medium uppercase tracking-wide bg-green-900/50 text-green-400 border border-green-700/50 px-2 py-0.5 rounded-full">Ya enviado</span>' : ''}
           </p>
           <p class="text-sm text-gray-300 mt-1">${escapeHtml(c.servicio)}${c.detalle ? ` <span class="text-gray-500">— ${escapeHtml(c.detalle)}</span>` : ''}</p>
-          <p class="text-xs text-gray-500 mt-1">${escapeHtml(c.telefono)}</p>
+          <p class="text-xs text-gray-500 mt-1">${c.telefono ? escapeHtml(c.telefono) : '<span class="text-gray-600">—</span>'}</p>
         </div>
         <div class="flex items-center gap-2 shrink-0">
           ${accionWa}
@@ -1441,7 +1453,7 @@ const server = http.createServer(async (req, res) => {
       const cita = {
         id: uuidv4(),
         nombre: body.nombre || '',
-        telefono: body.telefono || '',
+        telefono: typeof body.telefono === 'string' ? body.telefono.trim() : '',
         fecha: body.fecha || '',
         hora: body.hora || '',
         servicio: body.servicio || '',
@@ -1545,7 +1557,7 @@ const server = http.createServer(async (req, res) => {
         return;
       }
       cita.nombre   = body.nombre || '';
-      cita.telefono = body.telefono || '';
+      cita.telefono = typeof body.telefono === 'string' ? body.telefono.trim() : '';
       cita.fecha    = body.fecha || '';
       cita.hora     = body.hora || '';
       cita.servicio = body.servicio || '';
