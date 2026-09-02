@@ -637,6 +637,22 @@ function horarioTaller(fecha, hora) {
   return 'Fuera del horario habitual (L-J: 8-14 y 15:30-20, V: 8-16)';
 }
 
+// Normaliza los cuatro campos OPCIONALES de vehículo/trabajo tal y como se
+// persisten: matrícula en MAYÚSCULAS y sin espacios; el resto solo trim().
+// Kilómetros y precio se guardan como STRING a propósito: ni ceros a la
+// izquierda perdidos, ni "" convertido en 0, ni un precio redondeado por
+// Number(). Ausente o no-string → ''. La usan validarCita, POST y PUT:
+// una única normalización, sin copias.
+function camposVehiculo(body) {
+  const s = v => (typeof v === 'string' ? v.trim() : '');
+  return {
+    matricula:  s(body.matricula).replace(/\s+/g, '').toUpperCase(),
+    vehiculo:   s(body.vehiculo),
+    kilometros: s(body.kilometros),
+    precio:     s(body.precio),
+  };
+}
+
 // Validación de entrada del panel admin (#7). Devuelve el mensaje de error
 // del primer campo inválido, o null si todo es correcto.
 // permitirPasado: SOLO la edición (PUT /admin/cita/:id) lo pasa a true, para
@@ -685,6 +701,22 @@ function validarCita(body, permitirPasado = false) {
     return 'El detalle no puede superar los 100 caracteres';
   }
 
+  // Matrícula, vehículo, km y precio: OPCIONALES los cuatro. Vacío → válido.
+  // Con contenido, se valida ya normalizado (como se guarda) y se devuelve
+  // el campo concreto. Precio: dígitos con coma o punto decimal, tal cual.
+  const cv = camposVehiculo(body);
+  if (cv.matricula.length > 15) return 'La matrícula no puede superar los 15 caracteres';
+  if (cv.vehiculo.length > 60) return 'El vehículo no puede superar los 60 caracteres';
+  if (cv.kilometros && !/^\d{1,7}$/.test(cv.kilometros)) {
+    return 'Los kilómetros deben ser solo dígitos (máximo 7)';
+  }
+  if (cv.precio) {
+    if (cv.precio.length > 10) return 'El precio no puede superar los 10 caracteres';
+    if (!/^\d+([.,]\d+)?$/.test(cv.precio)) {
+      return 'El precio solo admite dígitos con coma o punto decimal (ej. 45,50)';
+    }
+  }
+
   return null;
 }
 
@@ -696,7 +728,7 @@ function adminHTML(citas, verTodas = false) {
                          'bg-yellow-900/50 text-yellow-400 border border-yellow-700/50';
 
   const rows = citas.length === 0
-    ? '<tr><td colspan="6" class="px-4 py-8 text-center text-gray-500">Sin citas registradas</td></tr>'
+    ? '<tr><td colspan="8" class="px-4 py-8 text-center text-gray-500">Sin citas registradas</td></tr>'
     : citas.map(c => {
       const id = escapeHtml(c.id);
       const wa = telefonoWa(c.telefono);
@@ -720,12 +752,22 @@ function adminHTML(citas, verTodas = false) {
               target="_blank" rel="noopener"
               class="text-xs bg-[#2563EB] hover:bg-[#1D4ED8] text-white px-3 py-1.5 rounded-lg transition-colors font-medium whitespace-nowrap">WhatsApp</a>`
         : `<span class="text-xs bg-white/5 text-gray-500 border border-white/10 px-3 py-1.5 rounded-lg font-medium whitespace-nowrap">Sin WhatsApp</span>`;
+      // Línea 2 de la columna VEHÍCULO: "vehículo · NNNN km". El " · " solo
+      // aparece si hay AMBOS; con uno solo, ese solo; sin ninguno, no se pinta.
+      // Los km van aquí y no bajo el precio: son datos del coche, y sueltos en
+      // la columna PRECIO (gris, a la derecha) no se entendía qué eran.
+      const lineaVehiculo = [
+        c.vehiculo ? escapeHtml(c.vehiculo) : '',
+        c.kilometros ? `${escapeHtml(c.kilometros)} km` : ''
+      ].filter(Boolean).join(' · ');
       return `
       <tr class="border-b border-white/5 hover:bg-white/5 transition-colors${atendida ? ' opacity-50' : ''}">
         <td class="px-4 py-3 text-white font-medium${atendida ? ' line-through' : ''}">${escapeHtml(c.nombre)}</td>
         <td class="px-4 py-3 text-gray-300">${c.telefono ? escapeHtml(c.telefono) : '<span class="text-gray-500">—</span>'}</td>
         <td class="px-4 py-3 text-gray-300 whitespace-nowrap">${escapeHtml(c.fecha)} ${escapeHtml(c.hora)}</td>
         <td class="px-4 py-3 text-gray-300">${escapeHtml(c.servicio)}${c.detalle ? `<div class="text-xs text-gray-500 mt-0.5">${escapeHtml(c.detalle)}</div>` : ''}</td>
+        <td class="px-4 py-3 whitespace-nowrap">${c.matricula ? `<div class="text-white font-semibold">${escapeHtml(c.matricula)}</div>` : ''}${lineaVehiculo ? `<div class="text-xs text-gray-500${c.matricula ? ' mt-0.5' : ''}">${lineaVehiculo}</div>` : ''}</td>
+        <td class="px-4 py-3 text-right whitespace-nowrap">${c.precio ? `<div class="text-gray-300">${escapeHtml(c.precio)} €</div>` : ''}</td>
         <td class="px-4 py-3">
           <span class="px-2 py-1 rounded-full text-xs font-medium ${estadoBadge(c.estado)}">${escapeHtml(c.estado)}</span>
         </td>
@@ -747,6 +789,10 @@ function adminHTML(citas, verTodas = false) {
                   data-hora="${escapeHtml(c.hora)}"
                   data-servicio="${escapeHtml(c.servicio)}"
                   data-detalle="${escapeHtml(c.detalle || '')}"
+                  data-matricula="${escapeHtml(c.matricula || '')}"
+                  data-vehiculo="${escapeHtml(c.vehiculo || '')}"
+                  data-kilometros="${escapeHtml(c.kilometros || '')}"
+                  data-precio="${escapeHtml(c.precio || '')}"
                   class="text-xs bg-white/5 hover:bg-white/10 text-gray-300 border border-white/10 px-3 py-1.5 rounded-lg transition-colors font-medium">Editar</button>
           <button onclick="eliminarCita('${id}')" class="text-xs bg-red-900/50 hover:bg-red-800/60 text-red-400 border border-red-700/50 px-3 py-1.5 rounded-lg transition-colors font-medium">Eliminar</button>
         </td>
@@ -832,6 +878,25 @@ function adminHTML(citas, verTodas = false) {
             <label class="block text-xs text-gray-400 mb-1.5 uppercase tracking-wide">Detalle (opcional)</label>
             <input id="nc-detalle" type="text" maxlength="100" placeholder="4 ruedas, 205/55 R16" class="w-full bg-[#060D1F] border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#2563EB]">
           </div>
+          <div>
+            <label class="block text-xs text-gray-400 mb-1.5 uppercase tracking-wide">Matrícula</label>
+            <input id="nc-matricula" type="text" maxlength="15" placeholder="1234 ABC" autocapitalize="characters" style="text-transform:uppercase" class="w-full bg-[#060D1F] border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#2563EB]">
+          </div>
+          <div>
+            <label class="block text-xs text-gray-400 mb-1.5 uppercase tracking-wide">Vehículo</label>
+            <input id="nc-vehiculo" type="text" maxlength="60" placeholder="Golf blanco" class="w-full bg-[#060D1F] border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#2563EB]">
+          </div>
+          <!-- Km y precio son type="text" a propósito: type="number" quita ceros
+               a la izquierda, rechaza la coma decimal y convierte "" en NaN.
+               Se envían y se guardan como string tal cual. -->
+          <div>
+            <label class="block text-xs text-gray-400 mb-1.5 uppercase tracking-wide">KM</label>
+            <input id="nc-kilometros" type="text" inputmode="numeric" maxlength="7" placeholder="120000" class="w-full bg-[#060D1F] border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#2563EB]">
+          </div>
+          <div>
+            <label class="block text-xs text-gray-400 mb-1.5 uppercase tracking-wide">Precio (€)</label>
+            <input id="nc-precio" type="text" inputmode="decimal" maxlength="10" placeholder="45,50" class="w-full bg-[#060D1F] border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#2563EB]">
+          </div>
         </div>
         <div class="mt-5 flex gap-3">
           <button id="nc-guardar" onclick="guardarNuevaCita()" class="bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-sm font-medium px-5 py-2 rounded-lg transition-colors">Guardar cita</button>
@@ -849,6 +914,8 @@ function adminHTML(citas, verTodas = false) {
             <th class="px-4 py-3.5 text-left text-xs font-semibold text-[#FFD700] uppercase tracking-wider">Teléfono</th>
             <th class="px-4 py-3.5 text-left text-xs font-semibold text-[#FFD700] uppercase tracking-wider">Fecha / Hora</th>
             <th class="px-4 py-3.5 text-left text-xs font-semibold text-[#FFD700] uppercase tracking-wider">Servicio</th>
+            <th class="px-4 py-3.5 text-left text-xs font-semibold text-[#FFD700] uppercase tracking-wider">Vehículo</th>
+            <th class="px-4 py-3.5 text-right text-xs font-semibold text-[#FFD700] uppercase tracking-wider">Precio</th>
             <th class="px-4 py-3.5 text-left text-xs font-semibold text-[#FFD700] uppercase tracking-wider">Estado</th>
             <th class="px-4 py-3.5 text-left text-xs font-semibold text-[#FFD700] uppercase tracking-wider">Acciones</th>
           </tr>
@@ -865,7 +932,8 @@ function adminHTML(citas, verTodas = false) {
 
     function resetFormularioCita() {
       citaEditandoId = null;
-      ['nc-nombre', 'nc-telefono', 'nc-fecha', 'nc-hora', 'nc-detalle'].forEach(function (id) {
+      ['nc-nombre', 'nc-telefono', 'nc-fecha', 'nc-hora', 'nc-detalle',
+       'nc-matricula', 'nc-vehiculo', 'nc-kilometros', 'nc-precio'].forEach(function (id) {
         document.getElementById(id).value = '';
       });
       var sel = document.getElementById('nc-servicio');
@@ -910,6 +978,10 @@ function adminHTML(citas, verTodas = false) {
       document.getElementById('nc-fecha').value    = d.fecha;
       document.getElementById('nc-hora').value     = d.hora;
       document.getElementById('nc-detalle').value  = d.detalle;
+      document.getElementById('nc-matricula').value  = d.matricula;
+      document.getElementById('nc-vehiculo').value   = d.vehiculo;
+      document.getElementById('nc-kilometros').value = d.kilometros;
+      document.getElementById('nc-precio').value     = d.precio;
       var sel = document.getElementById('nc-servicio');
       sel.value = d.servicio;
       if (d.servicio && sel.value !== d.servicio) {
@@ -994,6 +1066,12 @@ function adminHTML(citas, verTodas = false) {
       const hora     = document.getElementById('nc-hora').value;
       const servicio = document.getElementById('nc-servicio').value;
       const detalle  = document.getElementById('nc-detalle').value.trim();
+      // Los cuatro son opcionales; la normalización (mayúsculas, formato)
+      // y la validación real las hace el servidor (camposVehiculo/validarCita).
+      const matricula  = document.getElementById('nc-matricula').value;
+      const vehiculo   = document.getElementById('nc-vehiculo').value;
+      const kilometros = document.getElementById('nc-kilometros').value;
+      const precio     = document.getElementById('nc-precio').value;
       const errEl    = document.getElementById('nc-error');
 
       if (!nombre || !fecha || !hora || !servicio) {
@@ -1008,7 +1086,7 @@ function adminHTML(citas, verTodas = false) {
       const res = await fetch(editando ? '/admin/cita/' + citaEditandoId : '/admin/cita', {
         method: editando ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nombre, telefono, fecha, hora, servicio, detalle })
+        body: JSON.stringify({ nombre, telefono, fecha, hora, servicio, detalle, matricula, vehiculo, kilometros, precio })
       });
 
       if (res.ok) {
@@ -1121,8 +1199,10 @@ function recordatoriosHTML(citas, fecha) {
 // ---- Pantalla del taller (GET /taller) ----
 // Vista de SOLO LECTURA para una pantalla colgada en el taller, encendida
 // todo el día y visible por cualquiera que pase. Por eso muestra el MÍNIMO
-// de datos personales: hora, nombre de pila, servicio y detalle. Nunca
-// apellidos, teléfono ni id. Sin enlaces a /admin ni a ninguna otra vista:
+// de datos personales: hora, nombre de pila, servicio, detalle, matrícula y
+// vehículo (es como se identifica el coche en el taller). Nunca apellidos,
+// teléfono ni id. PROHIBIDO mostrar precio y kilómetros: los ve el cliente
+// que espera y cualquiera que pase. Sin enlaces a /admin ni a otra vista:
 // es un callejón sin salida a propósito.
 //
 // HTML autocontenido con CSS inline: cero JS y cero dependencias de red
@@ -1155,6 +1235,7 @@ function tallerHTML(citas, fecha, esManana = false) {
           <div class="nombre">${escapeHtml(pila)}</div>
           <div class="servicio">${escapeHtml(c.servicio)}</div>
           ${c.detalle ? `<div class="detalle">${escapeHtml(c.detalle)}</div>` : ''}
+          ${c.matricula || c.vehiculo ? `<div class="coche">${c.matricula ? `<span class="matricula">${escapeHtml(c.matricula)}</span>` : ''}${c.vehiculo ? escapeHtml(c.vehiculo) : ''}</div>` : ''}
         </div>
       </div>`;
     }).join('');
@@ -1224,6 +1305,19 @@ function tallerHTML(citas, fecha, esManana = false) {
     .nombre { font-size: 2.2rem; font-weight: 700; }
     .servicio { font-size: 1.5rem; color: #b9c4da; margin-top: .3rem; }
     .detalle { font-size: 1.25rem; color: #8fa3c7; margin-top: .35rem; }
+    .coche { font-size: 1.4rem; color: #b9c4da; margin-top: .5rem; }
+    .matricula {
+      display: inline-block;
+      color: #fff;
+      font-weight: 800;
+      letter-spacing: .06em;
+      font-variant-numeric: tabular-nums;
+      background: rgba(255,255,255,.08);
+      border: 1px solid rgba(255,255,255,.18);
+      border-radius: 6px;
+      padding: .05em .45em;
+      margin-right: .6rem;
+    }
     .vacio {
       background: #0D1B3E;
       border: 1px solid rgba(255,255,255,.1);
@@ -1251,6 +1345,7 @@ function tallerHTML(citas, fecha, esManana = false) {
       .nombre { font-size: 1.7rem; }
       .servicio { font-size: 1.2rem; }
       .detalle { font-size: 1.05rem; }
+      .coche { font-size: 1.1rem; }
     }
   </style>
 </head>
@@ -1458,6 +1553,7 @@ const server = http.createServer(async (req, res) => {
         hora: body.hora || '',
         servicio: body.servicio || '',
         detalle: typeof body.detalle === 'string' ? body.detalle.trim() : '',
+        ...camposVehiculo(body),   // matricula, vehiculo, kilometros, precio
         mensaje: '',
         estado: 'confirmada',
         recordatorioEnviado: false,
@@ -1562,6 +1658,7 @@ const server = http.createServer(async (req, res) => {
       cita.hora     = body.hora || '';
       cita.servicio = body.servicio || '';
       cita.detalle  = typeof body.detalle === 'string' ? body.detalle.trim() : '';
+      Object.assign(cita, camposVehiculo(body));   // matricula, vehiculo, kilometros, precio
       writeCitas(citas);
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ ok: true }));
