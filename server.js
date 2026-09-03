@@ -752,7 +752,18 @@ function textoAcabadas(n) {
                  : `${n} coches acabados · llamar al cliente`;
 }
 
-function adminHTML(citas, verTodas = false, nAcabadas = 0) {
+// Vistas del listado (?ver=). Clave → etiqueta del <select> y del contador.
+// El orden del objeto es el orden de las opciones. Valor desconocido → 'proximas'.
+const VISTAS = {
+  proximas: 'Próximas',
+  hoy:      'Hoy',
+  llamar:   'Pendientes de llamar',
+  mes:      'Este mes',
+  todas:    'Todas',
+};
+
+function adminHTML(citas, vista = 'proximas', nAcabadas = 0) {
+  if (!VISTAS[vista]) vista = 'proximas';
   // 'acabada' en amarillo sólido (reclama acción), 'pagada' gris apagado
   // (ciclo cerrado), 'atendida' azul (coche en el taller). 'pendiente' cae al
   // amarillo oscuro de siempre, distinto del sólido de 'acabada'.
@@ -904,9 +915,11 @@ function adminHTML(citas, verTodas = false, nAcabadas = 0) {
         <div id="aviso-acabadas" class="${nAcabadas > 0 ? '' : 'hidden'} mt-3 inline-block bg-[#FFD700] text-[#060D1F] text-lg font-bold px-5 py-2.5 rounded-lg" aria-live="polite">${textoAcabadas(nAcabadas)}</div>
       </div>
       <div class="flex items-center gap-3">
-        <a href="${verTodas ? '/admin' : '/admin?ver=todas'}" class="text-sm text-gray-400 hover:text-white transition-colors">${verTodas ? 'Volver a próximas citas' : 'Ver todas las citas'}</a>
+        <select onchange="location.href = this.value === 'proximas' ? '/admin' : '/admin?ver=' + this.value" aria-label="Vista del listado" class="text-xs bg-[#060D1F] border border-white/10 text-gray-300 rounded-lg px-2 py-1.5 cursor-pointer focus:outline-none focus:border-[#2563EB]">
+          ${Object.entries(VISTAS).map(([k, label]) => `<option value="${k}"${k === vista ? ' selected' : ''}>${label}</option>`).join('')}
+        </select>
         <a href="/admin/backup" download class="text-sm text-gray-400 hover:text-white transition-colors">Descargar copia de seguridad</a>
-        <span class="bg-[#0D1B3E] text-gray-400 text-sm px-4 py-2 rounded-full border border-white/10">${verTodas ? 'Todas' : 'Próximas'}: ${citas.length} cita${citas.length !== 1 ? 's' : ''}</span>
+        <span class="bg-[#0D1B3E] text-gray-400 text-sm px-4 py-2 rounded-full border border-white/10">${VISTAS[vista]}: ${citas.length} cita${citas.length !== 1 ? 's' : ''}</span>
       </div>
     </header>
 
@@ -1814,19 +1827,31 @@ const server = http.createServer(async (req, res) => {
     // GET /admin
     if (req.method === 'GET' && p === '/admin') {
       const citas = readCitas();
-      const verTodas = url.searchParams.get('ver') === 'todas';
+      // Valor desconocido o ausente → vista por defecto ('proximas').
+      const ver = url.searchParams.get('ver');
+      const vista = VISTAS[ver] ? ver : 'proximas';
       const hoy = hoyMadrid();
       // Solo visualización: citas.json no se toca. Comparar strings
       // "YYYY-MM-DD HH:MM" equivale a comparar cronológicamente.
       const cmpAsc = (a, b) => `${a.fecha} ${a.hora}`.localeCompare(`${b.fecha} ${b.hora}`);
-      // Por defecto: solo de hoy en adelante, la próxima cita arriba.
-      // Histórico (?ver=todas): todo el listado, lo más reciente arriba.
-      const visibles = verTodas
-        ? [...citas].sort((a, b) => cmpAsc(b, a))
-        : citas.filter(c => c.fecha >= hoy).sort(cmpAsc);
+      // Filtros solo por comparación de strings ISO, sin new Date():
+      //  - proximas: hoy y siguientes, ascendente (por defecto).
+      //  - hoy:      solo la fecha de hoy, ascendente.
+      //  - llamar:   solo 'acabada', sin filtrar por fecha, ascendente.
+      //  - mes:      mismo 'YYYY-MM' que hoy (prefijo), ascendente.
+      //  - todas:    histórico completo, DESCENDENTE (lo más reciente arriba).
+      const FILTRO = {
+        proximas: c => c.fecha >= hoy,
+        hoy:      c => c.fecha === hoy,
+        llamar:   c => c.estado === 'acabada',
+        mes:      c => String(c.fecha).slice(0, 7) === hoy.slice(0, 7),
+        todas:    () => true,
+      };
+      const visibles = citas.filter(FILTRO[vista])
+        .sort(vista === 'todas' ? (a, b) => cmpAsc(b, a) : cmpAsc);
       res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
       // nAcabadas sobre el array COMPLETO, no sobre 'visibles' (excluye pasadas).
-      res.end(adminHTML(visibles, verTodas, contarAcabadas(citas)));
+      res.end(adminHTML(visibles, vista, contarAcabadas(citas)));
       return;
     }
 
