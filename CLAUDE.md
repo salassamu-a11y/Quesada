@@ -233,7 +233,8 @@ Botón "volver arriba" fijo (inferior izquierda) con forma de rueda de neumátic
 | GET    | /taller?k=TALLER_TOKEN            | **PÚBLICA, fuera del bloque `/admin`**: pantalla del taller (citas `confirmada`/`atendida` de hoy, con botón ACABADO). Token incorrecto/ausente/no configurado → 404 genérico (ver "Pantalla del taller") |
 | POST   | /taller/acabar                    | **PÚBLICA, fuera del bloque `/admin`**: la **única escritura** desde la pantalla del taller. Body form-urlencoded `k` (mismo `TALLER_TOKEN`) + `id`. Solo pasa a `acabada`, solo desde `confirmada`/`atendida` y **solo si la cita es de HOY**. Token malo → 404 genérico en texto plano; cita inexistente → 404 HTML; cualquier otro caso → 409 HTML; éxito → 302 a `/taller?k=` (ver "Pantalla del taller") |
 | GET    | /admin/acabadas                   | JSON `{ n }`: número de citas en `acabada`, **sin nombres ni ids**. Lo sondea el panel cada 10 s (ver "Panel /admin — vista de citas"). Hereda auth y rate-limit del bloque `/admin` |
-| GET    | /admin                            | Panel HTML con tabla de citas (auth básica). Por defecto solo citas con fecha >= hoy en ascendente; `?ver=todas` → histórico completo en descendente (ver "Panel /admin — vista de citas") |
+| GET    | /admin                            | Panel HTML con tabla de citas (auth básica). `?ver=` elige una de **cinco vistas** (`proximas` por defecto, `hoy`, `llamar`, `mes`, `todas`); valor desconocido → `proximas` (ver "Panel /admin — vista de citas") |
+| GET    | /admin/manifest.json              | Manifiesto de app web del panel (instalable, `scope: /admin`, `display: standalone`, sin service worker). Hereda auth y rate-limit del bloque `/admin` — por eso el `<link rel="manifest">` lleva `crossorigin="use-credentials"` (ver "Panel instalable") |
 | GET    | /admin/backup                     | Descarga `citas.json` en crudo como `citas-YYYY-MM-DD.json` (`Content-Disposition: attachment`, `Cache-Control: no-store`). 404 si aún no existe el archivo (ver "Backup de citas") |
 | GET    | /admin/recordatorios              | Vista manual: citas confirmadas de **mañana** con enlaces `wa.me` prerrellenados (ver "Recordatorios manuales") |
 | POST   | /admin/cita                       | Crea cita nueva desde el panel admin con estado=confirmada directamente (auth básica). 400 si body inválido o falla `validarCita` (mensaje del campo concreto) |
@@ -250,10 +251,22 @@ Respuestas de error comunes a todas las rutas `/admin`:
 - **413** body > 10 KB (rutas POST/PUT con `parseBody`)
 
 ## Panel /admin — vista de citas (server.js)
-- **Vista por defecto ("Próximas")**: `GET /admin` filtra `c.fecha >= hoyMadrid()` y ordena por fecha y hora **ascendente** (la próxima cita arriba). **Solo filtro de visualización**: `citas.json` no se toca.
-- **Vista histórico**: `GET /admin?ver=todas` — listado completo en **descendente** (lo más reciente arriba).
-- **Orden por comparación de strings**: `` `${fecha} ${hora}`.localeCompare(...) `` — comparar `YYYY-MM-DD HH:MM` como texto equivale a comparar cronológicamente.
-- **Cabecera**: enlace que alterna "Ver todas las citas" ↔ "Volver a próximas citas"; el contador etiqueta la vista activa ("Próximas: N citas" / "Todas: N citas").
+- **Vistas del listado (`?ver=`)**: objeto **`VISTAS`** (server.js ~línea 757, clave → etiqueta; el orden del objeto es el orden de las opciones) con **cinco** vistas. **Solo filtro de visualización**: `citas.json` no se toca.
+
+  | Clave | Etiqueta | Filtro | Orden |
+  |-------|----------|--------|-------|
+  | `proximas` | Próximas | `fecha >= hoy` (hoy y siguientes). **Por defecto** | ascendente |
+  | `hoy` | Hoy | `fecha === hoy` | ascendente |
+  | `llamar` | Pendientes de llamar | `estado === 'acabada'`, **sin filtro de fecha** | ascendente |
+  | `mes` | Este mes | mismo `AAAA-MM` que hoy | ascendente |
+  | `todas` | Todas | histórico completo | **DESCENDENTE** (lo más reciente arriba) |
+
+  Un `?ver=` desconocido o ausente cae en `proximas` (en el handler y, por seguridad, también en `adminHTML`). `hoy` es `hoyMadrid()`.
+- **CRÍTICO — los cinco filtros comparan STRINGS ISO, sin `new Date()`**: `>=` y `===` sobre `YYYY-MM-DD`; el mes con `String(c.fecha).slice(0, 7) === hoy.slice(0, 7)`. El proceso corre en UTC en Render y un `Date` por medio es cómo se cuela un desfase de un día (mismo motivo que `fechaCorta()` y `hoyMadrid()`).
+- **Orden por comparación de strings**: `` `${fecha} ${hora}`.localeCompare(...) `` sobre los campos **crudos** — comparar `YYYY-MM-DD HH:MM` como texto equivale a comparar cronológicamente. Un solo comparador `cmpAsc`; `todas` lo invierte (`cmpAsc(b, a)`).
+- **Cabecera**: **`<select>` con las cinco vistas** (sustituye al antiguo enlace "Ver todas las citas" ↔ "Volver a próximas citas"); el contador etiqueta la vista activa con el mismo label de `VISTAS` ("Próximas: N citas", "Pendientes de llamar: N citas"…).
+- **`adminHTML(citas, vista = 'proximas', nAcabadas = 0)`**: el segundo parámetro es el **string de la vista**. Antes era el booleano `verTodas`, que **ya no existe**.
+- **La vista `llamar` NO afecta a la banda ni al badge**: `contarAcabadas()` se calcula sobre el array **COMPLETO**, no sobre `visibles`. Cambiar de vista solo cambia la tabla.
 - **Desplegable de estado**: ofrece `confirmada`, `atendida`, `acabada`, `pagada` y `cancelada`; `pendiente` aparece únicamente si la cita ya está en ese estado. La validación del servidor (`POST /admin/cita/:id/estado`) acepta los seis. Es la vía para **corregir y retroceder**; el avance normal se hace con el botón ✓.
 - **Botón ✓ (avanza un paso)**: tabla `SIGUIENTE_ESTADO = { confirmada: 'atendida', atendida: 'acabada', acabada: 'pagada' }` (server.js ~línea 741). Es un `<form method="post">` a **`POST /admin/cita/:id/estado`** con el destino en un `hidden` — **reutiliza el endpoint del desplegable, sin endpoint nuevo**. En `pagada`, `cancelada` y `pendiente` no hay siguiente paso y **no se muestra**. Retroceder o cancelar, solo desde el desplegable.
 - **Color de fila y badges** — **solo UN estado destaca**, si no el color pierde sentido:
@@ -267,9 +280,19 @@ Respuestas de error comunes a todas las rutas `/admin`:
   - **`fechaCorta(fecha)`** (server.js ~línea 550): `'YYYY-MM-DD'` → `'DD/MM/YYYY'` **partiendo el string por guiones con regex, SIN `new Date()`**: el proceso corre en UTC en Render y un `Date` por medio es cómo se cuela un desfase de un día. Si no casa con `YYYY-MM-DD` devuelve el valor tal cual para no romper la fila. **Solo presentación.**
   - **CRÍTICO — los datos NO cambian**: el sort de `GET /admin` sigue usando `` `${fecha} ${hora}`.localeCompare() `` sobre los campos **CRUDOS en ISO**, y el atributo `data-fecha` del botón Editar **también sigue en ISO** porque el `input type="date"` del formulario lo necesita. Solo la celda visible pasa por `fechaCorta()`.
 - **Banda `#aviso-acabadas`** (cabecera del panel, bajo el título): "**N coches acabados · llamar al cliente**" (singular "1 coche acabado" con `textoAcabadas(n)`, **duplicada literal** en servidor y en el `<script>` del panel). Amarillo sólido, `aria-live="polite"`, solo indicador, sin enlace. Desaparece al pasar la cita a `pagada`.
-  - **Pintada ya desde el servidor**: `GET /admin` pasa `contarAcabadas(citas)` a `adminHTML(visibles, verTodas, nAcabadas)`, para no esperar al primer sondeo.
-  - **`contarAcabadas()` se calcula sobre el array COMPLETO, no sobre `visibles`** (que excluye fechas pasadas): cuenta **TODAS** las `acabada` sin filtrar por fecha — un coche acabado ayer al que nadie llamó sigue pendiente.
-  - **Sondeo cada 10 s** (`setInterval(sondearAcabadas, 10000)`) a `GET /admin/acabadas`, que devuelve **SOLO `{ n }`** (ni nombres ni ids). **SOLO se actualiza la banda: NUNCA se recarga la página**, porque Vicky perdería lo que esté tecleando en el formulario. **Sin sonido, sin popups, sin notificaciones**: en el mostrador serían ruido. Un fallo de red se ignora en silencio (sin `console.error`) y se reintenta en el siguiente ciclo. Ver "Tiempos de refresco" en "Pantalla del taller".
+  - **Pintada ya desde el servidor**: `GET /admin` pasa `contarAcabadas(citas)` a `adminHTML(visibles, vista, nAcabadas)`, para no esperar al primer sondeo.
+  - **`contarAcabadas()` se calcula sobre el array COMPLETO, no sobre `visibles`** (que excluye fechas pasadas o, en la vista `llamar`, todo lo que no sea `acabada`): cuenta **TODAS** las `acabada` sin filtrar por fecha — un coche acabado ayer al que nadie llamó sigue pendiente.
+  - **Sondeo cada 10 s** (`setInterval(sondearAcabadas, 10000)`) a `GET /admin/acabadas`, que devuelve **SOLO `{ n }`** (ni nombres ni ids). **NUNCA se recarga la página**, porque Vicky perdería lo que esté tecleando en el formulario. **Sin sonido, sin popups, sin notificaciones**: en el mostrador serían ruido. Un fallo de red se ignora en silencio (sin `console.error`) y se reintenta en el siguiente ciclo. Ver "Tiempos de refresco" en "Pantalla del taller".
+  - **`sondearAcabadas()` actualiza TRES cosas con el mismo `n`, SIEMPRE en este orden**:
+    1. **La banda** (`#aviso-acabadas`). Va **primero**: es lo que ya funcionaba, y un fallo del título o del badge no puede impedir que se pinte.
+    2. **El título de la pestaña**: `"(N) <título original>"`; el original se guarda en `tituloOriginal` al cargar y se restaura cuando `n` vuelve a 0.
+    3. **`navigator.setAppBadge(n)`** (Badging API; `clearAppBadge()` con `n = 0`). Va con **comprobación de soporte** (`'setAppBadge' in navigator`), **`try/catch` propio Y `.catch()` en la promesa**: un rechazo asíncrono no lo atraparía el `try/catch`. Todo en silencio.
+  - **Llamada inmediata a `sondearAcabadas()` al cargar**, antes del `setInterval`: título y badge quedan al día en cuanto se abre o recarga el panel, sin esperar 10 s (la banda ya viene pintada desde el servidor).
+- **Panel instalable (manifest + Badging API)**:
+  - **`GET /admin/manifest.json`**: manifiesto de app web, `start_url` y **`scope: '/admin'`** (la app abarca solo `/admin*`, nunca `/` ni `/taller`), `display: 'standalone'`, colores navy. **Sin service worker a propósito**: el badge no lo necesita.
+  - **Icono con URL ABSOLUTA** `https://neumaticosquesada.com/imagenes/nq2f-192.png`: el backend de Render **NO sirve la carpeta `imagenes/`** (solo `index.html` en `/`); vive en GitHub Pages, y una ruta relativa daría 404.
+  - **`<link rel="manifest" href="/admin/manifest.json" crossorigin="use-credentials">` — el atributo es OBLIGATORIO y es lo que nadie recordará**: el navegador pide el manifiesto **SIN credenciales por defecto, incluso en el mismo origen**, y la ruta está detrás de la auth básica del bloque `/admin`. Sin él recibe **401** y el panel **NO es instalable**. Si se quita "porque parece que sobra", la instalación deja de ofrecerse sin ningún error visible.
+  - **Notas operativas**: el badge **solo aparece con el panel INSTALADO como app desde Chrome o Edge** y con la app abierta (aunque esté minimizada). **Firefox no tiene Badging API.** El **color del badge lo decide Windows y NO es configurable**. El título de la pestaña funciona siempre, sin instalar nada.
 - **Botón "Editar"** por fila: abre el **mismo formulario** de nueva cita en modo edición (los datos viajan en atributos `data-*` escapados) y manda `PUT /admin/cita/:id`. Sin formulario ni validación duplicados.
 - **Botón "WhatsApp"** por fila: **ya no llama a Twilio**. Es un enlace `wa.me` con `textoRecordatorio(c, false)` (sin la palabra "mañana": el listado tiene citas de cualquier fecha). Si `telefonoWa()` devuelve `null` (fijo o vacío) muestra la pastilla "Sin WhatsApp". `sendWhatsApp()` y su endpoint siguen en el código, solo dejan de llamarse desde aquí.
 - **Cabecera**: enlaces "Descargar copia de seguridad" (`GET /admin/backup`) y "Recordatorios de mañana" (`GET /admin/recordatorios`).
@@ -406,7 +429,7 @@ Vista para una pantalla colgada en el taller, encendida todo el día y visible p
 | Sondeo de acabadas en el panel (`/admin/acabadas`) | **10 s** | `setInterval(sondearAcabadas, 10000)` en el `<script>` de `adminHTML` |
 | Pulsar ACABADO | **inmediato** | el 302 de `POST /taller/acabar` redirige a `/taller?k=` |
 
-Un coche marcado acabado desde la pantalla tarda como máximo 10 s en aparecer en la banda de Vicky. Si se cambian, cambiar también los comentarios de `server.js` (ver "Pendiente": todavía dicen "30 s").
+Un coche marcado acabado desde la pantalla tarda como máximo 10 s en aparecer en la banda de Vicky. Si se cambian, cambiar también los **dos** comentarios de `server.js` que todavía dicen "30 s" (líneas 914 y 1804 — ver "Pendiente").
 
 ## WhatsApp — envío por plantilla Meta (server.js)
 > **PARADO desde el 25/08/2026**: Meta restringió la WABA y la plantilla nunca se aprobó (ver "Twilio + Meta"). `sendWhatsApp()`, el cron de las 19:00 y `POST /admin/cita/:id/recordatorio` **siguen en el código sin tocarse**, pero la UI ya no los llama y las `TWILIO_*` no están en Render. El sustituto operativo es "Recordatorios manuales (vía wa.me)". Lo de abajo sigue siendo válido por si la apelación prospera.
@@ -445,11 +468,11 @@ Carga real contra `POST /admin/cita` en local con **autocannon**, para validar e
 | citas.json    | ⚠️     | Se crea al guardar la primera cita                     |
 | config.json   | ❌     | No creado, no referenciado en el código                |
 | Twilio        | ⚠️     | Bundle aprobado + **número comprado** `+34 931 55 01 88` (SMS, solo a España). Sin uso mientras Meta mantenga el bloqueo — ver "Twilio + Meta" |
-| Meta / WABA   | ❌     | **WABA y portfolio RESTRINGIDOS por Meta el 25/08/2026** (falso positivo de "automation"); verificación de empresa RECHAZADA; apelación pendiente. Recordatorios automáticos parados — ver "Twilio + Meta" |
+| Meta / WABA   | ❌     | **WABA y portfolio RESTRINGIDOS por Meta el 25/08/2026**. **Causa raíz: la verificación de empresa RECHAZADA**, que arrastra el portfolio y este la WABA. Datos del portfolio ya corregidos (razón social, dirección fiscal, NIF, teléfono, web). **Pendiente en Meta**: 2FA de Dani, confirmar correo, reenviar documentos, método de pago, opt-in de clientes. Recordatorios automáticos parados — ver "Twilio + Meta" |
 | Recordatorios manuales | ✅ | `/admin/recordatorios` + enlaces wa.me en el listado. Es la vía operativa real — ver sección propia |
 | Backup citas  | ✅     | Tres capas: copia diaria 03:00 (30 días, mín. 7) + descarga desde el panel + subida a GitHub 03:15. **PAT caduca el 26/08/2027** — ver "Backup de citas" |
 | Pantalla taller | ✅   | `GET /taller?k=TOKEN` (confirmadas + atendidas de hoy, salta a mañana, refresh 60 s sin JS) + botón ACABADO → `POST /taller/acabar` — ver sección propia |
-| Ciclo de estados | ✅  | confirmada → atendida → acabada → pagada (+ cancelada), botón ✓ en el listado, banda "N coches acabados" con sondeo 10 s, fecha `DD/MM/YYYY` — ver "Modelo de cita" y "Panel /admin" |
+| Ciclo de estados | ✅  | confirmada → atendida → acabada → pagada (+ cancelada), botón ✓ en el listado, banda "N coches acabados" con sondeo 10 s, fecha `DD/MM/YYYY`, **cinco vistas del listado** (`?ver=`) y **panel instalable con badge** en el icono — ver "Modelo de cita" y "Panel /admin" |
 | Deploy Render | ✅     | En producción — plan Starter, Frankfurt, disco 1 GB en /data, auto-deploy desde main (ver sección propia) |
 | Enlaces wa.me | ✅     | Los 4 apuntan ya al fijo del taller (34963593087), no al número personal — ver "Teléfono del taller en index.html" |
 | Vacaciones    | ✅     | Aviso **desactivado** (`activo: false` en los 3 HTML); bloque conservado para el próximo cierre — ver sección propia |
@@ -480,7 +503,11 @@ Carga real contra `POST /admin/cita` en local con **autocannon**, para validar e
 - **WABA creada**, ID **`2362194940977658`**.
 - **Display name "Neumáticos Quesada": PENDING** de aprobación de Meta.
 - **Plantilla `recordatorio_cita_taller` enviada a aprobación** (categoría **Utility**, español, **5 variables** — ver "WhatsApp — envío por plantilla Meta").
-- **Verificación de empresa: RECHAZADA.** (Antes: iniciada y parada a la espera del DNI de un representante legal — Dani o Carles, no el desarrollador.)
+- **Verificación de empresa: RECHAZADA.** (Antes: iniciada y parada a la espera del DNI de un representante legal — Dani o Carles, no el desarrollador.) **Es la causa raíz del bloqueo** (ver "Bloqueo de Meta").
+- **Datos del portfolio CORREGIDOS** (antes figuraba "Sin dirección"):
+  - Razón social **`Neucergon, S.L.`** — Meta **rechazó** la forma `NEUCERGON SOCIEDAD LIMITADA`.
+  - Dirección **fiscal del censal**: `CALLE CARDENAL BENLLOCH NUM 67 Planta B, 46920 MISLATA`. Es la forma **fiscal**, no la NAP de la web (ver "Páginas legales": las dos formas no se mezclan).
+  - NIF **B75730085**, teléfono y web.
 
 ### Bloqueo de Meta (25/08/2026)
 - Meta **restringió la WABA `2362194940977658` y el Business Portfolio `822408117559544`** el **25/08/2026** por *"automation that doesn't follow our rules"*.
