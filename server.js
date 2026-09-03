@@ -869,6 +869,14 @@ function adminHTML(citas, verTodas = false, nAcabadas = 0) {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>${taller} — Admin</title>
+  <!-- Manifiesto: hace el panel instalable como app para que
+       navigator.setAppBadge() pinte el número de coches acabados sobre el
+       icono de la barra de tareas. crossorigin="use-credentials" es
+       OBLIGATORIO: el navegador pide el manifiesto SIN credenciales por
+       defecto (incluso en el mismo origen) y /admin/manifest.json está
+       detrás de la auth básica → sin el atributo recibiría 401. -->
+  <link rel="manifest" href="/admin/manifest.json" crossorigin="use-credentials">
+  <meta name="theme-color" content="#060D1F">
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     /* Los inputs date/time usan controles nativos: sin color-scheme, el
@@ -1166,8 +1174,10 @@ function adminHTML(citas, verTodas = false, nAcabadas = 0) {
       }
     }
 
-    // Sondeo de coches acabados cada 30 s. SOLO actualiza la banda
-    // #aviso-acabadas: nunca recarga la página (Vicky perdería lo que esté
+    // Sondeo de coches acabados cada 10 s. Actualiza con el mismo número la
+    // banda #aviso-acabadas, el título de la pestaña "(N) …" y el número sobre
+    // el icono de la app (Badging API, solo si el panel está instalado como
+    // aplicación): nunca recarga la página (Vicky perdería lo que esté
     // tecleando en el formulario). Sin sonido, sin popups, sin notificaciones:
     // en el mostrador serían ruido. Un fallo de red se ignora en silencio y se
     // reintenta en el siguiente ciclo.
@@ -1175,6 +1185,8 @@ function adminHTML(citas, verTodas = false, nAcabadas = 0) {
       return n === 1 ? '1 coche acabado · llamar al cliente'
                      : n + ' coches acabados · llamar al cliente';
     }
+    // Título tal cual lo pintó el servidor; se restaura cuando n vuelve a 0.
+    var tituloOriginal = document.title;
     async function sondearAcabadas() {
       try {
         var res = await fetch('/admin/acabadas', { cache: 'no-store' });
@@ -1182,6 +1194,8 @@ function adminHTML(citas, verTodas = false, nAcabadas = 0) {
         var data = await res.json();
         var n = Number(data && data.n);
         if (!Number.isFinite(n)) return;
+        // 1) Banda amarilla: es lo que funciona hoy y va PRIMERO, antes del
+        //    título y del badge, para que un fallo de estos no la deje sin pintar.
         var banda = document.getElementById('aviso-acabadas');
         if (n > 0) {
           banda.textContent = textoAcabadas(n);
@@ -1189,10 +1203,28 @@ function adminHTML(citas, verTodas = false, nAcabadas = 0) {
         } else {
           banda.classList.add('hidden');
         }
+        // 2) Título de la pestaña: "(N) <título original>".
+        document.title = n > 0 ? '(' + n + ') ' + tituloOriginal : tituloOriginal;
+        // 3) Número sobre el icono de la barra de tareas (Badging API). Solo en
+        //    navegadores que la soportan y con el panel instalado como app; en
+        //    el resto no hace nada. Un fallo aquí NO puede afectar a la banda:
+        //    try/catch propio y la promesa con su propio .catch (un rechazo
+        //    asíncrono no lo atraparía el try/catch).
+        if ('setAppBadge' in navigator) {
+          try {
+            var badge = n > 0 ? navigator.setAppBadge(n) : navigator.clearAppBadge();
+            if (badge && typeof badge.catch === 'function') badge.catch(function () {});
+          } catch (e) {
+            // Silencio a propósito.
+          }
+        }
       } catch (e) {
-        // Silencio a propósito: sin console.error cada 30 s.
+        // Silencio a propósito: sin console.error cada 10 s.
       }
     }
+    // Primer sondeo inmediato: título y badge quedan al día al abrir el panel
+    // sin esperar 10 s (la banda ya viene pintada desde el servidor).
+    sondearAcabadas();
     setInterval(sondearAcabadas, 10000);
   </script>
 </body>
@@ -1726,6 +1758,33 @@ const server = http.createServer(async (req, res) => {
         res.writeHead(500, { 'Content-Type': 'text/plain; charset=utf-8' });
         res.end('Error interno');
       }
+      return;
+    }
+
+    // GET /admin/manifest.json — manifiesto de aplicación web del panel.
+    // Existe SOLO para que el navegador ofrezca "instalar" el panel como app y
+    // navigator.setAppBadge() pueda pintar el número de coches acabados sobre
+    // el icono de la barra de tareas (ver sondearAcabadas en adminHTML). Sin
+    // service worker a propósito: el badge no lo necesita. El icono va con URL
+    // ABSOLUTA al dominio público: este backend NO sirve imagenes/ (solo
+    // index.html en /), la carpeta vive en GitHub Pages. Hereda auth y
+    // rate-limit del bloque /admin; por eso el <link rel="manifest"> del panel
+    // lleva crossorigin="use-credentials". scope explícito para que la app
+    // abarque solo /admin*, nunca / ni /taller.
+    if (req.method === 'GET' && p === '/admin/manifest.json') {
+      res.writeHead(200, { 'Content-Type': 'application/manifest+json; charset=utf-8' });
+      res.end(JSON.stringify({
+        name: 'Citas - Neumáticos Quesada',
+        short_name: 'Citas',
+        start_url: '/admin',
+        scope: '/admin',
+        display: 'standalone',
+        background_color: '#060D1F',
+        theme_color: '#060D1F',
+        icons: [
+          { src: 'https://neumaticosquesada.com/imagenes/nq2f-192.png', sizes: '192x192', type: 'image/png' }
+        ]
+      }));
       return;
     }
 
