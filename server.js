@@ -1073,7 +1073,7 @@ function adminHTML(citas, vista = 'proximas', pendientes = { acabadas: 0, incide
         c.factura ? `fra. ${escapeHtml(c.factura)}` : ''
       ].filter(Boolean).join(' · ');
       return `
-      <tr id="cita-${id}" class="border-b border-white/5 hover:bg-white/5 transition-colors${claseFila}">
+      <tr id="cita-${id}" data-buscar="${escapeHtml([c.nombre, c.telefono, c.matricula].filter(Boolean).join(' | '))}" class="border-b border-white/5 hover:bg-white/5 transition-colors${claseFila}">
         <td data-label="Nombre" class="px-4 py-3 text-white font-medium${pagada ? ' line-through' : ''}">${escapeHtml(c.nombre)}</td>
         <td data-label="Teléfono" class="px-4 py-3 text-gray-300">${c.telefono ? escapeHtml(c.telefono) : '<span class="text-gray-500">—</span>'}</td>
         <td data-label="Fecha y hora" class="px-4 py-3 whitespace-nowrap">
@@ -1143,7 +1143,7 @@ function adminHTML(citas, vista = 'proximas', pendientes = { acabadas: 0, incide
             <th class="px-4 py-3.5 text-left text-xs font-semibold text-[#FFD700] uppercase tracking-wider">Acciones</th>
           </tr>
         </thead>
-        <tbody>${rows}</tbody>
+        <tbody>${rows}<tr id="sin-resultados" style="display:none"><td colspan="8" class="px-4 py-8 text-center text-gray-500">Sin resultados</td></tr></tbody>
       </table>
     </div>`;
   const cuerpo = semana ? calendarioHTML(citas, semana, hoy) : listado;
@@ -1243,6 +1243,12 @@ function adminHTML(citas, vista = 'proximas', pendientes = { acabadas: 0, incide
           ${esCalendario ? '<option value="" disabled selected hidden>Listado</option>' : ''}
           ${Object.entries(VISTAS).map(([k, label]) => `<option value="${k}"${k === vista ? ' selected' : ''}>${label}</option>`).join('')}
         </select>
+        ${esCalendario ? '' : `<!-- Búsqueda: filtra en cliente las filas ya pintadas (nombre,
+             teléfono, matrícula); no toca el servidor ni las vistas. -->
+        <div class="relative">
+          <input id="buscar-citas" type="search" placeholder="Buscar nombre, teléfono o matrícula" aria-label="Buscar citas" autocomplete="off" class="text-xs bg-[#060D1F] border border-white/10 text-gray-300 rounded-lg pl-2 pr-7 py-1.5 w-64 focus:outline-none focus:border-[#2563EB] placeholder:text-gray-500">
+          <button type="button" id="buscar-limpiar" onclick="limpiarBusqueda()" aria-label="Limpiar búsqueda" title="Limpiar (Esc)" class="absolute right-1.5 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white text-sm leading-none px-1" style="display:none">&times;</button>
+        </div>`}
         <!-- Calendario: vista aparte, no un filtro del listado. Mismo estilo
              que "Recordatorios de mañana"; activo → borde y texto resaltados. -->
         <a href="/admin?ver=calendario"${esCalendario ? ' aria-current="page"' : ''} class="${esCalendario ? 'bg-white/10 text-white border-[#FFD700]/60' : 'bg-[#0D1B3E] hover:bg-white/10 text-gray-300 border-white/10'} border text-sm font-semibold px-5 py-2.5 rounded-lg transition-colors">${ETIQUETA_CALENDARIO}</a>
@@ -1600,6 +1606,49 @@ ${cuerpo}
     // sin esperar 10 s (la banda ya viene pintada desde el servidor).
     sondearAcabadas();
     setInterval(sondearAcabadas, 10000);
+
+    // ── Búsqueda en cliente ─────────────────────────────────────────────
+    // Filtra las filas ya pintadas por nombre, teléfono o matrícula
+    // (atributo data-buscar del <tr>). Sin mayúsculas ni acentos; los
+    // espacios se ignoran para que "963593087" case con "963 593 087".
+    // Oculta con style.display, no con la clase hidden: el CSS móvil fuerza
+    // display:block en '#tabla-citas tr' y le ganaría.
+    function normalizarBusqueda(t) {
+      return String(t || '').normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase().replace(/\\s+/g, '');
+    }
+    function filtrarCitas() {
+      var input = document.getElementById('buscar-citas');
+      if (!input) return;
+      var q = normalizarBusqueda(input.value);
+      var filas = document.querySelectorAll('#tabla-citas tbody tr[data-buscar]');
+      var visibles = 0;
+      filas.forEach(function (tr) {
+        var ok = !q || normalizarBusqueda(tr.getAttribute('data-buscar')).indexOf(q) !== -1;
+        tr.style.display = ok ? '' : 'none';
+        if (ok) visibles++;
+      });
+      var sin = document.getElementById('sin-resultados');
+      if (sin) sin.style.display = (q && visibles === 0 && filas.length > 0) ? '' : 'none';
+      var limpiar = document.getElementById('buscar-limpiar');
+      if (limpiar) limpiar.style.display = input.value ? '' : 'none';
+    }
+    function limpiarBusqueda() {
+      var input = document.getElementById('buscar-citas');
+      if (!input) return;
+      input.value = '';
+      filtrarCitas();
+      input.focus();
+    }
+    (function () {
+      var input = document.getElementById('buscar-citas');
+      if (!input) return;
+      input.addEventListener('input', filtrarCitas);
+      input.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') { e.preventDefault(); limpiarBusqueda(); }
+      });
+      // Por si el navegador restaura el valor al volver atrás.
+      filtrarCitas();
+    })();
   </script>
 </body>
 </html>`;
