@@ -2356,9 +2356,18 @@ const server = http.createServer(async (req, res) => {
       // Solo visualización: citas.json no se toca. Comparar strings
       // "YYYY-MM-DD HH:MM" equivale a comparar cronológicamente.
       const cmpAsc = (a, b) => `${a.fecha} ${a.hora}`.localeCompare(`${b.fecha} ${b.hora}`);
+      // Cerradas ('pagada'/'cancelada') al final del listado, en su propio
+      // bloque cronológico: Vicky no debe desplazarse por citas terminadas
+      // para llegar a lo que queda por hacer. 'acabada' e 'incidencia' NO
+      // bajan: reclaman acción y se quedan en su sitio. Solo en las vistas
+      // ascendentes de listado; 'todas' es histórico descendente y el
+      // calendario coloca por franja, no por posición en la lista.
+      const CERRADAS = new Set(['pagada', 'cancelada']);
+      const cmpCerradasAlFinal = (a, b) =>
+        (CERRADAS.has(a.estado) - CERRADAS.has(b.estado)) || cmpAsc(a, b);
       // Filtros solo por comparación de strings ISO, sin new Date():
-      //  - proximas: hoy y siguientes, ascendente (por defecto).
-      //  - hoy:      solo la fecha de hoy, ascendente.
+      //  - proximas: hoy y siguientes, ascendente, cerradas al final (por defecto).
+      //  - hoy:      solo la fecha de hoy, ascendente, cerradas al final.
       //  - llamar:   'acabada' e 'incidencia', sin filtrar por fecha, ascendente.
       //  - calendario: de lunes a domingo de la semana pedida, ascendente.
       //  - todas:    histórico completo, DESCENDENTE (lo más reciente arriba).
@@ -2369,8 +2378,11 @@ const server = http.createServer(async (req, res) => {
         calendario: c => c.fecha >= lunes && c.fecha <= domingo,
         todas:    () => true,
       };
+      const cmp = vista === 'todas' ? (a, b) => cmpAsc(b, a)
+                : vista === VISTA_CALENDARIO ? cmpAsc
+                : cmpCerradasAlFinal;
       const visibles = citas.filter(FILTRO[vista])
-        .sort(vista === 'todas' ? (a, b) => cmpAsc(b, a) : cmpAsc);
+        .sort(cmp);
       res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
       // Pendientes sobre el array COMPLETO, no sobre 'visibles' (excluye pasadas).
       res.end(adminHTML(visibles, vista, contarAcabadas(citas), lunes));
