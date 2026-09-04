@@ -906,20 +906,53 @@ function calendarioHTML(citas, lunes, hoy) {
     // suspensivos (`truncate`): un detalle largo descuadraría la rejilla de
     // cinco columnas. El texto completo va en el title del bloque.
     const detalle = c.detalle ? `<div class="truncate text-[10px] opacity-60">${escapeHtml(c.detalle)}</div>` : '';
-    return `<div class="rounded px-1.5 py-1 text-[11px] leading-tight ${estadoBadge(c.estado)}${cerrada ? ' opacity-50' : ''}" title="${escapeHtml(c.estado)}${c.detalle ? ' · ' + escapeHtml(c.detalle) : ''}">
+    // Pulsar el bloque abre el formulario de edición: mismos data-* que el
+    // botón Editar del listado y la misma editarCita(). Realce con un anillo
+    // al pasar por encima, para no alterar el color de estado del fondo. No
+    // hay conflicto con la celda pulsable de crear cita: esa solo lleva
+    // onclick cuando está VACÍA (ver `libre` en celda()).
+    const datos = `data-id="${escapeHtml(c.id)}"
+      data-nombre="${escapeHtml(c.nombre)}"
+      data-telefono="${escapeHtml(c.telefono)}"
+      data-fecha="${escapeHtml(c.fecha)}"
+      data-hora="${escapeHtml(c.hora)}"
+      data-servicio="${escapeHtml(c.servicio)}"
+      data-detalle="${escapeHtml(c.detalle || '')}"
+      data-matricula="${escapeHtml(c.matricula || '')}"
+      data-vehiculo="${escapeHtml(c.vehiculo || '')}"
+      data-kilometros="${escapeHtml(c.kilometros || '')}"
+      data-precio="${escapeHtml(c.precio || '')}"
+      data-pago="${escapeHtml(c.pago || '')}"
+      data-tipo-vehiculo="${escapeHtml(c.tipoVehiculo || '')}"
+      data-factura="${escapeHtml(c.factura || '')}"`;
+    return `<div onclick="editarCita(this)" ${datos} class="rounded px-1.5 py-1 text-[11px] leading-tight cursor-pointer hover:ring-1 hover:ring-white/40 ${estadoBadge(c.estado)}${cerrada ? ' opacity-50' : ''}" title="${escapeHtml(c.estado)}${c.detalle ? ' · ' + escapeHtml(c.detalle) : ''} · pulsar para editar">
       <span class="font-bold">${cuando}</span> ${nombre}<br><span class="opacity-80">${escapeHtml(c.servicio)}</span>${detalle}</div>`;
   };
   // Columna de HOY: bordes laterales amarillos en cada celda (el encabezado
   // va en amarillo sólido). Franja cerrada: fondo oscurecido.
-  const celda = (col, lista, extra = '') =>
-    `<td class="px-1 py-0.5 align-top border-l border-white/5 space-y-1${dias[col] === hoy ? ' border-l-[#FFD700]/40 border-r border-r-[#FFD700]/40' : ''}${extra}">${lista.map(b => bloque(b)).join('')}</td>`;
+  // `libre` = franja abierta, sin citas y de hoy o posterior: la celda es
+  // pulsable y abre el formulario con esa fecha y hora (nuevaCitaEn). Las
+  // celdas con cita, las cerradas y las de días pasados no lo son (una fecha
+  // pasada la rechazaría el servidor con 400).
+  const celda = (col, lista, extra = '', libre = false) => {
+    const hoyCol = dias[col] === hoy ? ' border-l-[#FFD700]/40 border-r border-r-[#FFD700]/40' : '';
+    const pulsable = libre
+      ? ` cursor-pointer hover:bg-white/5" data-fecha="${dias[col]}" data-hora="${libre}" title="Nueva cita el ${escapeHtml(fechaCorta(dias[col]))} a las ${libre}" onclick="nuevaCitaEn(this)`
+      : '';
+    return `<td class="px-1 py-0.5 align-top border-l border-white/5 space-y-1${hoyCol}${extra}${pulsable}">${lista.map(b => bloque(b)).join('')}</td>`;
+  };
 
   const filas = [];
   for (let f = 0; f < nFranjas; f++) {
     const min = CAL_INICIO + f * 30;
+    const hora = hhmm(min);
     filas.push(`<tr class="border-t border-white/5">
-      <th scope="row" class="px-2 py-1 text-right text-[11px] font-normal text-gray-500 align-top whitespace-nowrap">${hhmm(min)}</th>
-      ${dias.map((d, col) => celda(col, celdas[col][f], franjaAbierta(col, min) ? '' : ' bg-black/25')).join('')}
+      <th scope="row" class="px-2 py-1 text-right text-[11px] font-normal text-gray-500 align-top whitespace-nowrap">${hora}</th>
+      ${dias.map((d, col) => {
+        const abierta = franjaAbierta(col, min);
+        const libre = abierta && celdas[col][f].length === 0 && d >= hoy ? hora : false;
+        return celda(col, celdas[col][f], abierta ? '' : ' bg-black/25', libre);
+      }).join('')}
     </tr>`);
   }
   if (otras.some(a => a.length > 0)) {
@@ -1352,6 +1385,21 @@ ${cuerpo}
     function cerrarFormularioCita() {
       document.getElementById('nueva-cita-form').classList.add('hidden');
       resetFormularioCita();
+    }
+
+    // Celda libre del calendario: abre el formulario de alta con la fecha y
+    // la hora de esa franja ya puestas. Reutiliza el formulario único; el
+    // reset previo evita arrastrar datos de una edición anterior. El
+    // formulario queda arriba y la franja puede estar abajo: se desplaza.
+    function nuevaCitaEn(td) {
+      resetFormularioCita();
+      document.getElementById('nc-fecha').value = td.dataset.fecha;
+      document.getElementById('nc-hora').value  = td.dataset.hora;
+      avisoHorario();
+      var form = document.getElementById('nueva-cita-form');
+      form.classList.remove('hidden');
+      form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      document.getElementById('nc-nombre').focus({ preventScroll: true });
     }
 
     // Abre el mismo formulario relleno con los datos de la fila (vienen en
