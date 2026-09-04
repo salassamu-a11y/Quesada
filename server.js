@@ -1341,9 +1341,11 @@ function recordatoriosHTML(citas, fecha) {
 // botón "ACABADO" de cada tarjeta (ver POST /taller/acabar). Muestra el MÍNIMO
 // de datos personales: hora, nombre de pila, servicio, detalle, matrícula y
 // vehículo (es como se identifica el coche en el taller). Nunca apellidos,
-// teléfono ni id. PROHIBIDO mostrar precio y kilómetros: los ve el cliente
-// que espera y cualquiera que pase. Sin enlaces a /admin ni a otra vista:
-// es un callejón sin salida a propósito.
+// teléfono ni id. PROHIBIDO mostrar el precio: lo ve el cliente que espera y
+// cualquiera que pase. Los kilómetros NO se listan como dato: aparecen solo
+// como el campo "KM" a rellenar junto al botón ACABADO (ver tarjeta()), porque
+// los mecánicos los apuntan al terminar. Sin enlaces a /admin ni a otra
+// vista: es un callejón sin salida a propósito.
 //
 // HTML autocontenido con CSS inline: cero JS y cero dependencias de red
 // (ni Tailwind CDN, a diferencia del panel). Una pantalla que pasa semanas
@@ -1364,6 +1366,12 @@ function recordatoriosHTML(citas, fecha) {
 // acabar un coche que aún no ha llegado, y evita marcar por error una cita
 // del día siguiente. Sin confirmación ("¿estás seguro?"): en un taller es
 // fricción, y el error se corrige en dos clics desde el panel.
+//
+// Vista de HOY en DOS BLOQUES con encabezado propio: "EN EL TALLER"
+// ('atendida', azul) y "POR LLEGAR" ('confirmada', amarillo). Un bloque
+// vacío no se pinta. El botón ACABADO solo es pulsable en 'atendida'; en
+// 'confirmada' se muestra DESACTIVADO como "SIN LLEGAR" (ver tarjeta()).
+// MAÑANA no se divide: ahí todas son 'confirmada' por definición.
 function tallerHTML(citas, fecha, esManana = false, token = null) {
   const taller = escapeHtml(process.env.TALLER_NOMBRE || 'Taller');
   const fechaCruda = fechaLegible(fecha);
@@ -1373,21 +1381,31 @@ function tallerHTML(citas, fecha, esManana = false, token = null) {
   const conBoton = !esManana && !!token;
   const tokenEsc = conBoton ? escapeHtml(token) : '';
 
-  const cuerpo = citas.length === 0
-    ? `<div class="vacio">${textoVacio}</div>`
-    : citas.map(c => {
-      // Solo el nombre de pila: lo anterior al primer espacio del nombre
-      // completo. Sin espacio, el nombre entero.
-      const pila = String(c.nombre || '').trim().split(/\s+/)[0];
-      // 'atendida' = el coche YA está en el taller: borde izquierdo azul y
-      // etiqueta "EN TALLER" junto al nombre, para distinguirla a varios
-      // metros de una 'confirmada' (aún por llegar). Mismo azul que el badge
-      // 'atendida' del panel (blue-900/50, blue-300, blue-700/50), inline
-      // porque esta vista no carga Tailwind. El botón ACABADO NO depende del
-      // estado: si Vicky olvida marcar 'atendida' o el cliente llega sin
-      // cita previa, los mecánicos deben poder marcar acabado igual.
-      const enTaller = c.estado === 'atendida';
-      return `
+  // Una tarjeta por cita. 'atendida' = el coche YA está en el taller: fondo
+  // azulado, borde izquierdo azul y etiqueta "EN TALLER" junto al nombre.
+  // Mismo azul que el badge 'atendida' del panel, inline porque esta vista
+  // no carga Tailwind.
+  // Botón ACABADO: pulsable solo en 'atendida'. En 'confirmada' se MUESTRA
+  // pero DESACTIVADO ("SIN LLEGAR"): el mecánico ve que el botón existe y
+  // entiende que falta el paso previo (que Vicky marque el coche atendido).
+  // OJO: el disabled es SOLO contra el toque accidental, NO una protección
+  // (cualquiera lo salta desde devtools). POST /taller/acabar sigue
+  // aceptando 'confirmada' A PROPÓSITO: si Vicky olvida marcar 'atendida' o
+  // llega un cliente sin cita previa, tiene que poder arreglarse.
+  // Campo "KM" (solo junto al ACABADO activo, es decir 'atendida' en la
+  // vista de HOY; ni en POR LLEGAR ni en MAÑANA): los mecánicos apuntan los
+  // kilómetros al terminar y se les olvida, así que el navegador exige el
+  // campo (required) antes de enviar. type="text" + inputmode="numeric", NO
+  // type="number": se come los ceros a la izquierda y en móvil da problemas.
+  // Si la cita ya trae kilómetros (puestos por Vicky), el campo sale
+  // rellenado. OJO: el required es SOLO del HTML; el servidor acepta la cita
+  // sin kilómetros a propósito (ver POST /taller/acabar).
+  const tarjeta = (c) => {
+    // Solo el nombre de pila: lo anterior al primer espacio del nombre
+    // completo. Sin espacio, el nombre entero.
+    const pila = String(c.nombre || '').trim().split(/\s+/)[0];
+    const enTaller = c.estado === 'atendida';
+    return `
       <div class="cita${enTaller ? ' en-taller' : ''}">
         <div class="hora">${escapeHtml(c.hora)}</div>
         <div class="datos">
@@ -1399,10 +1417,33 @@ function tallerHTML(citas, fecha, esManana = false, token = null) {
         ${conBoton ? `<form method="post" action="/taller/acabar" class="acabar">
           <input type="hidden" name="k" value="${tokenEsc}">
           <input type="hidden" name="id" value="${escapeHtml(c.id)}">
-          <button type="submit">ACABADO</button>
+          ${enTaller
+            ? `<input type="text" name="kilometros" class="km" inputmode="numeric" pattern="[0-9]{1,7}" maxlength="7" placeholder="KM" required autocomplete="off" aria-label="Kilómetros" value="${escapeHtml(c.kilometros || '')}">
+          <button type="submit">ACABADO</button>`
+            : '<button type="submit" disabled>SIN LLEGAR</button>'}
         </form>` : ''}
       </div>`;
-    }).join('');
+  };
+
+  // Bloque con encabezado propio (solo vista de HOY). Lista vacía → no se
+  // pinta NADA: ni encabezado ni hueco.
+  const bloque = (clase, titulo, lista) => lista.length === 0 ? '' : `
+      <h2 class="bloque ${clase}">${titulo}</h2>
+      ${lista.map(tarjeta).join('')}`;
+
+  // HOY: "EN EL TALLER" ('atendida') y después "POR LLEGAR" (el resto, es
+  // decir 'confirmada': GET /taller solo manda esos dos estados). Cada bloque
+  // ya viene ordenado por hora: el handler ordena y filter() conserva el
+  // orden. MAÑANA: sin bloques, lista plana igual que antes.
+  let cuerpo;
+  if (citas.length === 0) {
+    cuerpo = `<div class="vacio">${textoVacio}</div>`;
+  } else if (esManana) {
+    cuerpo = citas.map(tarjeta).join('');
+  } else {
+    cuerpo = bloque('taller', 'EN EL TALLER', citas.filter(c => c.estado === 'atendida'))
+      + bloque('llegar', 'POR LLEGAR', citas.filter(c => c.estado !== 'atendida'));
+  }
 
   // AUTO-REFRESH sin JS: <meta refresh> SIN URL en el content. El HTML
   // Standard define ese caso como navegación a la URL COMPLETA del documento
@@ -1459,8 +1500,28 @@ function tallerHTML(citas, fecha, esManana = false, token = null) {
       padding: 1.6rem 2rem;
       margin-bottom: 1.2rem;
     }
-    /* Coche ya en el taller: borde izquierdo azul en vez de amarillo. */
-    .cita.en-taller { border-left-color: #60A5FA; }
+    /* Encabezado de bloque (solo vista de HOY): grande, en mayúsculas y en
+       el color de su estado, con subrayado del mismo color. Legible a
+       varios metros: es lo que distingue los dos grupos, no la pastilla. */
+    .bloque {
+      font-size: 2rem;
+      font-weight: 900;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      border-bottom: 3px solid currentColor;
+      padding-bottom: .4rem;
+      margin: 2.4rem 0 1.2rem;
+    }
+    .bloque:first-of-type { margin-top: 0; }
+    .bloque.taller { color: #60A5FA; }
+    .bloque.llegar { color: #FFD700; }
+    /* Coche ya en el taller: FONDO azulado (que se note la tarjeta entera,
+       no solo el borde) + borde izquierdo azul en vez de amarillo. */
+    .cita.en-taller {
+      background: #12305F;
+      border-color: rgba(96,165,250,.3);
+      border-left-color: #60A5FA;
+    }
     /* Pastilla "EN TALLER": discreta a propósito, no compite con la hora ni
        con el nombre (0.95rem frente a 3.2rem y 2.2rem). */
     .etiqueta {
@@ -1507,7 +1568,28 @@ function tallerHTML(citas, fecha, esManana = false, token = null) {
        móvil, a veces con las manos sucias. Verde #15803D sobre blanco:
        contraste 4.7:1. touch-action:manipulation quita el retardo de
        doble-tap en táctil. */
-    .acabar { margin-left: auto; flex-shrink: 0; }
+    .acabar { margin-left: auto; flex-shrink: 0; display: flex; align-items: center; gap: .8rem; }
+    /* Campo KM: misma altura que el botón y tipografía grande, se teclea en
+       una tablet con las manos sucias. Fondo oscuro sobre la tarjeta, borde
+       que pasa a amarillo con el foco. Sin flechas ni autocompletado. */
+    .acabar .km {
+      display: block;
+      width: 9.5rem;
+      min-height: 5.5rem;
+      padding: 0 1rem;
+      font: inherit;
+      font-size: 1.9rem;
+      font-weight: 800;
+      font-variant-numeric: tabular-nums;
+      text-align: center;
+      color: #fff;
+      background: #060D1F;
+      border: 2px solid rgba(255,255,255,.25);
+      border-radius: 12px;
+      outline: none;
+    }
+    .acabar .km::placeholder { color: #8fa3c7; font-weight: 700; letter-spacing: .08em; }
+    .acabar .km:focus { border-color: #FFD700; box-shadow: 0 0 0 3px rgba(255,215,0,.25); }
     .acabar button {
       display: block;
       min-height: 5.5rem;
@@ -1527,6 +1609,20 @@ function tallerHTML(citas, fecha, esManana = false, token = null) {
     }
     .acabar button:hover { background: #16A34A; }
     .acabar button:active { background: #166534; transform: scale(.97); }
+    /* "SIN LLEGAR" ('confirmada'): el mismo botón, desactivado. Gris
+       apagado, sin hover ni active, cursor not-allowed. Solo evita el toque
+       accidental: el servidor sigue aceptando 'confirmada' (ver
+       POST /taller/acabar). Los selectores :disabled:hover / :disabled:active
+       ganan por especificidad a los de arriba, no por orden. */
+    .acabar button:disabled,
+    .acabar button:disabled:hover,
+    .acabar button:disabled:active {
+      color: #8fa3c7;
+      background: #1F2A44;
+      border-color: rgba(255,255,255,.08);
+      cursor: not-allowed;
+      transform: none;
+    }
     .vacio {
       background: #0D1B3E;
       border: 1px solid rgba(255,255,255,.1);
@@ -1544,6 +1640,7 @@ function tallerHTML(citas, fecha, esManana = false, token = null) {
       body { padding: 1.2rem; }
       .fecha { font-size: 1.5rem; }
       .manana { font-size: 2.2rem; }
+      .bloque { font-size: 1.4rem; letter-spacing: .1em; padding-bottom: .3rem; margin: 1.6rem 0 .8rem; }
       .cita {
         flex-direction: column;
         align-items: flex-start;
@@ -1557,7 +1654,8 @@ function tallerHTML(citas, fecha, esManana = false, token = null) {
       .detalle { font-size: 1.05rem; }
       .coche { font-size: 1.1rem; }
       /* El botón pasa a ancho completo BAJO los datos, no a la derecha. */
-      .acabar { width: 100%; margin-left: 0; margin-top: .4rem; }
+      .acabar { width: 100%; margin-left: 0; margin-top: .4rem; flex-direction: column; align-items: stretch; gap: .6rem; }
+      .acabar .km { width: 100%; min-height: 4.4rem; font-size: 1.6rem; }
       .acabar button { width: 100%; min-height: 4.4rem; font-size: 1.6rem; }
     }
   </style>
@@ -1663,11 +1761,11 @@ const server = http.createServer(async (req, res) => {
   // POST /taller/acabar — la ÚNICA escritura desde la pantalla del taller.
   // Ruta pública, FUERA del bloque /admin, con el MISMO TALLER_TOKEN (aquí
   // en el body, campo hidden del formulario) y el MISMO safeEqual que GET
-  // /taller. Endpoint lo más ESTRECHO posible: solo pasa a 'acabada', y solo
-  // desde 'confirmada' o 'atendida'; no edita ningún otro campo, no borra,
-  // no retrocede y no devuelve datos de la cita. Si el token se filtrara, el
-  // daño máximo es marcar citas como acabadas: molesto y reversible en dos
-  // clics desde el panel.
+  // /taller. Endpoint lo más ESTRECHO posible: pasa a 'acabada' (solo desde
+  // 'confirmada' o 'atendida') y, si vienen, guarda los kilómetros; no edita
+  // ningún otro campo, no borra, no retrocede y no devuelve datos de la cita.
+  // Si el token se filtrara, el daño máximo es marcar citas como acabadas y
+  // pisar sus kilómetros: molesto y reversible en dos clics desde el panel.
   // Token ausente/incorrecto, TALLER_TOKEN sin definir o body ilegible → el
   // MISMO 404 genérico que GET /taller, nunca 401: la ruta no revela que
   // existe. Sin isSameOrigin: el secreto es el token, y quien lo tenga puede
@@ -1693,8 +1791,9 @@ const server = http.createServer(async (req, res) => {
       res.writeHead(status, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' });
       res.end(`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta http-equiv="refresh" content="4; url=${escapeHtml(volver)}"><title>${escapeHtml(msg)}</title><style>body{background:#060D1F;color:#fff;font-family:system-ui,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;padding:2rem;font-size:2rem;text-align:center}a{color:#FFD700}</style></head><body><p>${escapeHtml(msg)}<br><a href="${escapeHtml(volver)}">Volver a la pantalla</a></p></body></html>`);
     };
-    // Lectura fresca y parcheo de UN SOLO campo de UN SOLO registro (regla
-    // del proyecto): ni id, ni creadaEn, ni recordatorioEnviado ni nada más.
+    // Lectura fresca y parcheo de UN SOLO registro (regla del proyecto), y
+    // solo de 'estado' y, si vienen, 'kilometros': ni id, ni creadaEn, ni
+    // recordatorioEnviado ni nada más.
     const citas = readCitas();
     const cita = citas.find(c => c.id === body.id);
     if (!cita) {
@@ -1711,7 +1810,21 @@ const server = http.createServer(async (req, res) => {
       errorHtml(409, 'Esa cita ya no está en el taller');
       return;
     }
+    // Kilómetros: misma regla que camposVehiculo() en el panel (solo dígitos,
+    // máximo 7, guardados como STRING). Con contenido inválido → 409 sin
+    // tocar nada. Vacíos o ausentes → se marca 'acabada' IGUALMENTE y
+    // cita.kilometros no se toca. NO es un descuido: el 'required' del HTML
+    // ya lo hace obligatorio en la práctica, pero si la tablet falla, el
+    // cuentakilómetros no arranca o es una moto sin marcador, nadie puede
+    // quedarse atrapado sin poder marcar el coche; Vicky lo arregla desde el
+    // panel. NO añadir aquí validación de obligatoriedad.
+    const km = typeof body.kilometros === 'string' ? body.kilometros.trim() : '';
+    if (km && !/^\d{1,7}$/.test(km)) {
+      errorHtml(409, 'Los kilómetros deben ser solo números (máximo 7 cifras)');
+      return;
+    }
     cita.estado = 'acabada';
+    if (km) cita.kilometros = km;
     writeCitas(citas);
     // 302 a la pantalla con el mismo token: se refresca sola tras pulsar.
     res.writeHead(302, { Location: volver, 'Cache-Control': 'no-store' });
