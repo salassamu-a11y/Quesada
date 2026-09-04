@@ -570,6 +570,38 @@ function fechaManana() {
   return fechaMadrid(new Date(base.getTime() + 24 * 60 * 60 * 1000));
 }
 
+// Aritmética de días para la vista de calendario (?ver=calendario&semana=).
+// Mismo patrón que fechaManana(): se ancla la fecha a MEDIODÍA UTC, se opera
+// en milisegundos y se vuelve a YYYY-MM-DD con fechaMadrid(). Nunca un
+// new Date() sobre una fecha local: el proceso corre en UTC en Render y el
+// cambio de hora desplazaría el día.
+const DIA_MS = 24 * 60 * 60 * 1000;
+function sumarDias(fecha, n) {
+  const base = new Date(`${fecha}T12:00:00Z`);
+  return fechaMadrid(new Date(base.getTime() + n * DIA_MS));
+}
+// Lunes de la semana a la que pertenece `fecha`. El día de la semana se lee
+// con getUTCDay() sobre el ancla de mediodía UTC, que es el mismo día que en
+// Madrid (+1/+2h no cruzan medianoche desde las 12:00Z).
+function lunesDe(fecha) {
+  const base = new Date(`${fecha}T12:00:00Z`);
+  const desdeLunes = (base.getUTCDay() + 6) % 7;   // 0 = lunes … 6 = domingo
+  return fechaMadrid(new Date(base.getTime() - desdeLunes * DIA_MS));
+}
+// Parámetro 'semana' → lunes de esa semana. Solo vale un YYYY-MM-DD que
+// exista de verdad: V8 acepta '2026-02-31' y lo desborda a marzo, así que se
+// exige que la ida y vuelta por fechaMadrid() devuelva el mismo string.
+// Malformado, inexistente o ausente → semana en curso. Se normaliza siempre
+// a su lunes (un miércoles en 'semana' muestra igualmente su semana).
+function lunesDesdeParam(semana) {
+  const s = String(semana ?? '');
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
+    const d = new Date(`${s}T12:00:00Z`);
+    if (!Number.isNaN(d.getTime()) && fechaMadrid(d) === s) return lunesDe(s);
+  }
+  return lunesDe(hoyMadrid());
+}
+
 // Teléfono en formato wa.me ('34XXXXXXXXX'), o null si no es un móvil español
 // válido. Misma normalización que sendWhatsApp(), pero aquí un número mal
 // metido no puede romper nada: se devuelve null y la fila muestra un aviso.
@@ -766,32 +798,140 @@ function textoAcabadas(a, i) {
 
 // Vistas del listado (?ver=). Clave → etiqueta del <select> y del contador.
 // El orden del objeto es el orden de las opciones. Valor desconocido → 'proximas'.
+// 'calendario' no pinta la tabla: pinta la rejilla semanal (calendarioHTML) y
+// admite &semana=YYYY-MM-DD (lunes de la semana a mostrar).
 const VISTAS = {
-  proximas: 'Próximas',
-  hoy:      'Hoy',
-  llamar:   'Pendientes de llamar',
-  mes:      'Este mes',
-  todas:    'Todas',
+  proximas:   'Próximas',
+  hoy:        'Hoy',
+  llamar:     'Pendientes de llamar',
+  calendario: 'Calendario',
+  todas:      'Todas',
 };
 
-function adminHTML(citas, vista = 'proximas', pendientes = { acabadas: 0, incidencias: 0 }) {
+// Clases del badge de estado (listado) y del fondo de cada cita (calendario).
+// 'acabada' en amarillo sólido e 'incidencia' en rojo sólido (las dos
+// reclaman acción), 'pagada' gris apagado (ciclo cerrado), 'atendida' azul
+// (coche en el taller), 'llamado' azul apagado (cliente avisado, ya no
+// reclama acción; distinto del gris de 'pagada'), 'cancelada' rojo apagado
+// (distinto del sólido de 'incidencia'). 'pendiente' cae al amarillo oscuro
+// de siempre, distinto del sólido de 'acabada'.
+const estadoBadge = e =>
+  e === 'confirmada' ? 'bg-green-900/50 text-green-400 border border-green-700/50' :
+  e === 'atendida'   ? 'bg-blue-900/50 text-blue-300 border border-blue-700/50' :
+  e === 'acabada'    ? 'bg-[#FFD700] text-[#060D1F] border border-[#FFD700]' :
+  e === 'incidencia' ? 'bg-red-600 text-white border border-red-600' :
+  e === 'llamado'    ? 'bg-slate-800/50 text-slate-400 border border-slate-600/50' :
+  e === 'pagada'     ? 'bg-gray-900/50 text-gray-500 border border-gray-700/50' :
+  e === 'cancelada'  ? 'bg-red-900/50 text-red-400 border border-red-700/50' :
+                       'bg-yellow-900/50 text-yellow-400 border border-yellow-700/50';
+
+// ---- Vista de calendario semanal (GET /admin?ver=calendario) ----
+// Rejilla propia, NO la tabla del listado: columnas lunes-viernes, filas de
+// 30 min de 8:00 a 20:00. Solo muestra: no se crea cita pinchando en un hueco.
+// Ninguna cita de la semana se oculta: las que caen fuera de 8:00-20:29 (o
+// con hora ilegible) van a una fila "Otras horas" y las de sábado/domingo a
+// una línea bajo la rejilla.
+const DIAS_SEMANA = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie'];
+const CAL_INICIO = 8 * 60;    // primera franja: 08:00
+const CAL_FIN    = 20 * 60;   // última franja: 20:00 (cubre 20:00-20:29)
+
+// Franja [min, min+30) ABIERTA si cabe entera en un tramo del taller. Réplica
+// de los tramos de horarioTaller() por índice de columna (0 = lunes … 4 =
+// viernes), sin Intl ni new Date(): la columna ya sabe qué día es. Distinto
+// criterio que horarioTaller() a propósito: allí 14:00 en punto es válido
+// (límite inclusivo); aquí la franja 14:00-14:30 está cerrada y se sombrea.
+// Si cambia el horario del taller hay que tocar esto también.
+function franjaAbierta(col, min) {
+  const tramos = col === 4
+    ? [[8 * 60, 16 * 60]]                            // V: 08:00-16:00 continuo
+    : [[8 * 60, 14 * 60], [15 * 60 + 30, 20 * 60]];  // L-J: mañana y tarde
+  return tramos.some(([ini, fin]) => min >= ini && min + 30 <= fin);
+}
+
+function calendarioHTML(citas, lunes, hoy) {
+  const dias = [0, 1, 2, 3, 4].map(i => sumarDias(lunes, i));
+  const minutos = h => /^\d{2}:\d{2}$/.test(h) ? Number(h.slice(0, 2)) * 60 + Number(h.slice(3, 5)) : NaN;
+  const hhmm = m => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
+  // "2026-09-08" → "8/09" para el encabezado de columna, partiendo el string.
+  const diaMes = f => { const m = /^\d{4}-(\d{2})-(\d{2})$/.exec(f); return m ? `${Number(m[2])}/${m[1]}` : f; };
+
+  const nFranjas = (CAL_FIN - CAL_INICIO) / 30 + 1;
+  const celdas = dias.map(() => Array.from({ length: nFranjas }, () => []));
+  const otras = dias.map(() => []);
+  const finde = [];
+  for (const c of citas) {   // vienen ordenadas por fecha+hora del handler
+    const col = dias.indexOf(c.fecha);
+    if (col === -1) { finde.push(c); continue; }
+    const min = minutos(String(c.hora ?? ''));
+    const idx = Math.floor((min - CAL_INICIO) / 30);
+    if (Number.isNaN(min) || idx < 0 || idx >= nFranjas) otras[col].push(c);
+    else celdas[col][idx].push(c);
+  }
+
+  // Una cita = un bloque con hora, nombre y servicio, fondo del color de su
+  // estado (mismas clases que el badge del listado). Cerradas atenuadas y
+  // 'pagada' además con el nombre tachado, como en el listado. Varias en la
+  // misma franja se apilan: nunca se resume con "+N más".
+  const bloque = (c, conFecha = false) => {
+    const cerrada = c.estado === 'pagada' || c.estado === 'cancelada';
+    const nombre = c.estado === 'pagada' ? `<span class="line-through">${escapeHtml(c.nombre)}</span>` : escapeHtml(c.nombre);
+    const cuando = `${conFecha ? escapeHtml(fechaCorta(c.fecha)) + ' ' : ''}${escapeHtml(c.hora)}`;
+    return `<div class="rounded px-1.5 py-1 text-[11px] leading-tight ${estadoBadge(c.estado)}${cerrada ? ' opacity-50' : ''}" title="${escapeHtml(c.estado)}${c.detalle ? ' · ' + escapeHtml(c.detalle) : ''}">
+      <span class="font-bold">${cuando}</span> ${nombre}<br><span class="opacity-80">${escapeHtml(c.servicio)}</span></div>`;
+  };
+  // Columna de HOY: bordes laterales amarillos en cada celda (el encabezado
+  // va en amarillo sólido). Franja cerrada: fondo oscurecido.
+  const celda = (col, lista, extra = '') =>
+    `<td class="px-1 py-0.5 align-top border-l border-white/5 space-y-1${dias[col] === hoy ? ' border-l-[#FFD700]/40 border-r border-r-[#FFD700]/40' : ''}${extra}">${lista.map(b => bloque(b)).join('')}</td>`;
+
+  const filas = [];
+  for (let f = 0; f < nFranjas; f++) {
+    const min = CAL_INICIO + f * 30;
+    filas.push(`<tr class="border-t border-white/5">
+      <th scope="row" class="px-2 py-1 text-right text-[11px] font-normal text-gray-500 align-top whitespace-nowrap">${hhmm(min)}</th>
+      ${dias.map((d, col) => celda(col, celdas[col][f], franjaAbierta(col, min) ? '' : ' bg-black/25')).join('')}
+    </tr>`);
+  }
+  if (otras.some(a => a.length > 0)) {
+    filas.push(`<tr class="border-t border-white/10">
+      <th scope="row" class="px-2 py-1 text-right text-[11px] font-normal text-gray-500 align-top whitespace-nowrap">Otras horas</th>
+      ${dias.map((d, col) => celda(col, otras[col], ' bg-black/25')).join('')}
+    </tr>`);
+  }
+
+  const semanaActual = lunesDe(hoy) === lunes;
+  const btn = 'bg-[#0D1B3E] hover:bg-white/10 text-gray-300 border border-white/10 text-sm font-semibold px-4 py-2 rounded-lg transition-colors';
+  return `
+    <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+      <a href="/admin?ver=calendario&amp;semana=${sumarDias(lunes, -7)}" class="${btn}">← Semana anterior</a>
+      <div class="text-sm text-gray-300">
+        Semana del <span class="text-white font-semibold">${fechaCorta(lunes)}</span> al <span class="text-white font-semibold">${fechaCorta(dias[4])}</span>
+        ${semanaActual ? '<span class="ml-2 text-[#FFD700] text-xs font-semibold uppercase tracking-wider">Semana en curso</span>' : '<a href="/admin?ver=calendario" class="ml-2 text-[#FFD700] hover:underline font-semibold">Hoy</a>'}
+      </div>
+      <a href="/admin?ver=calendario&amp;semana=${sumarDias(lunes, 7)}" class="${btn}">Semana siguiente →</a>
+    </div>
+    <div class="bg-[#0D1B3E] rounded-xl overflow-x-auto border border-white/5">
+      <table class="w-full table-fixed text-sm">
+        <thead>
+          <tr class="border-b border-white/10">
+            <th class="w-16"></th>
+            ${dias.map((d, col) => `<th scope="col" class="px-2 py-2.5 text-xs font-semibold uppercase tracking-wider border-l border-white/5 ${d === hoy ? 'bg-[#FFD700] text-[#060D1F]' : 'text-[#FFD700]'}">${DIAS_SEMANA[col]} ${diaMes(d)}${d === hoy ? ' · hoy' : ''}</th>`).join('')}
+          </tr>
+        </thead>
+        <tbody>${filas.join('')}</tbody>
+      </table>
+    </div>
+    ${finde.length > 0 ? `<div class="mt-3 flex flex-wrap items-center gap-2">
+      <span class="text-xs text-gray-400">Fin de semana:</span>
+      ${finde.map(c => bloque(c, true)).join('')}
+    </div>` : ''}`;
+}
+
+// 'lunes' solo se usa con vista 'calendario' (lunes de la semana a pintar);
+// si falta, cae en la semana en curso.
+function adminHTML(citas, vista = 'proximas', pendientes = { acabadas: 0, incidencias: 0 }, lunes = null) {
   if (!VISTAS[vista]) vista = 'proximas';
   const nPendientes = pendientes.acabadas + pendientes.incidencias;
-  // 'acabada' en amarillo sólido e 'incidencia' en rojo sólido (las dos
-  // reclaman acción), 'pagada' gris apagado (ciclo cerrado), 'atendida' azul
-  // (coche en el taller), 'llamado' azul apagado (cliente avisado, ya no
-  // reclama acción; distinto del gris de 'pagada'), 'cancelada' rojo apagado
-  // (distinto del sólido de 'incidencia'). 'pendiente' cae al amarillo oscuro
-  // de siempre, distinto del sólido de 'acabada'.
-  const estadoBadge = e =>
-    e === 'confirmada' ? 'bg-green-900/50 text-green-400 border border-green-700/50' :
-    e === 'atendida'   ? 'bg-blue-900/50 text-blue-300 border border-blue-700/50' :
-    e === 'acabada'    ? 'bg-[#FFD700] text-[#060D1F] border border-[#FFD700]' :
-    e === 'incidencia' ? 'bg-red-600 text-white border border-red-600' :
-    e === 'llamado'    ? 'bg-slate-800/50 text-slate-400 border border-slate-600/50' :
-    e === 'pagada'     ? 'bg-gray-900/50 text-gray-500 border border-gray-700/50' :
-    e === 'cancelada'  ? 'bg-red-900/50 text-red-400 border border-red-700/50' :
-                         'bg-yellow-900/50 text-yellow-400 border border-yellow-700/50';
 
   const rows = citas.length === 0
     ? '<tr><td colspan="8" class="px-4 py-8 text-center text-gray-500">Sin citas registradas</td></tr>'
@@ -901,6 +1041,30 @@ function adminHTML(citas, vista = 'proximas', pendientes = { acabadas: 0, incide
 
   const taller = escapeHtml(process.env.TALLER_NOMBRE || 'Panel de Citas');
   const hoy = hoyMadrid();   // formato YYYY-MM-DD, seguro para interpolar
+  const semana = vista === 'calendario' ? (lunes || lunesDe(hoy)) : null;
+
+  // Cuerpo bajo el formulario: la tabla del listado, o la rejilla semanal en
+  // la vista 'calendario' (vista completa, sin la tabla debajo). Cabecera,
+  // banda de acabados y botón "+ Nueva cita" son comunes a todas las vistas.
+  const listado = `
+    <div class="bg-[#0D1B3E] rounded-xl overflow-x-auto border border-white/5">
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="border-b border-white/10">
+            <th class="px-4 py-3.5 text-left text-xs font-semibold text-[#FFD700] uppercase tracking-wider">Nombre</th>
+            <th class="px-4 py-3.5 text-left text-xs font-semibold text-[#FFD700] uppercase tracking-wider">Teléfono</th>
+            <th class="px-4 py-3.5 text-left text-xs font-semibold text-[#FFD700] uppercase tracking-wider">Fecha y hora</th>
+            <th class="px-4 py-3.5 text-left text-xs font-semibold text-[#FFD700] uppercase tracking-wider">Servicio</th>
+            <th class="px-4 py-3.5 text-left text-xs font-semibold text-[#FFD700] uppercase tracking-wider">Vehículo</th>
+            <th class="px-4 py-3.5 text-right text-xs font-semibold text-[#FFD700] uppercase tracking-wider">Precio</th>
+            <th class="px-4 py-3.5 text-left text-xs font-semibold text-[#FFD700] uppercase tracking-wider">Estado</th>
+            <th class="px-4 py-3.5 text-left text-xs font-semibold text-[#FFD700] uppercase tracking-wider">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`;
+  const cuerpo = semana ? calendarioHTML(citas, semana, hoy) : listado;
   return `<!DOCTYPE html>
 <html lang="es">
 <head>
@@ -1019,24 +1183,7 @@ function adminHTML(citas, vista = 'proximas', pendientes = { acabadas: 0, incide
         <p id="nc-error" class="hidden mt-3 text-red-400 text-sm"></p>
       </div>
     </div>
-
-    <div class="bg-[#0D1B3E] rounded-xl overflow-x-auto border border-white/5">
-      <table class="w-full text-sm">
-        <thead>
-          <tr class="border-b border-white/10">
-            <th class="px-4 py-3.5 text-left text-xs font-semibold text-[#FFD700] uppercase tracking-wider">Nombre</th>
-            <th class="px-4 py-3.5 text-left text-xs font-semibold text-[#FFD700] uppercase tracking-wider">Teléfono</th>
-            <th class="px-4 py-3.5 text-left text-xs font-semibold text-[#FFD700] uppercase tracking-wider">Fecha y hora</th>
-            <th class="px-4 py-3.5 text-left text-xs font-semibold text-[#FFD700] uppercase tracking-wider">Servicio</th>
-            <th class="px-4 py-3.5 text-left text-xs font-semibold text-[#FFD700] uppercase tracking-wider">Vehículo</th>
-            <th class="px-4 py-3.5 text-right text-xs font-semibold text-[#FFD700] uppercase tracking-wider">Precio</th>
-            <th class="px-4 py-3.5 text-left text-xs font-semibold text-[#FFD700] uppercase tracking-wider">Estado</th>
-            <th class="px-4 py-3.5 text-left text-xs font-semibold text-[#FFD700] uppercase tracking-wider">Acciones</th>
-          </tr>
-        </thead>
-        <tbody>${rows}</tbody>
-      </table>
-    </div>
+${cuerpo}
   </div>
   <script>
     // Modo edición: id de la cita que se está editando, o null en modo alta.
@@ -2085,6 +2232,11 @@ const server = http.createServer(async (req, res) => {
       const ver = url.searchParams.get('ver');
       const vista = VISTAS[ver] ? ver : 'proximas';
       const hoy = hoyMadrid();
+      // Calendario: lunes de la semana a mostrar (?semana=; malformado o
+      // ausente → semana en curso). El filtro trae lunes-domingo: sábado y
+      // domingo no tienen columna, pero se listan aparte para no ocultar nada.
+      const lunes = vista === 'calendario' ? lunesDesdeParam(url.searchParams.get('semana')) : null;
+      const domingo = lunes ? sumarDias(lunes, 6) : null;
       // Solo visualización: citas.json no se toca. Comparar strings
       // "YYYY-MM-DD HH:MM" equivale a comparar cronológicamente.
       const cmpAsc = (a, b) => `${a.fecha} ${a.hora}`.localeCompare(`${b.fecha} ${b.hora}`);
@@ -2092,20 +2244,20 @@ const server = http.createServer(async (req, res) => {
       //  - proximas: hoy y siguientes, ascendente (por defecto).
       //  - hoy:      solo la fecha de hoy, ascendente.
       //  - llamar:   'acabada' e 'incidencia', sin filtrar por fecha, ascendente.
-      //  - mes:      mismo 'YYYY-MM' que hoy (prefijo), ascendente.
+      //  - calendario: de lunes a domingo de la semana pedida, ascendente.
       //  - todas:    histórico completo, DESCENDENTE (lo más reciente arriba).
       const FILTRO = {
         proximas: c => c.fecha >= hoy,
         hoy:      c => c.fecha === hoy,
         llamar:   c => c.estado === 'acabada' || c.estado === 'incidencia',
-        mes:      c => String(c.fecha).slice(0, 7) === hoy.slice(0, 7),
+        calendario: c => c.fecha >= lunes && c.fecha <= domingo,
         todas:    () => true,
       };
       const visibles = citas.filter(FILTRO[vista])
         .sort(vista === 'todas' ? (a, b) => cmpAsc(b, a) : cmpAsc);
       res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
       // Pendientes sobre el array COMPLETO, no sobre 'visibles' (excluye pasadas).
-      res.end(adminHTML(visibles, vista, contarAcabadas(citas)));
+      res.end(adminHTML(visibles, vista, contarAcabadas(citas), lunes));
       return;
     }
 
