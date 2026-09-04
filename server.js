@@ -740,16 +740,26 @@ function validarCita(body, permitirPasado = false) {
 // cancelar se hace desde el desplegable.
 const SIGUIENTE_ESTADO = { confirmada: 'atendida', atendida: 'acabada', acabada: 'pagada' };
 
-// Citas 'acabada' pendientes de llamar al cliente. Cuenta TODAS, sin filtrar
-// por fecha: un coche acabado ayer al que nadie llamó sigue pendiente. La usan
-// GET /admin (pintado inicial de la banda) y GET /admin/acabadas (sondeo).
+// Citas pendientes de llamar al cliente: 'acabada' (trabajo terminado) e
+// 'incidencia' (el coche está en el taller y el trabajo NO se puede hacer;
+// distinto de 'cancelada', que es que el cliente no vino). Las dos reclaman
+// la llamada de Vicky. Cuenta TODAS, sin filtrar por fecha: un coche acabado
+// ayer al que nadie llamó sigue pendiente. La usan GET /admin (pintado
+// inicial de la banda) y GET /admin/acabadas (sondeo).
 function contarAcabadas(citas) {
-  return citas.filter(c => c.estado === 'acabada').length;
+  return {
+    acabadas:    citas.filter(c => c.estado === 'acabada').length,
+    incidencias: citas.filter(c => c.estado === 'incidencia').length,
+  };
 }
 // Copia literal en el <script> de adminHTML (el sondeo la necesita en cliente).
-function textoAcabadas(n) {
-  return n === 1 ? '1 coche acabado · llamar al cliente'
-                 : `${n} coches acabados · llamar al cliente`;
+// Con los dos tipos a la vez los distingue; con uno solo, se simplifica.
+function textoAcabadas(a, i) {
+  const acabados = a === 1 ? '1 coche acabado' : `${a} coches acabados`;
+  const conIncid = i === 1 ? '1 coche con incidencia' : `${i} coches con incidencia`;
+  if (a > 0 && i > 0) return `${acabados} · ${i} con incidencia — llamar al cliente`;
+  if (i > 0) return `${conIncid} · llamar al cliente`;
+  return `${acabados} · llamar al cliente`;
 }
 
 // Vistas del listado (?ver=). Clave → etiqueta del <select> y del contador.
@@ -762,15 +772,19 @@ const VISTAS = {
   todas:    'Todas',
 };
 
-function adminHTML(citas, vista = 'proximas', nAcabadas = 0) {
+function adminHTML(citas, vista = 'proximas', pendientes = { acabadas: 0, incidencias: 0 }) {
   if (!VISTAS[vista]) vista = 'proximas';
-  // 'acabada' en amarillo sólido (reclama acción), 'pagada' gris apagado
-  // (ciclo cerrado), 'atendida' azul (coche en el taller). 'pendiente' cae al
-  // amarillo oscuro de siempre, distinto del sólido de 'acabada'.
+  const nPendientes = pendientes.acabadas + pendientes.incidencias;
+  // 'acabada' en amarillo sólido e 'incidencia' en rojo sólido (las dos
+  // reclaman acción), 'pagada' gris apagado (ciclo cerrado), 'atendida' azul
+  // (coche en el taller), 'cancelada' rojo apagado (distinto del sólido de
+  // 'incidencia'). 'pendiente' cae al amarillo oscuro de siempre, distinto
+  // del sólido de 'acabada'.
   const estadoBadge = e =>
     e === 'confirmada' ? 'bg-green-900/50 text-green-400 border border-green-700/50' :
     e === 'atendida'   ? 'bg-blue-900/50 text-blue-300 border border-blue-700/50' :
     e === 'acabada'    ? 'bg-[#FFD700] text-[#060D1F] border border-[#FFD700]' :
+    e === 'incidencia' ? 'bg-red-600 text-white border border-red-600' :
     e === 'pagada'     ? 'bg-gray-900/50 text-gray-500 border border-gray-700/50' :
     e === 'cancelada'  ? 'bg-red-900/50 text-red-400 border border-red-700/50' :
                          'bg-yellow-900/50 text-yellow-400 border border-yellow-700/50';
@@ -780,17 +794,20 @@ function adminHTML(citas, vista = 'proximas', nAcabadas = 0) {
     : citas.map(c => {
       const id = escapeHtml(c.id);
       const wa = telefonoWa(c.telefono);
-      // COLOR DE FILA — solo UN estado destaca, si no el color pierde sentido:
-      //  - 'acabada': borde izquierdo amarillo grueso + fondo amarillo muy
-      //    tenue. Es el único que reclama acción de Vicky (llamar al cliente).
+      // COLOR DE FILA — solo destacan los estados que reclaman acción de
+      // Vicky (llamar al cliente); si no, el color pierde sentido:
+      //  - 'acabada': borde izquierdo amarillo grueso + fondo amarillo muy tenue.
+      //  - 'incidencia': lo mismo en ROJO (el trabajo no se puede hacer).
       //  - 'pagada': atenuada + nombre tachado (ciclo cerrado). Hora, servicio
       //    y acciones siguen legibles; no se oculta ni cambia de posición.
       //  - 'cancelada': solo atenuada.
       //  - 'confirmada' y 'atendida' (coche en el taller): sin adorno.
       const acabada = c.estado === 'acabada';
+      const incidencia = c.estado === 'incidencia';
       const pagada = c.estado === 'pagada';
       const claseFila = acabada
         ? ' border-l-4 border-l-[#FFD700] bg-[#FFD700]/5'
+        : incidencia ? ' border-l-4 border-l-red-500 bg-red-500/5'
         : (pagada || c.estado === 'cancelada') ? ' opacity-50' : '';
 
       // Botón ✓: avanza UN paso reutilizando POST /admin/cita/:id/estado
@@ -835,7 +852,7 @@ function adminHTML(citas, vista = 'proximas', nAcabadas = 0) {
           <div class="text-gray-300">${escapeHtml(fechaCorta(c.fecha))}</div>
           <div class="text-[#FFD700] font-bold text-base mt-0.5">${escapeHtml(c.hora)}</div>
         </td>
-        <td class="px-4 py-3 text-gray-300">${escapeHtml(c.servicio)}${c.detalle ? `<div class="text-xs text-gray-500 mt-0.5">${escapeHtml(c.detalle)}</div>` : ''}</td>
+        <td class="px-4 py-3 text-gray-300">${escapeHtml(c.servicio)}${c.detalle ? `<div class="text-xs text-gray-500 mt-0.5">${escapeHtml(c.detalle)}</div>` : ''}${incidencia && c.motivo ? `<div class="text-xs text-red-400/80 mt-0.5">${escapeHtml(c.motivo)}</div>` : ''}</td>
         <td class="px-4 py-3 whitespace-nowrap">${c.matricula ? `<div class="text-white font-semibold">${escapeHtml(c.matricula)}</div>` : ''}${lineaVehiculo ? `<div class="text-xs text-gray-500${c.matricula ? ' mt-0.5' : ''}">${lineaVehiculo}</div>` : ''}</td>
         <td class="px-4 py-3 text-right whitespace-nowrap">${c.precio ? `<div class="text-gray-300">${escapeHtml(c.precio)} €</div>` : ''}</td>
         <td class="px-4 py-3">
@@ -848,6 +865,7 @@ function adminHTML(citas, vista = 'proximas', nAcabadas = 0) {
               <option ${c.estado === 'confirmada' ? 'selected' : ''}>confirmada</option>
               <option ${c.estado === 'atendida'   ? 'selected' : ''}>atendida</option>
               <option ${c.estado === 'acabada'    ? 'selected' : ''}>acabada</option>
+              <option ${c.estado === 'incidencia' ? 'selected' : ''}>incidencia</option>
               <option ${c.estado === 'pagada'     ? 'selected' : ''}>pagada</option>
               <option ${c.estado === 'cancelada'  ? 'selected' : ''}>cancelada</option>
             </select>
@@ -910,9 +928,10 @@ function adminHTML(citas, vista = 'proximas', nAcabadas = 0) {
       <div>
         <p class="text-[#FFD700] text-xs font-semibold uppercase tracking-widest mb-1">Panel de administración</p>
         <h1 class="text-2xl font-bold text-white">${taller}</h1>
-        <!-- Banda de coches acabados: solo indicador, sin enlace. Se pinta ya
-             con el valor real para no esperar al primer sondeo (30 s). -->
-        <div id="aviso-acabadas" class="${nAcabadas > 0 ? '' : 'hidden'} mt-3 inline-block bg-[#FFD700] text-[#060D1F] text-lg font-bold px-5 py-2.5 rounded-lg" aria-live="polite">${textoAcabadas(nAcabadas)}</div>
+        <!-- Banda de coches acabados / con incidencia: solo indicador, sin
+             enlace. Se pinta ya desde el servidor con el valor real para que
+             aparezca antes de que ejecute ningún JS, y aunque el JS falle. -->
+        <div id="aviso-acabadas" class="${nPendientes > 0 ? '' : 'hidden'} mt-3 inline-block bg-[#FFD700] text-[#060D1F] text-lg font-bold px-5 py-2.5 rounded-lg" aria-live="polite">${textoAcabadas(pendientes.acabadas, pendientes.incidencias)}</div>
       </div>
       <div class="flex items-center gap-3">
         <select onchange="location.href = this.value === 'proximas' ? '/admin' : '/admin?ver=' + this.value" aria-label="Vista del listado" class="text-xs bg-[#060D1F] border border-white/10 text-gray-300 rounded-lg px-2 py-1.5 cursor-pointer focus:outline-none focus:border-[#2563EB]">
@@ -965,12 +984,12 @@ function adminHTML(citas, vista = 'proximas', nAcabadas = 0) {
             <input id="nc-detalle" type="text" maxlength="100" placeholder="4 ruedas, 205/55 R16" class="w-full bg-[#060D1F] border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#2563EB]">
           </div>
           <div>
-            <label class="block text-xs text-gray-400 mb-1.5 uppercase tracking-wide">Matrícula</label>
-            <input id="nc-matricula" type="text" maxlength="15" placeholder="1234 ABC" autocapitalize="characters" style="text-transform:uppercase" class="w-full bg-[#060D1F] border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#2563EB]">
-          </div>
-          <div>
             <label class="block text-xs text-gray-400 mb-1.5 uppercase tracking-wide">Vehículo</label>
             <input id="nc-vehiculo" type="text" maxlength="60" placeholder="Golf blanco" class="w-full bg-[#060D1F] border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#2563EB]">
+          </div>
+          <div>
+            <label class="block text-xs text-gray-400 mb-1.5 uppercase tracking-wide">Matrícula</label>
+            <input id="nc-matricula" type="text" maxlength="15" placeholder="1234 ABC" autocapitalize="characters" style="text-transform:uppercase" class="w-full bg-[#060D1F] border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#2563EB]">
           </div>
           <!-- Km y precio son type="text" a propósito: type="number" quita ceros
                a la izquierda, rechaza la coma decimal y convierte "" en NaN.
@@ -1194,9 +1213,12 @@ function adminHTML(citas, vista = 'proximas', nAcabadas = 0) {
     // tecleando en el formulario). Sin sonido, sin popups, sin notificaciones:
     // en el mostrador serían ruido. Un fallo de red se ignora en silencio y se
     // reintenta en el siguiente ciclo.
-    function textoAcabadas(n) {
-      return n === 1 ? '1 coche acabado · llamar al cliente'
-                     : n + ' coches acabados · llamar al cliente';
+    function textoAcabadas(a, i) {
+      var acabados = a === 1 ? '1 coche acabado' : a + ' coches acabados';
+      var conIncid = i === 1 ? '1 coche con incidencia' : i + ' coches con incidencia';
+      if (a > 0 && i > 0) return acabados + ' · ' + i + ' con incidencia — llamar al cliente';
+      if (i > 0) return conIncid + ' · llamar al cliente';
+      return acabados + ' · llamar al cliente';
     }
     // Título tal cual lo pintó el servidor; se restaura cuando n vuelve a 0.
     var tituloOriginal = document.title;
@@ -1205,13 +1227,16 @@ function adminHTML(citas, vista = 'proximas', nAcabadas = 0) {
         var res = await fetch('/admin/acabadas', { cache: 'no-store' });
         if (!res.ok) return;
         var data = await res.json();
-        var n = Number(data && data.n);
-        if (!Number.isFinite(n)) return;
+        var a = Number(data && data.acabadas);
+        var i = Number(data && data.incidencias);
+        if (!Number.isFinite(a) || !Number.isFinite(i)) return;
+        // Título y badge suman los dos tipos; la banda los distingue.
+        var n = a + i;
         // 1) Banda amarilla: es lo que funciona hoy y va PRIMERO, antes del
         //    título y del badge, para que un fallo de estos no la deje sin pintar.
         var banda = document.getElementById('aviso-acabadas');
         if (n > 0) {
-          banda.textContent = textoAcabadas(n);
+          banda.textContent = textoAcabadas(a, i);
           banda.classList.remove('hidden');
         } else {
           banda.classList.add('hidden');
@@ -1400,6 +1425,17 @@ function tallerHTML(citas, fecha, esManana = false, token = null) {
   // Si la cita ya trae kilómetros (puestos por Vicky), el campo sale
   // rellenado. OJO: el required es SOLO del HTML; el servidor acepta la cita
   // sin kilómetros a propósito (ver POST /taller/acabar).
+  // Segunda fila: campo "Qué pasa" + botón rojo "NO SE HACE" (POST
+  // /taller/incidencia): el mecánico abre el coche y el trabajo no se puede
+  // hacer; así avisa a Vicky desde la pantalla sin ir al mostrador. Va en un
+  // <form> SEPARADO del de ACABADO, con sus propios hidden: si compartieran
+  // formulario, el 'required' de los KM bloquearía el botón rojo y al revés.
+  // Siempre visible, sin desplegable ni JS (la pantalla pasa semanas
+  // encendida). Pesa MENOS que la fila de ACABADO (altura, fuente y botón
+  // menores): es la excepción, se lee como pie de la tarjeta, no como una
+  // segunda acción principal.
+  // En POR LLEGAR no hay formularios: solo el texto "Aún no ha llegado" en
+  // gris, en el hueco de las acciones. En MAÑANA no sale nada (conBoton).
   const tarjeta = (c) => {
     // Solo el nombre de pila: lo anterior al primer espacio del nombre
     // completo. Sin espacio, el nombre entero.
@@ -1414,14 +1450,20 @@ function tallerHTML(citas, fecha, esManana = false, token = null) {
           ${c.detalle ? `<div class="detalle">${escapeHtml(c.detalle)}</div>` : ''}
           ${c.matricula || c.vehiculo ? `<div class="coche">${c.matricula ? `<span class="matricula">${escapeHtml(c.matricula)}</span>` : ''}${c.vehiculo ? escapeHtml(c.vehiculo) : ''}</div>` : ''}
         </div>
-        ${conBoton ? `<form method="post" action="/taller/acabar" class="acabar">
-          <input type="hidden" name="k" value="${tokenEsc}">
-          <input type="hidden" name="id" value="${escapeHtml(c.id)}">
-          ${enTaller
-            ? `<input type="text" name="kilometros" class="km" inputmode="numeric" pattern="[0-9]{1,7}" maxlength="7" placeholder="KM" required autocomplete="off" aria-label="Kilómetros" value="${escapeHtml(c.kilometros || '')}">
-          <button type="submit">ACABADO</button>`
-            : '<button type="submit" disabled>SIN LLEGAR</button>'}
-        </form>` : ''}
+        ${!conBoton ? '' : enTaller ? `<div class="acciones">
+          <form method="post" action="/taller/acabar" class="accion acabar">
+            <input type="hidden" name="k" value="${tokenEsc}">
+            <input type="hidden" name="id" value="${escapeHtml(c.id)}">
+            <input type="text" name="kilometros" class="campo" inputmode="numeric" pattern="[0-9]{1,7}" maxlength="7" placeholder="KM" required autocomplete="off" aria-label="Kilómetros" value="${escapeHtml(c.kilometros || '')}">
+            <button type="submit">ACABADO</button>
+          </form>
+          <form method="post" action="/taller/incidencia" class="accion incidencia">
+            <input type="hidden" name="k" value="${tokenEsc}">
+            <input type="hidden" name="id" value="${escapeHtml(c.id)}">
+            <input type="text" name="motivo" class="campo motivo" maxlength="100" placeholder="Qué pasa" required autocomplete="off" aria-label="Motivo de la incidencia">
+            <button type="submit">NO SE HACE</button>
+          </form>
+        </div>` : `<div class="acciones"><span class="sin-llegar">Aún no ha llegado</span></div>`}
       </div>`;
   };
 
@@ -1562,17 +1604,20 @@ function tallerHTML(citas, fecha, esManana = false, token = null) {
       margin-right: .6rem;
     }
     .datos { flex: 1; min-width: 0; }
-    /* Botón ACABADO: pegado a la DERECHA de la tarjeta (margin-left:auto),
-       separado de los datos para que no se pulse al mirar la pantalla.
-       Grande a propósito: se pulsa con el dedo, en tablet a un metro o en
-       móvil, a veces con las manos sucias. Verde #15803D sobre blanco:
-       contraste 4.7:1. touch-action:manipulation quita el retardo de
-       doble-tap en táctil. */
-    .acabar { margin-left: auto; flex-shrink: 0; display: flex; align-items: center; gap: .8rem; }
-    /* Campo KM: misma altura que el botón y tipografía grande, se teclea en
-       una tablet con las manos sucias. Fondo oscuro sobre la tarjeta, borde
-       que pasa a amarillo con el foco. Sin flechas ni autocompletado. */
-    .acabar .km {
+    /* Acciones (dos filas: KM + ACABADO, motivo + NO SE HACE): pegadas a la
+       DERECHA de la tarjeta (margin-left:auto), separadas de los datos para
+       que no se pulsen al mirar la pantalla. Botones grandes a propósito: se
+       pulsan con el dedo, en tablet a un metro o en móvil, a veces con las
+       manos sucias. Verde #15803D sobre blanco: contraste 4.7:1.
+       touch-action:manipulation quita el retardo de doble-tap en táctil. */
+    .acciones { margin-left: auto; flex-shrink: 0; display: flex; flex-direction: column; gap: .8rem; }
+    .accion { display: flex; align-items: center; gap: .8rem; }
+    /* Campos KM y motivo: tienen que parecer CAMPOS, no botones. Fondo
+       blanco muy translúcido (más claro que la tarjeta), SIN borde completo:
+       solo una línea inferior de 2px que se vuelve amarilla con el foco, como
+       una raya donde escribir. El de KM es alto y con tipografía grande: se
+       teclea en una tablet con las manos sucias. Sin autocompletado. */
+    .accion .campo {
       display: block;
       width: 9.5rem;
       min-height: 5.5rem;
@@ -1583,14 +1628,28 @@ function tallerHTML(citas, fecha, esManana = false, token = null) {
       font-variant-numeric: tabular-nums;
       text-align: center;
       color: #fff;
-      background: #060D1F;
-      border: 2px solid rgba(255,255,255,.25);
-      border-radius: 12px;
+      background: rgba(255,255,255,.07);
+      border: 0;
+      border-bottom: 2px solid rgba(255,255,255,.35);
+      border-radius: 8px 8px 0 0;
       outline: none;
     }
-    .acabar .km::placeholder { color: #8fa3c7; font-weight: 700; letter-spacing: .08em; }
-    .acabar .km:focus { border-color: #FFD700; box-shadow: 0 0 0 3px rgba(255,215,0,.25); }
-    .acabar button {
+    .accion .campo::placeholder { color: #8fa3c7; font-weight: 700; letter-spacing: .08em; }
+    .accion .campo:focus { background: rgba(255,255,255,.11); border-bottom-color: #FFD700; }
+    /* Campo motivo: texto libre, no un número. Más ancho que el de KM (con
+       9.5rem el placeholder "Qué pasa" se cortaba), alineado a la izquierda,
+       más bajo y con fuente menor: la fila entera pesa menos (ver abajo). */
+    .accion .campo.motivo {
+      min-width: 18rem;
+      width: auto;
+      min-height: 3.2rem;
+      padding: 0 .8rem;
+      text-align: left;
+      font-size: 1.25rem;
+      font-weight: 600;
+    }
+    .accion .campo.motivo::placeholder { font-weight: 600; letter-spacing: .02em; }
+    .accion button {
       display: block;
       min-height: 5.5rem;
       min-width: 13rem;
@@ -1607,21 +1666,37 @@ function tallerHTML(citas, fecha, esManana = false, token = null) {
       touch-action: manipulation;
       -webkit-tap-highlight-color: transparent;
     }
-    .acabar button:hover { background: #16A34A; }
-    .acabar button:active { background: #166534; transform: scale(.97); }
-    /* "SIN LLEGAR" ('confirmada'): el mismo botón, desactivado. Gris
-       apagado, sin hover ni active, cursor not-allowed. Solo evita el toque
-       accidental: el servidor sigue aceptando 'confirmada' (ver
-       POST /taller/acabar). Los selectores :disabled:hover / :disabled:active
-       ganan por especificidad a los de arriba, no por orden. */
-    .acabar button:disabled,
-    .acabar button:disabled:hover,
-    .acabar button:disabled:active {
+    .accion button:hover { background: #16A34A; }
+    .accion button:active { background: #166534; transform: scale(.97); }
+    /* "NO SE HACE": JERARQUÍA. ACABADO es lo que pasa casi siempre; esto es
+       la excepción, así que pesa menos: 3.2rem de alto frente a 5.5rem,
+       fuente menor y botón más estrecho. Sigue en ROJO porque es una alerta
+       (#B91C1C sobre blanco: contraste 5.9:1), solo baja su peso. */
+    .incidencia button {
+      min-height: 3.2rem;
+      min-width: 0;
+      padding: 0 1.1rem;
+      font-size: 1.1rem;
+      font-weight: 800;
+      letter-spacing: .06em;
+      background: #B91C1C;
+      border-width: 1px;
+      border-radius: 8px;
+    }
+    .incidencia button:hover { background: #DC2626; }
+    .incidencia button:active { background: #991B1B; }
+    /* POR LLEGAR ('confirmada'): sin formularios ni botones, solo un texto
+       discreto en gris en el hueco de las acciones. El servidor sigue
+       aceptando 'confirmada' a propósito (ver POST /taller/acabar): si hace
+       falta, Vicky marca 'atendida' desde el panel y la tarjeta pasa al
+       bloque EN EL TALLER en el siguiente refresco. */
+    .sin-llegar {
+      display: block;
+      text-align: right;
       color: #8fa3c7;
-      background: #1F2A44;
-      border-color: rgba(255,255,255,.08);
-      cursor: not-allowed;
-      transform: none;
+      font-size: 1.4rem;
+      font-weight: 600;
+      letter-spacing: .04em;
     }
     .vacio {
       background: #0D1B3E;
@@ -1653,10 +1728,16 @@ function tallerHTML(citas, fecha, esManana = false, token = null) {
       .servicio { font-size: 1.2rem; }
       .detalle { font-size: 1.05rem; }
       .coche { font-size: 1.1rem; }
-      /* El botón pasa a ancho completo BAJO los datos, no a la derecha. */
-      .acabar { width: 100%; margin-left: 0; margin-top: .4rem; flex-direction: column; align-items: stretch; gap: .6rem; }
-      .acabar .km { width: 100%; min-height: 4.4rem; font-size: 1.6rem; }
-      .acabar button { width: 100%; min-height: 4.4rem; font-size: 1.6rem; }
+      /* Las acciones pasan a ancho completo BAJO los datos, no a la derecha. */
+      .acciones { width: 100%; margin-left: 0; margin-top: .4rem; gap: .6rem; }
+      .accion { flex-direction: column; align-items: stretch; gap: .6rem; }
+      .accion .campo { width: 100%; min-height: 4.4rem; font-size: 1.6rem; }
+      .accion button { width: 100%; min-height: 4.4rem; font-size: 1.6rem; }
+      /* La jerarquía se mantiene: la fila de ACABADO grande, la de NO SE
+         HACE más baja y con fuente menor, ambas a ancho completo. */
+      .accion .campo.motivo { min-width: 0; width: 100%; min-height: 3rem; font-size: 1.15rem; }
+      .incidencia button { min-height: 3rem; font-size: 1.05rem; }
+      .sin-llegar { text-align: left; font-size: 1.15rem; }
     }
   </style>
 </head>
@@ -1708,7 +1789,8 @@ const server = http.createServer(async (req, res) => {
 
   // GET /taller — pantalla del taller (citas de HOY aún en el taller:
   // 'confirmada' o 'atendida'; si no queda ninguna, las de MAÑANA — ver más
-  // abajo). Solo lectura salvo el botón "ACABADO" (POST /taller/acabar).
+  // abajo). Solo lectura salvo los botones "ACABADO" (POST /taller/acabar)
+  // y "NO SE HACE" (POST /taller/incidencia).
   // RUTA PÚBLICA a propósito, FUERA del bloque /admin: NO usa checkAuth,
   // porque una pantalla permanentemente logueada con auth básica daría el
   // panel completo a cualquiera que se sentara delante. Autoriza por token
@@ -1728,8 +1810,9 @@ const server = http.createServer(async (req, res) => {
     const citas = readCitas();
     // 'confirmada' (aún no ha llegado) y 'atendida' (el coche YA está en el
     // taller): al recibir el coche la cita debe seguir en pantalla, que es
-    // justo cuando el mecánico la necesita. 'acabada' sale de la pantalla
-    // (el trabajo terminó); 'pagada' y 'cancelada' tampoco se muestran.
+    // justo cuando el mecánico la necesita. 'acabada' e 'incidencia' salen
+    // de la pantalla (el trabajo terminó o no se puede hacer: en ambos casos
+    // Vicky llama al cliente); 'pagada' y 'cancelada' tampoco se muestran.
     const EN_TALLER = ['confirmada', 'atendida'];
     const visiblesDe = (dia) => citas
       .filter(c => c.fecha === dia && EN_TALLER.includes(c.estado))
@@ -1758,39 +1841,49 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // POST /taller/acabar — la ÚNICA escritura desde la pantalla del taller.
-  // Ruta pública, FUERA del bloque /admin, con el MISMO TALLER_TOKEN (aquí
-  // en el body, campo hidden del formulario) y el MISMO safeEqual que GET
-  // /taller. Endpoint lo más ESTRECHO posible: pasa a 'acabada' (solo desde
-  // 'confirmada' o 'atendida') y, si vienen, guarda los kilómetros; no edita
-  // ningún otro campo, no borra, no retrocede y no devuelve datos de la cita.
-  // Si el token se filtrara, el daño máximo es marcar citas como acabadas y
-  // pisar sus kilómetros: molesto y reversible en dos clics desde el panel.
-  // Token ausente/incorrecto, TALLER_TOKEN sin definir o body ilegible → el
-  // MISMO 404 genérico que GET /taller, nunca 401: la ruta no revela que
-  // existe. Sin isSameOrigin: el secreto es el token, y quien lo tenga puede
-  // llamar directamente igual.
-  if (req.method === 'POST' && p === '/taller/acabar') {
+  // Escrituras desde la pantalla del taller: POST /taller/acabar y POST
+  // /taller/incidencia. Rutas públicas, FUERA del bloque /admin, con el MISMO
+  // TALLER_TOKEN (aquí en el body, campo hidden del formulario) y el MISMO
+  // safeEqual que GET /taller. Comparten esta preparación:
+  //  - Token ausente/incorrecto, TALLER_TOKEN sin definir o body ilegible
+  //    (BODY_TOO_LARGE y null: sin body legible no hay token que validar;
+  //    parseBody drena el stream aunque supere el tope, así que no hace
+  //    falta cerrar la conexión) → el MISMO 404 genérico que GET /taller,
+  //    nunca 401: la ruta no revela que existe. Sin isSameOrigin: el secreto
+  //    es el token, y quien lo tenga puede llamar directamente igual.
+  //  - Errores DESPUÉS de validar el token (404 cita / 409 estado): HTML
+  //    mínimo que vuelve solo a la pantalla en 4 s. Un texto plano dejaría
+  //    la pantalla clavada en el error, sin meta refresh, hasta que alguien
+  //    tocara. No incluye ningún dato de la cita.
+  // Devuelve null si ya se ha respondido el 404; si no, { body, volver,
+  // errorHtml } para que cada endpoint aplique sus propias reglas.
+  const prepararEscrituraTaller = async () => {
     const token = process.env.TALLER_TOKEN;
     const body = await parseBody(req);
-    // BODY_TOO_LARGE y null caen aquí también: sin body legible no hay token
-    // que validar. parseBody drena el stream aunque supere el tope, así que
-    // no hace falta cerrar la conexión.
     const k = body && body !== BODY_TOO_LARGE ? body.k : undefined;
     if (!token || typeof k !== 'string' || !safeEqual(k, token)) {
       res.writeHead(404, { 'Content-Type': 'text/plain' });
       res.end('Not found');
-      return;
+      return null;
     }
     const volver = `/taller?k=${encodeURIComponent(k)}`;
-    // Errores DESPUÉS de validar el token (404 cita / 409 estado): HTML
-    // mínimo que vuelve solo a la pantalla en 4 s. Un texto plano dejaría la
-    // pantalla clavada en el error, sin meta refresh, hasta que alguien
-    // tocara. No incluye ningún dato de la cita.
     const errorHtml = (status, msg) => {
       res.writeHead(status, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' });
       res.end(`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta http-equiv="refresh" content="4; url=${escapeHtml(volver)}"><title>${escapeHtml(msg)}</title><style>body{background:#060D1F;color:#fff;font-family:system-ui,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;padding:2rem;font-size:2rem;text-align:center}a{color:#FFD700}</style></head><body><p>${escapeHtml(msg)}<br><a href="${escapeHtml(volver)}">Volver a la pantalla</a></p></body></html>`);
     };
+    return { body, volver, errorHtml };
+  };
+
+  // POST /taller/acabar — botón "ACABADO". Endpoint lo más ESTRECHO posible:
+  // pasa a 'acabada' (solo desde 'confirmada' o 'atendida') y, si vienen,
+  // guarda los kilómetros; no edita ningún otro campo, no borra, no
+  // retrocede y no devuelve datos de la cita. Si el token se filtrara, el
+  // daño máximo es marcar citas de hoy como acabadas y pisar sus kilómetros:
+  // molesto y reversible en dos clics desde el panel.
+  if (req.method === 'POST' && p === '/taller/acabar') {
+    const prep = await prepararEscrituraTaller();
+    if (!prep) return;
+    const { body, volver, errorHtml } = prep;
     // Lectura fresca y parcheo de UN SOLO registro (regla del proyecto), y
     // solo de 'estado' y, si vienen, 'kilometros': ni id, ni creadaEn, ni
     // recordatorioEnviado ni nada más.
@@ -1825,6 +1918,44 @@ const server = http.createServer(async (req, res) => {
     }
     cita.estado = 'acabada';
     if (km) cita.kilometros = km;
+    writeCitas(citas);
+    // 302 a la pantalla con el mismo token: se refresca sola tras pulsar.
+    res.writeHead(302, { Location: volver, 'Cache-Control': 'no-store' });
+    res.end();
+    return;
+  }
+
+  // POST /taller/incidencia — botón "NO SE HACE": el coche está en el taller
+  // y el trabajo NO se puede hacer. Clon de POST /taller/acabar con las
+  // mismas reglas (mismo token, mismo 404 genérico, solo desde 'confirmada'
+  // o 'atendida', solo citas de HOY, 409 en cualquier otro caso) pero pasa a
+  // 'incidencia' y guarda el motivo. NO pide kilómetros: si el trabajo no se
+  // hace, no aplican. Si el token se filtrara, el daño máximo es marcar
+  // citas de hoy con incidencia: reversible desde el desplegable del panel.
+  if (req.method === 'POST' && p === '/taller/incidencia') {
+    const prep = await prepararEscrituraTaller();
+    if (!prep) return;
+    const { body, volver, errorHtml } = prep;
+    // Lectura fresca y parcheo de UN SOLO registro (regla del proyecto), y
+    // solo de 'estado' y, si viene, 'motivo': nada más.
+    const citas = readCitas();
+    const cita = citas.find(c => c.id === body.id);
+    if (!cita) {
+      errorHtml(404, 'Esa cita ya no existe');
+      return;
+    }
+    if (!['confirmada', 'atendida'].includes(cita.estado) || cita.fecha !== hoyMadrid()) {
+      errorHtml(409, 'Esa cita ya no está en el taller');
+      return;
+    }
+    // Motivo: texto libre, trim y máximo 100 caracteres (mismo tope que
+    // 'detalle'). Vacío o ausente → se marca 'incidencia' IGUALMENTE y
+    // cita.motivo no se toca: el 'required' es SOLO del HTML, mismo criterio
+    // que con los kilómetros en /taller/acabar. NO añadir aquí validación
+    // de obligatoriedad.
+    const motivo = typeof body.motivo === 'string' ? body.motivo.trim().slice(0, 100) : '';
+    cita.estado = 'incidencia';
+    if (motivo) cita.motivo = motivo;
     writeCitas(citas);
     // 302 a la pantalla con el mismo token: se refresca sola tras pulsar.
     res.writeHead(302, { Location: volver, 'Cache-Control': 'no-store' });
@@ -1914,12 +2045,13 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
-    // GET /admin/acabadas — sondeo del panel cada 30 s. Devuelve SOLO el
-    // número de citas en 'acabada': ni nombres, ni teléfonos, ni ids. Hereda
-    // auth y rate-limit del bloque /admin; al ser GET no pasa por isSameOrigin.
+    // GET /admin/acabadas — sondeo del panel cada 10 s. Devuelve SOLO los dos
+    // números { acabadas, incidencias }: ni nombres, ni teléfonos, ni ids.
+    // Hereda auth y rate-limit del bloque /admin; al ser GET no pasa por
+    // isSameOrigin.
     if (req.method === 'GET' && p === '/admin/acabadas') {
       res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
-      res.end(JSON.stringify({ n: contarAcabadas(readCitas()) }));
+      res.end(JSON.stringify(contarAcabadas(readCitas())));
       return;
     }
 
@@ -1950,20 +2082,20 @@ const server = http.createServer(async (req, res) => {
       // Filtros solo por comparación de strings ISO, sin new Date():
       //  - proximas: hoy y siguientes, ascendente (por defecto).
       //  - hoy:      solo la fecha de hoy, ascendente.
-      //  - llamar:   solo 'acabada', sin filtrar por fecha, ascendente.
+      //  - llamar:   'acabada' e 'incidencia', sin filtrar por fecha, ascendente.
       //  - mes:      mismo 'YYYY-MM' que hoy (prefijo), ascendente.
       //  - todas:    histórico completo, DESCENDENTE (lo más reciente arriba).
       const FILTRO = {
         proximas: c => c.fecha >= hoy,
         hoy:      c => c.fecha === hoy,
-        llamar:   c => c.estado === 'acabada',
+        llamar:   c => c.estado === 'acabada' || c.estado === 'incidencia',
         mes:      c => String(c.fecha).slice(0, 7) === hoy.slice(0, 7),
         todas:    () => true,
       };
       const visibles = citas.filter(FILTRO[vista])
         .sort(vista === 'todas' ? (a, b) => cmpAsc(b, a) : cmpAsc);
       res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-      // nAcabadas sobre el array COMPLETO, no sobre 'visibles' (excluye pasadas).
+      // Pendientes sobre el array COMPLETO, no sobre 'visibles' (excluye pasadas).
       res.end(adminHTML(visibles, vista, contarAcabadas(citas)));
       return;
     }
@@ -2030,12 +2162,14 @@ const server = http.createServer(async (req, res) => {
         res.end(JSON.stringify({ ok: false, error: 'Cita no encontrada' }));
         return;
       }
-      // Ciclo real: confirmada → atendida → acabada → pagada, más cancelada.
-      // 'pendiente' se conserva solo por datos históricos.
-      const validos = ['pendiente', 'confirmada', 'atendida', 'acabada', 'pagada', 'cancelada'];
+      // Ciclo real: confirmada → atendida → acabada → pagada, más cancelada
+      // (no vino) e incidencia (salida lateral: el coche está en el taller y
+      // el trabajo no se puede hacer; NO está en SIGUIENTE_ESTADO a
+      // propósito). 'pendiente' se conserva solo por datos históricos.
+      const validos = ['pendiente', 'confirmada', 'atendida', 'acabada', 'incidencia', 'pagada', 'cancelada'];
       if (!validos.includes(body.estado)) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ ok: false, error: 'Estado inválido: debe ser pendiente, confirmada, atendida, acabada, pagada o cancelada' }));
+        res.end(JSON.stringify({ ok: false, error: 'Estado inválido: debe ser pendiente, confirmada, atendida, acabada, incidencia, pagada o cancelada' }));
         return;
       }
       cita.estado = body.estado;
