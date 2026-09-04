@@ -737,8 +737,10 @@ function validarCita(body, permitirPasado = false) {
 // Más 'cancelada' (no vino) y 'pendiente' (solo datos históricos).
 // El botón ✓ del listado avanza UN paso según esta tabla; 'pagada',
 // 'cancelada' y 'pendiente' no tienen siguiente → sin botón. Retroceder o
-// cancelar se hace desde el desplegable.
-const SIGUIENTE_ESTADO = { confirmada: 'atendida', atendida: 'acabada', acabada: 'pagada' };
+// cancelar se hace desde el desplegable. 'llamado' = Vicky ya avisó al
+// cliente, falta que venga a recoger y pagar; desde 'incidencia' también se
+// pasa a 'llamado' (el cliente tiene que enterarse igual).
+const SIGUIENTE_ESTADO = { confirmada: 'atendida', atendida: 'acabada', acabada: 'llamado', incidencia: 'llamado', llamado: 'pagada' };
 
 // Citas pendientes de llamar al cliente: 'acabada' (trabajo terminado) e
 // 'incidencia' (el coche está en el taller y el trabajo NO se puede hacer;
@@ -777,14 +779,16 @@ function adminHTML(citas, vista = 'proximas', pendientes = { acabadas: 0, incide
   const nPendientes = pendientes.acabadas + pendientes.incidencias;
   // 'acabada' en amarillo sólido e 'incidencia' en rojo sólido (las dos
   // reclaman acción), 'pagada' gris apagado (ciclo cerrado), 'atendida' azul
-  // (coche en el taller), 'cancelada' rojo apagado (distinto del sólido de
-  // 'incidencia'). 'pendiente' cae al amarillo oscuro de siempre, distinto
-  // del sólido de 'acabada'.
+  // (coche en el taller), 'llamado' azul apagado (cliente avisado, ya no
+  // reclama acción; distinto del gris de 'pagada'), 'cancelada' rojo apagado
+  // (distinto del sólido de 'incidencia'). 'pendiente' cae al amarillo oscuro
+  // de siempre, distinto del sólido de 'acabada'.
   const estadoBadge = e =>
     e === 'confirmada' ? 'bg-green-900/50 text-green-400 border border-green-700/50' :
     e === 'atendida'   ? 'bg-blue-900/50 text-blue-300 border border-blue-700/50' :
     e === 'acabada'    ? 'bg-[#FFD700] text-[#060D1F] border border-[#FFD700]' :
     e === 'incidencia' ? 'bg-red-600 text-white border border-red-600' :
+    e === 'llamado'    ? 'bg-slate-800/50 text-slate-400 border border-slate-600/50' :
     e === 'pagada'     ? 'bg-gray-900/50 text-gray-500 border border-gray-700/50' :
     e === 'cancelada'  ? 'bg-red-900/50 text-red-400 border border-red-700/50' :
                          'bg-yellow-900/50 text-yellow-400 border border-yellow-700/50';
@@ -801,9 +805,13 @@ function adminHTML(citas, vista = 'proximas', pendientes = { acabadas: 0, incide
       //  - 'pagada': atenuada + nombre tachado (ciclo cerrado). Hora, servicio
       //    y acciones siguen legibles; no se oculta ni cambia de posición.
       //  - 'cancelada': solo atenuada.
-      //  - 'confirmada' y 'atendida' (coche en el taller): sin adorno.
+      //  - 'confirmada', 'atendida' (coche en el taller) y 'llamado' (cliente
+      //    ya avisado): sin adorno.
       const acabada = c.estado === 'acabada';
       const incidencia = c.estado === 'incidencia';
+      // El motivo de la incidencia se sigue mostrando en 'llamado': si la cita
+      // viene de un problema, el rastro no desaparece al llamar al cliente.
+      const conMotivo = incidencia || c.estado === 'llamado';
       const pagada = c.estado === 'pagada';
       const claseFila = acabada
         ? ' border-l-4 border-l-[#FFD700] bg-[#FFD700]/5'
@@ -852,7 +860,7 @@ function adminHTML(citas, vista = 'proximas', pendientes = { acabadas: 0, incide
           <div class="text-gray-300">${escapeHtml(fechaCorta(c.fecha))}</div>
           <div class="text-[#FFD700] font-bold text-base mt-0.5">${escapeHtml(c.hora)}</div>
         </td>
-        <td class="px-4 py-3 text-gray-300">${escapeHtml(c.servicio)}${c.detalle ? `<div class="text-xs text-gray-500 mt-0.5">${escapeHtml(c.detalle)}</div>` : ''}${incidencia && c.motivo ? `<div class="text-xs text-red-400/80 mt-0.5">${escapeHtml(c.motivo)}</div>` : ''}</td>
+        <td class="px-4 py-3 text-gray-300">${escapeHtml(c.servicio)}${c.detalle ? `<div class="text-xs text-gray-500 mt-0.5">${escapeHtml(c.detalle)}</div>` : ''}${conMotivo && c.motivo ? `<div class="text-xs text-red-400/80 mt-0.5">${escapeHtml(c.motivo)}</div>` : ''}</td>
         <td class="px-4 py-3 whitespace-nowrap">${c.matricula ? `<div class="text-white font-semibold">${escapeHtml(c.matricula)}</div>` : ''}${lineaVehiculo ? `<div class="text-xs text-gray-500${c.matricula ? ' mt-0.5' : ''}">${lineaVehiculo}</div>` : ''}</td>
         <td class="px-4 py-3 text-right whitespace-nowrap">${c.precio ? `<div class="text-gray-300">${escapeHtml(c.precio)} €</div>` : ''}</td>
         <td class="px-4 py-3">
@@ -865,6 +873,7 @@ function adminHTML(citas, vista = 'proximas', pendientes = { acabadas: 0, incide
               <option ${c.estado === 'confirmada' ? 'selected' : ''}>confirmada</option>
               <option ${c.estado === 'atendida'   ? 'selected' : ''}>atendida</option>
               <option ${c.estado === 'acabada'    ? 'selected' : ''}>acabada</option>
+              <option ${c.estado === 'llamado'    ? 'selected' : ''}>llamado</option>
               <option ${c.estado === 'incidencia' ? 'selected' : ''}>incidencia</option>
               <option ${c.estado === 'pagada'     ? 'selected' : ''}>pagada</option>
               <option ${c.estado === 'cancelada'  ? 'selected' : ''}>cancelada</option>
@@ -2162,14 +2171,14 @@ const server = http.createServer(async (req, res) => {
         res.end(JSON.stringify({ ok: false, error: 'Cita no encontrada' }));
         return;
       }
-      // Ciclo real: confirmada → atendida → acabada → pagada, más cancelada
-      // (no vino) e incidencia (salida lateral: el coche está en el taller y
-      // el trabajo no se puede hacer; NO está en SIGUIENTE_ESTADO a
-      // propósito). 'pendiente' se conserva solo por datos históricos.
-      const validos = ['pendiente', 'confirmada', 'atendida', 'acabada', 'incidencia', 'pagada', 'cancelada'];
+      // Ciclo real: confirmada → atendida → acabada → llamado → pagada, más
+      // cancelada (no vino) e incidencia (salida lateral: el coche está en el
+      // taller y el trabajo no se puede hacer; desde ahí también se avanza a
+      // 'llamado'). 'pendiente' se conserva solo por datos históricos.
+      const validos = ['pendiente', 'confirmada', 'atendida', 'acabada', 'llamado', 'incidencia', 'pagada', 'cancelada'];
       if (!validos.includes(body.estado)) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ ok: false, error: 'Estado inválido: debe ser pendiente, confirmada, atendida, acabada, incidencia, pagada o cancelada' }));
+        res.end(JSON.stringify({ ok: false, error: 'Estado inválido: debe ser pendiente, confirmada, atendida, acabada, llamado, incidencia, pagada o cancelada' }));
         return;
       }
       cita.estado = body.estado;
