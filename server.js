@@ -1006,19 +1006,19 @@ function adminHTML(citas, vista = 'proximas', pendientes = { acabadas: 0, incide
       ].filter(Boolean).join(' · ');
       return `
       <tr class="border-b border-white/5 hover:bg-white/5 transition-colors${claseFila}">
-        <td class="px-4 py-3 text-white font-medium${pagada ? ' line-through' : ''}">${escapeHtml(c.nombre)}</td>
-        <td class="px-4 py-3 text-gray-300">${c.telefono ? escapeHtml(c.telefono) : '<span class="text-gray-500">—</span>'}</td>
-        <td class="px-4 py-3 whitespace-nowrap">
+        <td data-label="Nombre" class="px-4 py-3 text-white font-medium${pagada ? ' line-through' : ''}">${escapeHtml(c.nombre)}</td>
+        <td data-label="Teléfono" class="px-4 py-3 text-gray-300">${c.telefono ? escapeHtml(c.telefono) : '<span class="text-gray-500">—</span>'}</td>
+        <td data-label="Fecha y hora" class="px-4 py-3 whitespace-nowrap">
           <div class="text-gray-300">${escapeHtml(fechaCorta(c.fecha))}</div>
           <div class="text-[#FFD700] font-bold text-base mt-0.5">${escapeHtml(c.hora)}</div>
         </td>
-        <td class="px-4 py-3 text-gray-300">${escapeHtml(c.servicio)}${c.detalle ? `<div class="text-xs text-gray-500 mt-0.5">${escapeHtml(c.detalle)}</div>` : ''}${conMotivo && c.motivo ? `<div class="text-xs text-red-400/80 mt-0.5">${escapeHtml(c.motivo)}</div>` : ''}</td>
-        <td class="px-4 py-3 whitespace-nowrap">${c.matricula ? `<div class="text-white font-semibold">${escapeHtml(c.matricula)}</div>` : ''}${lineaVehiculo ? `<div class="text-xs text-gray-500${c.matricula ? ' mt-0.5' : ''}">${lineaVehiculo}</div>` : ''}</td>
-        <td class="px-4 py-3 text-right whitespace-nowrap">${c.precio ? `<div class="text-gray-300">${escapeHtml(c.precio)} €</div>` : ''}</td>
-        <td class="px-4 py-3">
+        <td data-label="Servicio" class="px-4 py-3 text-gray-300">${escapeHtml(c.servicio)}${c.detalle ? `<div class="text-xs text-gray-500 mt-0.5">${escapeHtml(c.detalle)}</div>` : ''}${conMotivo && c.motivo ? `<div class="text-xs text-red-400/80 mt-0.5">${escapeHtml(c.motivo)}</div>` : ''}</td>
+        <td data-label="Vehículo" class="px-4 py-3 whitespace-nowrap">${c.matricula ? `<div class="text-white font-semibold">${escapeHtml(c.matricula)}</div>` : ''}${lineaVehiculo ? `<div class="text-xs text-gray-500${c.matricula ? ' mt-0.5' : ''}">${lineaVehiculo}</div>` : ''}</td>
+        <td data-label="Precio" class="px-4 py-3 text-right whitespace-nowrap">${c.precio ? `<div class="text-gray-300">${escapeHtml(c.precio)} €</div>` : ''}</td>
+        <td data-label="Estado" class="px-4 py-3">
           <span class="px-2 py-1 rounded-full text-xs font-medium ${estadoBadge(c.estado)}">${escapeHtml(c.estado)}</span>
         </td>
-        <td class="px-4 py-3 flex items-center gap-2">
+        <td data-label="Acciones" class="px-4 py-3 flex items-center gap-2">
           <form method="post" action="/admin/cita/${id}/estado" class="inline">
             <select name="estado" onchange="this.form.submit()" class="text-xs bg-[#060D1F] border border-white/10 text-gray-300 rounded-lg px-2 py-1.5 cursor-pointer focus:outline-none focus:border-[#2563EB]">
               ${c.estado === 'pendiente' ? '<option selected>pendiente</option>' : ''}
@@ -1060,7 +1060,7 @@ function adminHTML(citas, vista = 'proximas', pendientes = { acabadas: 0, incide
   // banda de acabados y botón "+ Nueva cita" son comunes a todas las vistas.
   const listado = `
     <div class="bg-[#0D1B3E] rounded-xl overflow-x-auto border border-white/5">
-      <table class="w-full text-sm">
+      <table id="tabla-citas" class="w-full text-sm">
         <thead>
           <tr class="border-b border-white/10">
             <th class="px-4 py-3.5 text-left text-xs font-semibold text-[#FFD700] uppercase tracking-wider">Nombre</th>
@@ -1093,6 +1093,7 @@ function adminHTML(citas, vista = 'proximas', pendientes = { acabadas: 0, incide
   <meta name="theme-color" content="#060D1F">
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
+    body { font-family: Arial, Helvetica, sans-serif; }
     /* Los inputs date/time usan controles nativos: sin color-scheme, el
        navegador los dibuja en tema claro (icono oscuro sobre navy = invisible)
        y el desplegable del calendario sale blanco. */
@@ -1105,9 +1106,55 @@ function adminHTML(citas, vista = 'proximas', pendientes = { acabadas: 0, incide
     }
     #nc-fecha:hover::-webkit-calendar-picker-indicator,
     #nc-hora:hover::-webkit-calendar-picker-indicator { opacity: 1; }
+
+    /* ── Móvil (≤700px): cabecera apilada, banda compacta y listado en
+       tarjetas. Acotado a #tabla-citas: la rejilla del calendario queda
+       fuera (necesita otro tratamiento). Los !important vencen a las
+       clases utilitarias de Tailwind sin tocar el HTML de escritorio. ── */
+    @media (max-width: 700px) {
+      body { padding: .75rem !important; }
+      header { flex-direction: column; align-items: stretch; gap: 1rem; margin-bottom: 1.25rem !important; }
+      header > div:last-child { flex-wrap: wrap; }
+      header select { font-size: .875rem; padding: .5rem .6rem; }
+      /* Banda: igual de amarilla, más compacta (a text-lg ocupaba 5 líneas). */
+      #aviso-acabadas { display: block; font-size: .9rem; line-height: 1.3; padding: .45rem .75rem; }
+      /* Formulario de nueva cita: a dos columnas en 380px los campos quedan inservibles. */
+      #nueva-cita-form .grid-cols-2 { grid-template-columns: 1fr; }
+      /* Listado: cada <tr> es una tarjeta; cada <td>, una línea "ETIQUETA  valor". */
+      #tabla-citas, #tabla-citas tbody, #tabla-citas tr, #tabla-citas td { display: block; width: 100%; }
+      #tabla-citas thead { display: none; }
+      #tabla-citas tr { padding: .5rem 0; }
+      #tabla-citas td {
+        position: relative;
+        padding: .3rem 1rem .3rem 7.25rem;
+        text-align: left !important;
+        white-space: normal !important;
+      }
+      #tabla-citas td::before {
+        content: attr(data-label);
+        position: absolute; left: 1rem; top: .3rem; width: 5.75rem;
+        font-size: .7rem; font-weight: 600; text-transform: uppercase; letter-spacing: .05em;
+        line-height: 1.6; color: #FFD700;
+      }
+      #tabla-citas td:empty { display: none; }              /* precio/vehículo vacíos: sin etiqueta huérfana */
+      #tabla-citas td[colspan] { padding-left: 1rem; }      /* fila "Sin citas registradas" */
+      #tabla-citas td[colspan]::before { content: none; }
+      /* Acciones: etiqueta arriba y botones envueltos, a tamaño de dedo. */
+      #tabla-citas td[data-label="Acciones"] {
+        display: flex !important; flex-wrap: wrap; align-items: center; gap: .5rem;
+        padding: .5rem 1rem .75rem;
+      }
+      #tabla-citas td[data-label="Acciones"]::before { position: static; width: 100%; }
+      #tabla-citas td[data-label="Acciones"] button,
+      #tabla-citas td[data-label="Acciones"] a,
+      #tabla-citas td[data-label="Acciones"] span,
+      #tabla-citas td[data-label="Acciones"] select {
+        font-size: .875rem; min-height: 2.5rem; padding: .5rem .9rem;
+      }
+    }
   </style>
 </head>
-<body class="bg-[#060D1F] min-h-screen p-6 font-sans">
+<body class="bg-[#060D1F] min-h-screen p-6">
   <div class="max-w-6xl mx-auto">
     <header class="flex items-center justify-between mb-8">
       <div>
