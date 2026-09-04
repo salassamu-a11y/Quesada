@@ -944,6 +944,15 @@ function adminHTML(citas, vista = 'proximas', pendientes = { acabadas: 0, incide
   vista = resolverVista(vista);
   const esCalendario = vista === VISTA_CALENDARIO;
   const nPendientes = pendientes.acabadas + pendientes.incidencias;
+  const hoy = hoyMadrid();   // formato YYYY-MM-DD, seguro para interpolar
+  const semana = esCalendario ? (lunes || lunesDe(hoy)) : null;
+
+  // Campos hidden que comparten el desplegable de estado y el botón ✓: la
+  // vista activa (y la semana, en calendario) para que POST /admin/cita/:id/estado
+  // devuelva a la misma pantalla en vez de a /admin a secas. Hoy el calendario
+  // no pinta formularios; si algún día los tuviera, la semana ya viajaría.
+  const camposVista = `<input type="hidden" name="vista" value="${vista}">`
+    + (semana ? `<input type="hidden" name="semana" value="${semana}">` : '');
 
   const rows = citas.length === 0
     ? '<tr><td colspan="8" class="px-4 py-8 text-center text-gray-500">Sin citas registradas</td></tr>'
@@ -976,6 +985,7 @@ function adminHTML(citas, vista = 'proximas', pendientes = { acabadas: 0, incide
       const accionTic = siguiente
         ? `<form method="post" action="/admin/cita/${id}/estado" class="inline">
             <input type="hidden" name="estado" value="${siguiente}">
+            ${camposVista}
             <button type="submit" title="Marcar como ${siguiente}" aria-label="Marcar como ${siguiente}"
                     class="text-xs bg-white/5 hover:bg-[#FFD700]/20 text-[#FFD700] border border-[#FFD700]/40 px-3 py-1.5 rounded-lg transition-colors font-bold">✓</button>
           </form>`
@@ -1005,7 +1015,7 @@ function adminHTML(citas, vista = 'proximas', pendientes = { acabadas: 0, incide
         c.kilometros ? `${escapeHtml(c.kilometros)} km` : ''
       ].filter(Boolean).join(' · ');
       return `
-      <tr class="border-b border-white/5 hover:bg-white/5 transition-colors${claseFila}">
+      <tr id="cita-${id}" class="border-b border-white/5 hover:bg-white/5 transition-colors${claseFila}">
         <td data-label="Nombre" class="px-4 py-3 text-white font-medium${pagada ? ' line-through' : ''}">${escapeHtml(c.nombre)}</td>
         <td data-label="Teléfono" class="px-4 py-3 text-gray-300">${c.telefono ? escapeHtml(c.telefono) : '<span class="text-gray-500">—</span>'}</td>
         <td data-label="Fecha y hora" class="px-4 py-3 whitespace-nowrap">
@@ -1020,6 +1030,7 @@ function adminHTML(citas, vista = 'proximas', pendientes = { acabadas: 0, incide
         </td>
         <td data-label="Acciones" class="px-4 py-3 flex items-center gap-2">
           <form method="post" action="/admin/cita/${id}/estado" class="inline">
+            ${camposVista}
             <select name="estado" onchange="this.form.submit()" class="text-xs bg-[#060D1F] border border-white/10 text-gray-300 rounded-lg px-2 py-1.5 cursor-pointer focus:outline-none focus:border-[#2563EB]">
               ${c.estado === 'pendiente' ? '<option selected>pendiente</option>' : ''}
               <option ${c.estado === 'confirmada' ? 'selected' : ''}>confirmada</option>
@@ -1052,8 +1063,6 @@ function adminHTML(citas, vista = 'proximas', pendientes = { acabadas: 0, incide
     }).join('');
 
   const taller = escapeHtml(process.env.TALLER_NOMBRE || 'Panel de Citas');
-  const hoy = hoyMadrid();   // formato YYYY-MM-DD, seguro para interpolar
-  const semana = esCalendario ? (lunes || lunesDe(hoy)) : null;
 
   // Cuerpo bajo el formulario: la tabla del listado, o la rejilla semanal en
   // la vista 'calendario' (vista completa, sin la tabla debajo). Cabecera,
@@ -2442,7 +2451,17 @@ const server = http.createServer(async (req, res) => {
       }
       cita.estado = body.estado;
       writeCitas(citas);
-      res.writeHead(302, { Location: '/admin' });
+      // Vuelta a la misma vista (y semana) desde la que se cambió el estado,
+      // con ancla en la fila tocada para que el navegador conserve la altura
+      // en vez de saltar al principio. Vista desconocida → 'proximas', igual
+      // que GET /admin (resolverVista); la semana solo viaja en el calendario
+      // y pasa por lunesDesdeParam (malformada → semana en curso).
+      const q = new URLSearchParams();
+      const vistaVuelta = resolverVista(body.vista);
+      if (vistaVuelta !== 'proximas') q.set('ver', vistaVuelta);
+      if (vistaVuelta === VISTA_CALENDARIO) q.set('semana', lunesDesdeParam(body.semana));
+      const query = q.toString();
+      res.writeHead(302, { Location: `/admin${query ? `?${query}` : ''}#cita-${encodeURIComponent(cita.id)}` });
       res.end();
       return;
     }
