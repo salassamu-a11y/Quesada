@@ -686,13 +686,20 @@ function horarioTaller(fecha, hora) {
 // izquierda perdidos, ni "" convertido en 0, ni un precio redondeado por
 // Number(). Ausente o no-string → ''. La usan validarCita, POST y PUT:
 // una única normalización, sin copias.
+// Valores cerrados de los dos <select> nuevos del panel. Vacío también vale.
+const FORMAS_PAGO    = ['tarjeta', 'efectivo', 'transferencia'];
+const TIPOS_VEHICULO = ['turismo', 'furgoneta', 'moto'];
+
 function camposVehiculo(body) {
   const s = v => (typeof v === 'string' ? v.trim() : '');
   return {
-    matricula:  s(body.matricula).replace(/\s+/g, '').toUpperCase(),
-    vehiculo:   s(body.vehiculo),
-    kilometros: s(body.kilometros),
-    precio:     s(body.precio),
+    matricula:    s(body.matricula).replace(/\s+/g, '').toUpperCase(),
+    vehiculo:     s(body.vehiculo),
+    kilometros:   s(body.kilometros),
+    precio:       s(body.precio),
+    pago:         s(body.pago),
+    tipoVehiculo: s(body.tipoVehiculo),
+    factura:      s(body.factura),
   };
 }
 
@@ -759,6 +766,13 @@ function validarCita(body, permitirPasado = false) {
       return 'El precio solo admite dígitos con coma o punto decimal (ej. 45,50)';
     }
   }
+  if (cv.pago && !FORMAS_PAGO.includes(cv.pago)) {
+    return 'La forma de pago debe ser tarjeta, efectivo o transferencia';
+  }
+  if (cv.tipoVehiculo && !TIPOS_VEHICULO.includes(cv.tipoVehiculo)) {
+    return 'El tipo de vehículo debe ser turismo, furgoneta o moto';
+  }
+  if (cv.factura.length > 20) return 'El número de factura no puede superar los 20 caracteres';
 
   return null;
 }
@@ -887,8 +901,13 @@ function calendarioHTML(citas, lunes, hoy) {
     const cerrada = c.estado === 'pagada' || c.estado === 'cancelada';
     const nombre = c.estado === 'pagada' ? `<span class="line-through">${escapeHtml(c.nombre)}</span>` : escapeHtml(c.nombre);
     const cuando = `${conFecha ? escapeHtml(fechaCorta(c.fecha)) + ' ' : ''}${escapeHtml(c.hora)}`;
+    // Tercera línea con el detalle (medida, tipo de vehículo...) si existe:
+    // menor que el servicio y apagado, y en UNA sola línea con puntos
+    // suspensivos (`truncate`): un detalle largo descuadraría la rejilla de
+    // cinco columnas. El texto completo va en el title del bloque.
+    const detalle = c.detalle ? `<div class="truncate text-[10px] opacity-60">${escapeHtml(c.detalle)}</div>` : '';
     return `<div class="rounded px-1.5 py-1 text-[11px] leading-tight ${estadoBadge(c.estado)}${cerrada ? ' opacity-50' : ''}" title="${escapeHtml(c.estado)}${c.detalle ? ' · ' + escapeHtml(c.detalle) : ''}">
-      <span class="font-bold">${cuando}</span> ${nombre}<br><span class="opacity-80">${escapeHtml(c.servicio)}</span></div>`;
+      <span class="font-bold">${cuando}</span> ${nombre}<br><span class="opacity-80">${escapeHtml(c.servicio)}</span>${detalle}</div>`;
   };
   // Columna de HOY: bordes laterales amarillos en cada celda (el encabezado
   // va en amarillo sólido). Franja cerrada: fondo oscurecido.
@@ -1011,8 +1030,14 @@ function adminHTML(citas, vista = 'proximas', pendientes = { acabadas: 0, incide
       // Los km van aquí y no bajo el precio: son datos del coche, y sueltos en
       // la columna PRECIO (gris, a la derecha) no se entendía qué eran.
       const lineaVehiculo = [
+        c.tipoVehiculo ? escapeHtml(c.tipoVehiculo) : '',
         c.vehiculo ? escapeHtml(c.vehiculo) : '',
         c.kilometros ? `${escapeHtml(c.kilometros)} km` : ''
+      ].filter(Boolean).join(' · ');
+      // Línea 2 de la columna PRECIO: "pago · fra. NNN", mismo patrón.
+      const lineaPago = [
+        c.pago ? escapeHtml(c.pago) : '',
+        c.factura ? `fra. ${escapeHtml(c.factura)}` : ''
       ].filter(Boolean).join(' · ');
       return `
       <tr id="cita-${id}" class="border-b border-white/5 hover:bg-white/5 transition-colors${claseFila}">
@@ -1024,9 +1049,9 @@ function adminHTML(citas, vista = 'proximas', pendientes = { acabadas: 0, incide
         </td>
         <td data-label="Servicio" class="px-4 py-3 text-gray-300">${escapeHtml(c.servicio)}${c.detalle ? `<div class="text-xs text-gray-500 mt-0.5">${escapeHtml(c.detalle)}</div>` : ''}${conMotivo && c.motivo ? `<div class="text-xs text-red-400/80 mt-0.5">${escapeHtml(c.motivo)}</div>` : ''}</td>
         <td data-label="Vehículo" class="px-4 py-3 whitespace-nowrap">${c.matricula ? `<div class="text-white font-semibold">${escapeHtml(c.matricula)}</div>` : ''}${lineaVehiculo ? `<div class="text-xs text-gray-500${c.matricula ? ' mt-0.5' : ''}">${lineaVehiculo}</div>` : ''}</td>
-        <td data-label="Precio" class="px-4 py-3 text-right whitespace-nowrap">${c.precio ? `<div class="text-gray-300">${escapeHtml(c.precio)} €</div>` : ''}</td>
+        <td data-label="Precio" class="px-4 py-3 text-right whitespace-nowrap">${c.precio ? `<div class="text-gray-300">${escapeHtml(c.precio)} €</div>` : ''}${lineaPago ? `<div class="text-xs text-gray-500${c.precio ? ' mt-0.5' : ''}">${lineaPago}</div>` : ''}</td>
         <td data-label="Estado" class="px-4 py-3">
-          <span class="px-2 py-1 rounded-full text-xs font-medium ${estadoBadge(c.estado)}">${escapeHtml(c.estado)}</span>
+          <span class="px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap ${estadoBadge(c.estado)}">${escapeHtml(c.estado)}${pagada && c.pago ? ` · ${escapeHtml(c.pago)}` : ''}</span>
         </td>
         <td data-label="Acciones" class="px-4 py-3 flex items-center gap-2">
           <form method="post" action="/admin/cita/${id}/estado" class="inline">
@@ -1056,6 +1081,9 @@ function adminHTML(citas, vista = 'proximas', pendientes = { acabadas: 0, incide
                   data-vehiculo="${escapeHtml(c.vehiculo || '')}"
                   data-kilometros="${escapeHtml(c.kilometros || '')}"
                   data-precio="${escapeHtml(c.precio || '')}"
+                  data-pago="${escapeHtml(c.pago || '')}"
+                  data-tipo-vehiculo="${escapeHtml(c.tipoVehiculo || '')}"
+                  data-factura="${escapeHtml(c.factura || '')}"
                   class="text-xs bg-white/5 hover:bg-white/10 text-gray-300 border border-white/10 px-3 py-1.5 rounded-lg transition-colors font-medium">Editar</button>
           <button onclick="eliminarCita('${id}')" class="text-xs bg-red-900/50 hover:bg-red-800/60 text-red-400 border border-red-700/50 px-3 py-1.5 rounded-lg transition-colors font-medium">Eliminar</button>
         </td>
@@ -1232,6 +1260,15 @@ function adminHTML(citas, vista = 'proximas', pendientes = { acabadas: 0, incide
             <input id="nc-detalle" type="text" maxlength="100" placeholder="4 ruedas, 205/55 R16" class="w-full bg-[#060D1F] border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#2563EB]">
           </div>
           <div>
+            <label class="block text-xs text-gray-400 mb-1.5 uppercase tracking-wide">Tipo de vehículo</label>
+            <select id="nc-tipo-vehiculo" class="w-full bg-[#060D1F] border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-[#2563EB]">
+              <option value="">— Sin especificar —</option>
+              <option value="turismo">Turismo</option>
+              <option value="furgoneta">Furgoneta</option>
+              <option value="moto">Moto</option>
+            </select>
+          </div>
+          <div>
             <label class="block text-xs text-gray-400 mb-1.5 uppercase tracking-wide">Vehículo</label>
             <input id="nc-vehiculo" type="text" maxlength="60" placeholder="Golf blanco" class="w-full bg-[#060D1F] border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#2563EB]">
           </div>
@@ -1249,6 +1286,19 @@ function adminHTML(citas, vista = 'proximas', pendientes = { acabadas: 0, incide
           <div>
             <label class="block text-xs text-gray-400 mb-1.5 uppercase tracking-wide">Precio (€)</label>
             <input id="nc-precio" type="text" inputmode="decimal" maxlength="10" placeholder="45,50" class="w-full bg-[#060D1F] border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#2563EB]">
+          </div>
+          <div>
+            <label class="block text-xs text-gray-400 mb-1.5 uppercase tracking-wide">Forma de pago</label>
+            <select id="nc-pago" class="w-full bg-[#060D1F] border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-[#2563EB]">
+              <option value="">— Sin especificar —</option>
+              <option value="tarjeta">Tarjeta</option>
+              <option value="efectivo">Efectivo</option>
+              <option value="transferencia">Transferencia</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs text-gray-400 mb-1.5 uppercase tracking-wide">Nº factura</label>
+            <input id="nc-factura" type="text" maxlength="20" placeholder="2026-0123" class="w-full bg-[#060D1F] border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#2563EB]">
           </div>
         </div>
         <div class="mt-5 flex gap-3">
@@ -1269,7 +1319,8 @@ ${cuerpo}
     function resetFormularioCita() {
       citaEditandoId = null;
       ['nc-nombre', 'nc-telefono', 'nc-fecha', 'nc-hora', 'nc-detalle',
-       'nc-matricula', 'nc-vehiculo', 'nc-kilometros', 'nc-precio'].forEach(function (id) {
+       'nc-matricula', 'nc-vehiculo', 'nc-kilometros', 'nc-precio',
+       'nc-pago', 'nc-tipo-vehiculo', 'nc-factura'].forEach(function (id) {
         document.getElementById(id).value = '';
       });
       var sel = document.getElementById('nc-servicio');
@@ -1318,6 +1369,9 @@ ${cuerpo}
       document.getElementById('nc-vehiculo').value   = d.vehiculo;
       document.getElementById('nc-kilometros').value = d.kilometros;
       document.getElementById('nc-precio').value     = d.precio;
+      document.getElementById('nc-pago').value          = d.pago;
+      document.getElementById('nc-tipo-vehiculo').value = d.tipoVehiculo;
+      document.getElementById('nc-factura').value       = d.factura;
       var sel = document.getElementById('nc-servicio');
       sel.value = d.servicio;
       if (d.servicio && sel.value !== d.servicio) {
@@ -1408,6 +1462,9 @@ ${cuerpo}
       const vehiculo   = document.getElementById('nc-vehiculo').value;
       const kilometros = document.getElementById('nc-kilometros').value;
       const precio     = document.getElementById('nc-precio').value;
+      const pago         = document.getElementById('nc-pago').value;
+      const tipoVehiculo = document.getElementById('nc-tipo-vehiculo').value;
+      const factura      = document.getElementById('nc-factura').value;
       const errEl    = document.getElementById('nc-error');
 
       if (!nombre || !fecha || !hora || !servicio) {
@@ -1422,7 +1479,7 @@ ${cuerpo}
       const res = await fetch(editando ? '/admin/cita/' + citaEditandoId : '/admin/cita', {
         method: editando ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nombre, telefono, fecha, hora, servicio, detalle, matricula, vehiculo, kilometros, precio })
+        body: JSON.stringify({ nombre, telefono, fecha, hora, servicio, detalle, matricula, vehiculo, kilometros, precio, pago, tipoVehiculo, factura })
       });
 
       if (res.ok) {
@@ -1684,7 +1741,7 @@ function tallerHTML(citas, fecha, esManana = false, token = null) {
           <div class="nombre">${escapeHtml(pila)}${enTaller ? '<span class="etiqueta">EN TALLER</span>' : ''}</div>
           <div class="servicio">${escapeHtml(c.servicio)}</div>
           ${c.detalle ? `<div class="detalle">${escapeHtml(c.detalle)}</div>` : ''}
-          ${c.matricula || c.vehiculo ? `<div class="coche">${c.matricula ? `<span class="matricula">${escapeHtml(c.matricula)}</span>` : ''}${c.vehiculo ? escapeHtml(c.vehiculo) : ''}</div>` : ''}
+          ${c.matricula || c.vehiculo || c.tipoVehiculo ? `<div class="coche">${c.matricula ? `<span class="matricula">${escapeHtml(c.matricula)}</span>` : ''}${[c.tipoVehiculo, c.vehiculo].filter(Boolean).map(escapeHtml).join(' · ')}</div>` : ''}
         </div>
         ${!conBoton ? '' : enTaller ? `<div class="acciones">
           <form method="post" action="/taller/acabar" class="accion acabar">
@@ -2416,7 +2473,7 @@ const server = http.createServer(async (req, res) => {
         hora: body.hora || '',
         servicio: body.servicio || '',
         detalle: typeof body.detalle === 'string' ? body.detalle.trim() : '',
-        ...camposVehiculo(body),   // matricula, vehiculo, kilometros, precio
+        ...camposVehiculo(body),   // matricula, vehiculo, kilometros, precio, pago, tipoVehiculo, factura
         mensaje: '',
         estado: 'confirmada',
         recordatorioEnviado: false,
@@ -2535,7 +2592,7 @@ const server = http.createServer(async (req, res) => {
       cita.hora     = body.hora || '';
       cita.servicio = body.servicio || '';
       cita.detalle  = typeof body.detalle === 'string' ? body.detalle.trim() : '';
-      Object.assign(cita, camposVehiculo(body));   // matricula, vehiculo, kilometros, precio
+      Object.assign(cita, camposVehiculo(body));   // matricula, vehiculo, kilometros, precio, pago, tipoVehiculo, factura
       writeCitas(citas);
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ ok: true }));
