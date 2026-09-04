@@ -798,15 +798,26 @@ function textoAcabadas(a, i) {
 
 // Vistas del listado (?ver=). Clave → etiqueta del <select> y del contador.
 // El orden del objeto es el orden de las opciones. Valor desconocido → 'proximas'.
-// 'calendario' no pinta la tabla: pinta la rejilla semanal (calendarioHTML) y
-// admite &semana=YYYY-MM-DD (lunes de la semana a mostrar).
+// 'calendario' NO está aquí a propósito: no es un filtro del listado sino una
+// vista aparte (rejilla semanal, calendarioHTML, admite &semana=YYYY-MM-DD),
+// con botón propio en la cabecera. Sigue siendo un ?ver= válido: la
+// resolución la hace resolverVista(), única fuente de verdad para el handler
+// y para adminHTML, para que no caiga en el fallback a 'proximas'.
 const VISTAS = {
-  proximas:   'Próximas',
-  hoy:        'Hoy',
-  llamar:     'Pendientes de llamar',
-  calendario: 'Calendario',
-  todas:      'Todas',
+  proximas: 'Próximas',
+  hoy:      'Hoy',
+  llamar:   'Pendientes de llamar',
+  todas:    'Todas',
 };
+const VISTA_CALENDARIO = 'calendario';
+const ETIQUETA_CALENDARIO = 'Calendario';
+// ?ver= → vista válida. Las de VISTAS o 'calendario' pasan tal cual;
+// cualquier otro valor (o ninguno) → 'proximas'.
+function resolverVista(ver) {
+  // hasOwnProperty, no VISTAS[ver]: '?ver=toString' o 'constructor' casan
+  // con el prototipo y llegarían a citas.filter(undefined) → 500.
+  return Object.prototype.hasOwnProperty.call(VISTAS, ver) || ver === VISTA_CALENDARIO ? ver : 'proximas';
+}
 
 // Clases del badge de estado (listado) y del fondo de cada cita (calendario).
 // 'acabada' en amarillo sólido e 'incidencia' en rojo sólido (las dos
@@ -930,7 +941,8 @@ function calendarioHTML(citas, lunes, hoy) {
 // 'lunes' solo se usa con vista 'calendario' (lunes de la semana a pintar);
 // si falta, cae en la semana en curso.
 function adminHTML(citas, vista = 'proximas', pendientes = { acabadas: 0, incidencias: 0 }, lunes = null) {
-  if (!VISTAS[vista]) vista = 'proximas';
+  vista = resolverVista(vista);
+  const esCalendario = vista === VISTA_CALENDARIO;
   const nPendientes = pendientes.acabadas + pendientes.incidencias;
 
   const rows = citas.length === 0
@@ -1041,7 +1053,7 @@ function adminHTML(citas, vista = 'proximas', pendientes = { acabadas: 0, incide
 
   const taller = escapeHtml(process.env.TALLER_NOMBRE || 'Panel de Citas');
   const hoy = hoyMadrid();   // formato YYYY-MM-DD, seguro para interpolar
-  const semana = vista === 'calendario' ? (lunes || lunesDe(hoy)) : null;
+  const semana = esCalendario ? (lunes || lunesDe(hoy)) : null;
 
   // Cuerpo bajo el formulario: la tabla del listado, o la rejilla semanal en
   // la vista 'calendario' (vista completa, sin la tabla debajo). Cabecera,
@@ -1107,11 +1119,18 @@ function adminHTML(citas, vista = 'proximas', pendientes = { acabadas: 0, incide
         <div id="aviso-acabadas" class="${nPendientes > 0 ? '' : 'hidden'} mt-3 inline-block bg-[#FFD700] text-[#060D1F] text-lg font-bold px-5 py-2.5 rounded-lg" aria-live="polite">${textoAcabadas(pendientes.acabadas, pendientes.incidencias)}</div>
       </div>
       <div class="flex items-center gap-3">
+        <!-- En la vista de calendario ninguna opción coincide: se antepone
+             un placeholder deshabilitado y seleccionado ("Listado") para que
+             el <select> no muestre "Próximas" como si fuera la vista activa. -->
         <select onchange="location.href = this.value === 'proximas' ? '/admin' : '/admin?ver=' + this.value" aria-label="Vista del listado" class="text-xs bg-[#060D1F] border border-white/10 text-gray-300 rounded-lg px-2 py-1.5 cursor-pointer focus:outline-none focus:border-[#2563EB]">
+          ${esCalendario ? '<option value="" disabled selected hidden>Listado</option>' : ''}
           ${Object.entries(VISTAS).map(([k, label]) => `<option value="${k}"${k === vista ? ' selected' : ''}>${label}</option>`).join('')}
         </select>
+        <!-- Calendario: vista aparte, no un filtro del listado. Mismo estilo
+             que "Recordatorios de mañana"; activo → borde y texto resaltados. -->
+        <a href="/admin?ver=calendario"${esCalendario ? ' aria-current="page"' : ''} class="${esCalendario ? 'bg-white/10 text-white border-[#FFD700]/60' : 'bg-[#0D1B3E] hover:bg-white/10 text-gray-300 border-white/10'} border text-sm font-semibold px-5 py-2.5 rounded-lg transition-colors">${ETIQUETA_CALENDARIO}</a>
         <a href="/admin/backup" download class="text-sm text-gray-400 hover:text-white transition-colors">Descargar copia de seguridad</a>
-        <span class="bg-[#0D1B3E] text-gray-400 text-sm px-4 py-2 rounded-full border border-white/10">${VISTAS[vista]}: ${citas.length} cita${citas.length !== 1 ? 's' : ''}</span>
+        <span class="bg-[#0D1B3E] text-gray-400 text-sm px-4 py-2 rounded-full border border-white/10">${esCalendario ? ETIQUETA_CALENDARIO : VISTAS[vista]}: ${citas.length} cita${citas.length !== 1 ? 's' : ''}</span>
       </div>
     </header>
 
@@ -1581,15 +1600,20 @@ function tallerHTML(citas, fecha, esManana = false, token = null) {
   // Si la cita ya trae kilómetros (puestos por Vicky), el campo sale
   // rellenado. OJO: el required es SOLO del HTML; el servidor acepta la cita
   // sin kilómetros a propósito (ver POST /taller/acabar).
-  // Segunda fila: campo "Qué pasa" + botón rojo "NO SE HACE" (POST
-  // /taller/incidencia): el mecánico abre el coche y el trabajo no se puede
-  // hacer; así avisa a Vicky desde la pantalla sin ir al mostrador. Va en un
-  // <form> SEPARADO del de ACABADO, con sus propios hidden: si compartieran
-  // formulario, el 'required' de los KM bloquearía el botón rojo y al revés.
-  // Siempre visible, sin desplegable ni JS (la pantalla pasa semanas
-  // encendida). Pesa MENOS que la fila de ACABADO (altura, fuente y botón
-  // menores): es la excepción, se lee como pie de la tarjeta, no como una
-  // segunda acción principal.
+  // Segunda fila: botón rojo "NO SE HACE" que DESPLIEGA el campo "Qué pasa"
+  // + botón rojo "CONFIRMAR" (POST /taller/incidencia): el mecánico abre el
+  // coche y el trabajo no se puede hacer; así avisa a Vicky desde la pantalla
+  // sin ir al mostrador. Va en un <form> SEPARADO del de ACABADO, con sus
+  // propios hidden: si compartieran formulario, el 'required' de los KM
+  // bloquearía el botón rojo y al revés.
+  // El desplegable es CSS PURO, SIN JS (la pantalla pasa semanas encendida y
+  // no puede depender de un script vivo): "NO SE HACE" es un <label> de un
+  // <input type="checkbox"> oculto (id único por cita, FUERA del form y sin
+  // name: nunca viaja en el body). Con :checked ~ se esconde el label y
+  // aparece el form de incidencia. No hace falta poder plegarlo: el refresco
+  // de 60 s devuelve la tarjeta al estado inicial. Pesa MENOS que la fila de
+  // ACABADO (altura, fuente y botón menores): es la excepción, se lee como
+  // pie de la tarjeta, no como una segunda acción principal.
   // En POR LLEGAR no hay formularios: solo el texto "Aún no ha llegado" en
   // gris, en el hueco de las acciones. En MAÑANA no sale nada (conBoton).
   const tarjeta = (c) => {
@@ -1613,11 +1637,13 @@ function tallerHTML(citas, fecha, esManana = false, token = null) {
             <input type="text" name="kilometros" class="campo" inputmode="numeric" pattern="[0-9]{1,7}" maxlength="7" placeholder="KM" required autocomplete="off" aria-label="Kilómetros" value="${escapeHtml(c.kilometros || '')}">
             <button type="submit">ACABADO</button>
           </form>
+          <input type="checkbox" id="inc-${escapeHtml(c.id)}" class="inc-toggle" aria-label="Indicar que no se hace">
+          <label for="inc-${escapeHtml(c.id)}" class="inc-abrir">NO SE HACE</label>
           <form method="post" action="/taller/incidencia" class="accion incidencia">
             <input type="hidden" name="k" value="${tokenEsc}">
             <input type="hidden" name="id" value="${escapeHtml(c.id)}">
             <input type="text" name="motivo" class="campo motivo" maxlength="100" placeholder="Qué pasa" required autocomplete="off" aria-label="Motivo de la incidencia">
-            <button type="submit">NO SE HACE</button>
+            <button type="submit">CONFIRMAR</button>
           </form>
         </div>` : `<div class="acciones"><span class="sin-llegar">Aún no ha llegado</span></div>`}
       </div>`;
@@ -1760,14 +1786,37 @@ function tallerHTML(citas, fecha, esManana = false, token = null) {
       margin-right: .6rem;
     }
     .datos { flex: 1; min-width: 0; }
-    /* Acciones (dos filas: KM + ACABADO, motivo + NO SE HACE): pegadas a la
+    /* Acciones (dos filas: KM + ACABADO, motivo + CONFIRMAR): pegadas a la
        DERECHA de la tarjeta (margin-left:auto), separadas de los datos para
        que no se pulsen al mirar la pantalla. Botones grandes a propósito: se
        pulsan con el dedo, en tablet a un metro o en móvil, a veces con las
        manos sucias. Verde #15803D sobre blanco: contraste 4.7:1.
-       touch-action:manipulation quita el retardo de doble-tap en táctil. */
-    .acciones { margin-left: auto; flex-shrink: 0; display: flex; flex-direction: column; gap: .8rem; }
-    .accion { display: flex; align-items: center; gap: .8rem; }
+       touch-action:manipulation quita el retardo de doble-tap en táctil.
+       GRID de dos columnas FIJAS (campo | botón) y los <form> con
+       display:contents, para que KM y motivo compartan columna y ACABADO,
+       NO SE HACE y CONFIRMAR queden alineados a la derecha. Anchos fijos a
+       propósito: al desplegar el motivo nada se mueve. position:relative
+       contiene al checkbox oculto (absolute). */
+    .acciones {
+      position: relative;
+      margin-left: auto;
+      flex-shrink: 0;
+      display: grid;
+      grid-template-columns: 14rem 13rem;
+      align-items: center;
+      gap: .8rem;
+    }
+    .accion { display: contents; }
+    /* Desplegable sin JS: checkbox oculto pero ENFOCABLE (nada de
+       display:none, que lo saca del tabulador): absolute + opacity 0. Al
+       marcarlo, :checked ~ esconde el label y muestra el form de incidencia.
+       Foco por teclado visible sobre el label (:focus-visible + label). */
+    .inc-toggle { position: absolute; width: 1px; height: 1px; opacity: 0; overflow: hidden; pointer-events: none; }
+    .inc-abrir { grid-column: 2; }
+    .incidencia { display: none; }
+    .inc-toggle:checked ~ .inc-abrir { display: none; }
+    .inc-toggle:checked ~ .incidencia { display: contents; }
+    .inc-toggle:focus-visible + .inc-abrir { outline: 3px solid #FFD700; outline-offset: 2px; }
     /* Campos KM y motivo: tienen que parecer CAMPOS, no botones. Fondo
        blanco muy translúcido (más claro que la tarjeta), SIN borde completo:
        solo una línea inferior de 2px que se vuelve amarilla con el foco, como
@@ -1775,7 +1824,7 @@ function tallerHTML(citas, fecha, esManana = false, token = null) {
        teclea en una tablet con las manos sucias. Sin autocompletado. */
     .accion .campo {
       display: block;
-      width: 9.5rem;
+      width: 100%;
       min-height: 5.5rem;
       padding: 0 1rem;
       font: inherit;
@@ -1792,23 +1841,33 @@ function tallerHTML(citas, fecha, esManana = false, token = null) {
     }
     .accion .campo::placeholder { color: #8fa3c7; font-weight: 700; letter-spacing: .08em; }
     .accion .campo:focus { background: rgba(255,255,255,.11); border-bottom-color: #FFD700; }
-    /* Campo motivo: texto libre, no un número. Más ancho que el de KM (con
-       9.5rem el placeholder "Qué pasa" se cortaba), alineado a la izquierda,
-       más bajo y con fuente menor: la fila entera pesa menos (ver abajo). */
+    /* Campo motivo: texto libre, no un número. Misma columna (y ancho) que
+       el de KM, alineado a la izquierda, más bajo y con fuente menor: la
+       fila entera pesa menos (ver abajo). */
     .accion .campo.motivo {
-      min-width: 18rem;
-      width: auto;
       min-height: 3.2rem;
       padding: 0 .8rem;
       text-align: left;
       font-size: 1.25rem;
       font-weight: 600;
+      /* En reposo casi una línea: sin fondo y borde inferior apenas visible.
+         Casi nunca se usa y competía con KM y el botón. Al foco recupera el
+         fondo translúcido y el borde amarillo de 2px ("se enciende"). */
+      background: transparent;
+      border-bottom: 1px solid rgba(255,255,255,.14);
+      transition: background .15s, border-color .15s;
     }
-    .accion .campo.motivo::placeholder { font-weight: 600; letter-spacing: .02em; }
-    .accion button {
-      display: block;
+    .accion .campo.motivo::placeholder { font-weight: 600; letter-spacing: .02em; color: #55688a; }
+    .accion .campo.motivo:focus {
+      background: rgba(255,255,255,.11);
+      border-bottom: 2px solid #FFD700;
+    }
+    .accion button, .inc-abrir {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
       min-height: 5.5rem;
-      min-width: 13rem;
       padding: 0 2.2rem;
       font: inherit;
       font-size: 1.9rem;
@@ -1824,13 +1883,12 @@ function tallerHTML(citas, fecha, esManana = false, token = null) {
     }
     .accion button:hover { background: #16A34A; }
     .accion button:active { background: #166534; transform: scale(.97); }
-    /* "NO SE HACE": JERARQUÍA. ACABADO es lo que pasa casi siempre; esto es
-       la excepción, así que pesa menos: 3.2rem de alto frente a 5.5rem,
-       fuente menor y botón más estrecho. Sigue en ROJO porque es una alerta
+    /* "NO SE HACE" (label) y "CONFIRMAR": JERARQUÍA. ACABADO es lo que pasa
+       casi siempre; esto es la excepción, así que pesa menos: 3.2rem de alto
+       frente a 5.5rem y fuente menor. Sigue en ROJO porque es una alerta
        (#B91C1C sobre blanco: contraste 5.9:1), solo baja su peso. */
-    .incidencia button {
+    .inc-abrir, .incidencia button {
       min-height: 3.2rem;
-      min-width: 0;
       padding: 0 1.1rem;
       font-size: 1.1rem;
       font-weight: 800;
@@ -1839,8 +1897,8 @@ function tallerHTML(citas, fecha, esManana = false, token = null) {
       border-width: 1px;
       border-radius: 8px;
     }
-    .incidencia button:hover { background: #DC2626; }
-    .incidencia button:active { background: #991B1B; }
+    .inc-abrir:hover, .incidencia button:hover { background: #DC2626; }
+    .inc-abrir:active, .incidencia button:active { background: #991B1B; }
     /* POR LLEGAR ('confirmada'): sin formularios ni botones, solo un texto
        discreto en gris en el hueco de las acciones. El servidor sigue
        aceptando 'confirmada' a propósito (ver POST /taller/acabar): si hace
@@ -1885,14 +1943,16 @@ function tallerHTML(citas, fecha, esManana = false, token = null) {
       .detalle { font-size: 1.05rem; }
       .coche { font-size: 1.1rem; }
       /* Las acciones pasan a ancho completo BAJO los datos, no a la derecha. */
-      .acciones { width: 100%; margin-left: 0; margin-top: .4rem; gap: .6rem; }
-      .accion { flex-direction: column; align-items: stretch; gap: .6rem; }
-      .accion .campo { width: 100%; min-height: 4.4rem; font-size: 1.6rem; }
-      .accion button { width: 100%; min-height: 4.4rem; font-size: 1.6rem; }
+      /* Una sola columna: KM, ACABADO, NO SE HACE y, al desplegar, motivo y
+         CONFIRMAR, todo a ancho completo en ese orden. */
+      .acciones { width: 100%; margin-left: 0; margin-top: .4rem; grid-template-columns: 1fr; gap: .6rem; }
+      .inc-abrir { grid-column: 1; }
+      .accion .campo { min-height: 4.4rem; font-size: 1.6rem; }
+      .accion button { min-height: 4.4rem; font-size: 1.6rem; }
       /* La jerarquía se mantiene: la fila de ACABADO grande, la de NO SE
          HACE más baja y con fuente menor, ambas a ancho completo. */
-      .accion .campo.motivo { min-width: 0; width: 100%; min-height: 3rem; font-size: 1.15rem; }
-      .incidencia button { min-height: 3rem; font-size: 1.05rem; }
+      .accion .campo.motivo { min-height: 3rem; font-size: 1.15rem; }
+      .inc-abrir, .incidencia button { min-height: 3rem; font-size: 1.05rem; }
       .sin-llegar { text-align: left; font-size: 1.15rem; }
     }
   </style>
@@ -2229,13 +2289,13 @@ const server = http.createServer(async (req, res) => {
     if (req.method === 'GET' && p === '/admin') {
       const citas = readCitas();
       // Valor desconocido o ausente → vista por defecto ('proximas').
-      const ver = url.searchParams.get('ver');
-      const vista = VISTAS[ver] ? ver : 'proximas';
+      // 'calendario' NO está en VISTAS pero es válido: lo resuelve resolverVista().
+      const vista = resolverVista(url.searchParams.get('ver'));
       const hoy = hoyMadrid();
       // Calendario: lunes de la semana a mostrar (?semana=; malformado o
       // ausente → semana en curso). El filtro trae lunes-domingo: sábado y
       // domingo no tienen columna, pero se listan aparte para no ocultar nada.
-      const lunes = vista === 'calendario' ? lunesDesdeParam(url.searchParams.get('semana')) : null;
+      const lunes = vista === VISTA_CALENDARIO ? lunesDesdeParam(url.searchParams.get('semana')) : null;
       const domingo = lunes ? sumarDias(lunes, 6) : null;
       // Solo visualización: citas.json no se toca. Comparar strings
       // "YYYY-MM-DD HH:MM" equivale a comparar cronológicamente.
