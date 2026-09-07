@@ -984,6 +984,18 @@ function calendarioHTML(citas, lunes, hoy) {
 // 'lunes' solo se usa con vista 'calendario' (lunes de la semana a pintar);
 // si falta, cae en la semana en curso.
 function adminHTML(citas, vista = 'proximas', pendientes = { acabadas: 0, incidencias: 0 }, lunes = null) {
+  // Iconos de las acciones del listado (WhatsApp, Editar, Eliminar): SVG
+  // inline de trazo, 16px en escritorio (1.25rem en móvil, ver el @media).
+  // Sin librería a propósito: el panel ya carga Tailwind por CDN y no
+  // necesita otra dependencia de red por tres dibujos.
+  const svg = (paths) => `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths}</svg>`;
+  const ICONO = {
+    whatsapp: svg('<path d="M21 12a8.5 8.5 0 0 1-12.4 7.6L4 21l1.4-4.6A8.5 8.5 0 1 1 21 12z"/><path d="M9.5 10c.3 1.9 2.6 4.2 4.5 4.5l1.5-1.5 2 1-.5 1.5c-3 1-8.5-4.5-7.5-7.5L11 7.5l1 2z"/>'),
+    editar:   svg('<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/>'),
+    eliminar: svg('<path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/>')
+  };
+  // Clases comunes de los tres botones-icono (el color de fondo lo pone cada uno).
+  const CLASE_ICONO = 'inline-flex items-center justify-center p-1.5 rounded-lg transition-colors';
   vista = resolverVista(vista);
   const esCalendario = vista === VISTA_CALENDARIO;
   const nPendientes = pendientes.acabadas + pendientes.incidencias;
@@ -998,7 +1010,7 @@ function adminHTML(citas, vista = 'proximas', pendientes = { acabadas: 0, incide
     + (semana ? `<input type="hidden" name="semana" value="${semana}">` : '');
 
   const rows = citas.length === 0
-    ? '<tr><td colspan="8" class="px-4 py-8 text-center text-gray-500">Sin citas registradas</td></tr>'
+    ? '<tr><td colspan="8" class="px-2 py-8 text-center text-gray-500">Sin citas registradas</td></tr>'
     : citas.map(c => {
       const id = escapeHtml(c.id);
       const wa = telefonoWa(c.telefono);
@@ -1044,11 +1056,17 @@ function adminHTML(citas, vista = 'proximas', pendientes = { acabadas: 0, incide
       //
       // DOS ESCAPADOS DISTINTOS, no intercambiables: encodeURIComponent SOLO
       // para el valor de ?text= (es una URL), escapeHtml para el resto (HTML).
+      //
+      // WhatsApp, Editar y Eliminar van como ICONOS sin texto (SVG inline,
+      // sin librería): con texto la columna Acciones no cabía en la pantalla
+      // del taller y Editar/Eliminar quedaban fuera. El title/aria-label
+      // conserva el nombre de la acción. El ✓ y el desplegable no cambian.
       const accionWa = wa
         ? `<a href="https://wa.me/${wa}?text=${encodeURIComponent(textoRecordatorio(c, false))}"
-              target="_blank" rel="noopener"
-              class="text-xs bg-[#2563EB] hover:bg-[#1D4ED8] text-white px-3 py-1.5 rounded-lg transition-colors font-medium whitespace-nowrap">WhatsApp</a>`
-        : `<span class="text-xs bg-white/5 text-gray-500 border border-white/10 px-3 py-1.5 rounded-lg font-medium whitespace-nowrap">Sin WhatsApp</span>`;
+              target="_blank" rel="noopener" title="Enviar recordatorio por WhatsApp" aria-label="Enviar recordatorio por WhatsApp"
+              class="${CLASE_ICONO} bg-[#2563EB] hover:bg-[#1D4ED8] text-white">${ICONO.whatsapp}</a>`
+        : `<span title="Sin WhatsApp: el teléfono no es un móvil" aria-label="Sin WhatsApp"
+              class="${CLASE_ICONO} bg-white/5 text-gray-500 border border-white/10">${ICONO.whatsapp}</span>`;
       // Línea 2 de la columna VEHÍCULO: "vehículo · NNNN km". El " · " solo
       // aparece si hay AMBOS; con uno solo, ese solo; sin ninguno, no se pinta.
       // Los km van aquí y no bajo el precio: son datos del coche, y sueltos en
@@ -1061,19 +1079,19 @@ function adminHTML(citas, vista = 'proximas', pendientes = { acabadas: 0, incide
       const lineaPago = c.pago ? escapeHtml(c.pago) : '';
       return `
       <tr id="cita-${id}" data-buscar="${escapeHtml([c.nombre, c.telefono, c.matricula].filter(Boolean).join(' | '))}" class="border-b border-white/5 hover:bg-white/5 transition-colors${claseFila}">
-        <td data-label="Nombre" class="px-4 py-3 text-white font-medium${pagada ? ' line-through' : ''}">${escapeHtml(c.nombre)}</td>
-        <td data-label="Teléfono" class="px-4 py-3 text-gray-300">${c.telefono ? escapeHtml(c.telefono) : '<span class="text-gray-500">—</span>'}</td>
-        <td data-label="Fecha y hora" class="px-4 py-3 whitespace-nowrap">
+        <td data-label="Nombre" class="px-2 py-3 text-white font-medium${pagada ? ' line-through' : ''}">${escapeHtml(c.nombre)}</td>
+        <td data-label="Teléfono" class="px-2 py-3 text-gray-300">${c.telefono ? escapeHtml(c.telefono) : '<span class="text-gray-500">—</span>'}</td>
+        <td data-label="Fecha y hora" class="px-2 py-3 whitespace-nowrap">
           <div class="text-gray-300">${escapeHtml(fechaCorta(c.fecha))}</div>
           <div class="text-[#FFD700] font-bold text-base mt-0.5">${escapeHtml(c.hora)}</div>
         </td>
-        <td data-label="Servicio" class="px-4 py-3 text-gray-300">${escapeHtml(c.servicio)}${c.detalle ? `<div class="text-xs text-gray-500 mt-0.5">${escapeHtml(c.detalle)}</div>` : ''}${conMotivo && c.motivo ? `<div class="text-xs text-red-400/80 mt-0.5">${escapeHtml(c.motivo)}</div>` : ''}</td>
-        <td data-label="Vehículo" class="px-4 py-3 whitespace-nowrap">${c.matricula ? `<div class="text-white font-semibold">${escapeHtml(c.matricula)}</div>` : ''}${lineaVehiculo ? `<div class="text-xs text-gray-500${c.matricula ? ' mt-0.5' : ''}">${lineaVehiculo}</div>` : ''}</td>
-        <td data-label="Precio" class="px-4 py-3 text-right whitespace-nowrap">${c.precio ? `<div class="text-gray-300">${escapeHtml(c.precio)} €</div>` : ''}${lineaPago ? `<div class="text-xs text-gray-500${c.precio ? ' mt-0.5' : ''}">${lineaPago}</div>` : ''}</td>
-        <td data-label="Estado" class="px-4 py-3">
+        <td data-label="Servicio" class="px-2 py-3 text-gray-300">${escapeHtml(c.servicio)}${c.detalle ? `<div class="text-xs text-gray-500 mt-0.5">${escapeHtml(c.detalle)}</div>` : ''}${conMotivo && c.motivo ? `<div class="text-xs text-red-400/80 mt-0.5">${escapeHtml(c.motivo)}</div>` : ''}</td>
+        <td data-label="Vehículo" class="px-2 py-3 whitespace-nowrap">${c.matricula ? `<div class="text-white font-semibold">${escapeHtml(c.matricula)}</div>` : ''}${lineaVehiculo ? `<div class="text-xs text-gray-500${c.matricula ? ' mt-0.5' : ''}">${lineaVehiculo}</div>` : ''}</td>
+        <td data-label="Precio" class="px-2 py-3 text-right whitespace-nowrap">${c.precio ? `<div class="text-gray-300">${escapeHtml(c.precio)} €</div>` : ''}${lineaPago ? `<div class="text-xs text-gray-500${c.precio ? ' mt-0.5' : ''}">${lineaPago}</div>` : ''}</td>
+        <td data-label="Estado" class="px-2 py-3">
           <span class="px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap ${estadoBadge(c.estado)}">${escapeHtml(c.estado)}${pagada && c.pago ? ` · ${escapeHtml(c.pago)}` : ''}</span>
         </td>
-        <td data-label="Acciones" class="px-4 py-3 flex items-center gap-2">
+        <td data-label="Acciones" class="px-2 py-3 flex items-center gap-1.5">
           <form method="post" action="/admin/cita/${id}/estado" class="inline">
             ${camposVista}
             <select name="estado" onchange="this.form.submit()" class="text-xs bg-[#060D1F] border border-white/10 text-gray-300 rounded-lg px-2 py-1.5 cursor-pointer focus:outline-none focus:border-[#2563EB]">
@@ -1102,8 +1120,10 @@ function adminHTML(citas, vista = 'proximas', pendientes = { acabadas: 0, incide
                   data-kilometros="${escapeHtml(c.kilometros || '')}"
                   data-precio="${escapeHtml(c.precio || '')}"
                   data-pago="${escapeHtml(c.pago || '')}"
-                  class="text-xs bg-white/5 hover:bg-white/10 text-gray-300 border border-white/10 px-3 py-1.5 rounded-lg transition-colors font-medium">Editar</button>
-          <button onclick="eliminarCita('${id}')" class="text-xs bg-red-900/50 hover:bg-red-800/60 text-red-400 border border-red-700/50 px-3 py-1.5 rounded-lg transition-colors font-medium">Eliminar</button>
+                  title="Editar cita" aria-label="Editar cita"
+                  class="${CLASE_ICONO} bg-white/5 hover:bg-white/10 text-gray-300 border border-white/10">${ICONO.editar}</button>
+          <button onclick="eliminarCita('${id}')" title="Eliminar cita" aria-label="Eliminar cita"
+                  class="${CLASE_ICONO} bg-red-900/50 hover:bg-red-800/60 text-red-400 border border-red-700/50">${ICONO.eliminar}</button>
         </td>
       </tr>`;
     }).join('');
@@ -1118,17 +1138,17 @@ function adminHTML(citas, vista = 'proximas', pendientes = { acabadas: 0, incide
       <table id="tabla-citas" class="w-full text-sm">
         <thead>
           <tr class="border-b border-white/10">
-            <th class="px-4 py-3.5 text-left text-xs font-semibold text-[#FFD700] uppercase tracking-wider">Nombre</th>
-            <th class="px-4 py-3.5 text-left text-xs font-semibold text-[#FFD700] uppercase tracking-wider">Teléfono</th>
-            <th class="px-4 py-3.5 text-left text-xs font-semibold text-[#FFD700] uppercase tracking-wider">Fecha y hora</th>
-            <th class="px-4 py-3.5 text-left text-xs font-semibold text-[#FFD700] uppercase tracking-wider">Servicio</th>
-            <th class="px-4 py-3.5 text-left text-xs font-semibold text-[#FFD700] uppercase tracking-wider">Vehículo</th>
-            <th class="px-4 py-3.5 text-right text-xs font-semibold text-[#FFD700] uppercase tracking-wider">Precio</th>
-            <th class="px-4 py-3.5 text-left text-xs font-semibold text-[#FFD700] uppercase tracking-wider">Estado</th>
-            <th class="px-4 py-3.5 text-left text-xs font-semibold text-[#FFD700] uppercase tracking-wider">Acciones</th>
+            <th class="px-2 py-3.5 text-left text-xs font-semibold text-[#FFD700] uppercase tracking-wider">Nombre</th>
+            <th class="px-2 py-3.5 text-left text-xs font-semibold text-[#FFD700] uppercase tracking-wider">Teléfono</th>
+            <th class="px-2 py-3.5 text-left text-xs font-semibold text-[#FFD700] uppercase tracking-wider">Fecha y hora</th>
+            <th class="px-2 py-3.5 text-left text-xs font-semibold text-[#FFD700] uppercase tracking-wider">Servicio</th>
+            <th class="px-2 py-3.5 text-left text-xs font-semibold text-[#FFD700] uppercase tracking-wider">Vehículo</th>
+            <th class="px-2 py-3.5 text-right text-xs font-semibold text-[#FFD700] uppercase tracking-wider">Precio</th>
+            <th class="px-2 py-3.5 text-left text-xs font-semibold text-[#FFD700] uppercase tracking-wider">Estado</th>
+            <th class="px-2 py-3.5 text-left text-xs font-semibold text-[#FFD700] uppercase tracking-wider">Acciones</th>
           </tr>
         </thead>
-        <tbody>${rows}<tr id="sin-resultados" style="display:none"><td colspan="8" class="px-4 py-8 text-center text-gray-500">Sin resultados</td></tr></tbody>
+        <tbody>${rows}<tr id="sin-resultados" style="display:none"><td colspan="8" class="px-2 py-8 text-center text-gray-500">Sin resultados</td></tr></tbody>
       </table>
     </div>`;
   const cuerpo = semana ? calendarioHTML(citas, semana, hoy) : listado;
@@ -1206,6 +1226,7 @@ function adminHTML(citas, vista = 'proximas', pendientes = { acabadas: 0, incide
       #tabla-citas td[data-label="Acciones"] select {
         font-size: .875rem; min-height: 2.5rem; padding: .5rem .9rem;
       }
+      #tabla-citas td[data-label="Acciones"] svg { width: 1.25rem; height: 1.25rem; }
     }
   </style>
 </head>
