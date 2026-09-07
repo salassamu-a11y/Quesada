@@ -1790,6 +1790,14 @@ function tallerHTML(citas, fecha, esManana = false, token = null) {
   const textoVacio = esManana ? 'No hay citas para mañana' : 'No hay citas para hoy';
   const conBoton = !esManana && !!token;
   const tokenEsc = conBoton ? escapeHtml(token) : '';
+  // Enlace al manifiesto: independiente de conBoton (también en la vista de
+  // MAÑANA la pantalla debe ser instalable). El token va codificado para URL
+  // y después escapado para el atributo. Sin crossorigin="use-credentials":
+  // a diferencia del panel, /taller no usa auth básica sino token en la URL,
+  // y el navegador lo pide con la query intacta.
+  const manifestLink = token
+    ? `<link rel="manifest" href="/taller/manifest.json?k=${escapeHtml(encodeURIComponent(token))}">`
+    : '';
 
   // Una tarjeta por cita. 'atendida' = el coche YA está en el taller: fondo
   // azulado, borde izquierdo azul y etiqueta "EN TALLER" junto al nombre.
@@ -1891,6 +1899,8 @@ function tallerHTML(citas, fecha, esManana = false, token = null) {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta http-equiv="refresh" content="60">
+  ${manifestLink}
+  <meta name="theme-color" content="#060D1F">
   <title>${taller} — Citas de ${esManana ? 'mañana' : 'hoy'}</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -2264,6 +2274,39 @@ const server = http.createServer(async (req, res) => {
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' });
     // k ya validado contra TALLER_TOKEN: va a los campos hidden del botón.
     res.end(tallerHTML(visibles, fecha, esManana, k));
+    return;
+  }
+
+  // GET /taller/manifest.json — manifiesto de aplicación web de la pantalla
+  // del taller, para instalarla en la tablet como app (sin barra de
+  // direcciones: la URL con el token deja de estar a la vista). RUTA
+  // PÚBLICA, fuera del bloque /admin, con el MISMO ?k=TALLER_TOKEN, el mismo
+  // safeEqual y el mismo 404 genérico que GET /taller: el manifiesto nunca
+  // se sirve sin token. start_url LLEVA el token validado: sin él la app
+  // instalada abriría un 404. Sin service worker ni badge a propósito (esta
+  // pantalla no necesita contador). Icono con URL ABSOLUTA: este backend no
+  // sirve imagenes/. No-store: el cuerpo contiene el token.
+  if (req.method === 'GET' && p === '/taller/manifest.json') {
+    const token = process.env.TALLER_TOKEN;
+    const k = url.searchParams.get('k');
+    if (!token || !safeEqual(k || '', token)) {
+      res.writeHead(404, { 'Content-Type': 'text/plain' });
+      res.end('Not found');
+      return;
+    }
+    res.writeHead(200, { 'Content-Type': 'application/manifest+json; charset=utf-8', 'Cache-Control': 'no-store' });
+    res.end(JSON.stringify({
+      name: 'Taller - Neumáticos Quesada',
+      short_name: 'Taller',
+      start_url: '/taller?k=' + encodeURIComponent(k),
+      scope: '/taller',
+      display: 'standalone',
+      background_color: '#060D1F',
+      theme_color: '#060D1F',
+      icons: [
+        { src: 'https://neumaticosquesada.com/imagenes/nq2f-192.png', sizes: '192x192', type: 'image/png' }
+      ]
+    }));
     return;
   }
 
