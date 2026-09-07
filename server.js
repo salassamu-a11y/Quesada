@@ -1086,15 +1086,20 @@ function adminHTML(citas, vista = 'proximas', pendientes = { acabadas: 0, incide
       // Tabs y saltos de línea dentro de un campo pasan a espacio para no
       // romper la rejilla; en el atributo el tab viaja como &#9;.
       const celdaExcel = (v) => String(v == null ? '' : v).replace(/[\t\r\n]+/g, ' ').trim();
+      // Campos de TEXTO en MAYÚSCULAS, solo en lo que se copia: en el Excel
+      // del taller lo escriben todo en mayúsculas, y servicio y pago salen de
+      // desplegables en minúscula. Fecha y números (teléfono, km, importe) no
+      // se tocan: no tiene efecto y podría estropear el formato.
+      const mayus = (v) => String(v == null ? '' : v).toUpperCase();
       const mFecha = /^(\d{4})-(\d{2})-(\d{2})$/.exec(c.fecha || '');
       const lineaExcel = [
         mFecha ? `${mFecha[3]}/${mFecha[2]}/${mFecha[1].slice(2)}` : c.fecha,  // FECHA (dd/mm/aa)
-        c.vehiculo,                                           // MARCA
-        c.matricula,                                          // MATRICULAS
-        [c.servicio, c.detalle].filter(Boolean).join(' — '),  // DESCRIPCIÓN
-        c.nombre,                                             // NOMBRE CLIENTE
+        mayus(c.vehiculo),                                    // MARCA
+        mayus(c.matricula),                                   // MATRICULAS
+        mayus([c.servicio, c.detalle].filter(Boolean).join(' — ')),  // DESCRIPCIÓN
+        mayus(c.nombre),                                      // NOMBRE CLIENTE
         c.telefono,                                           // NUMERO
-        c.pago,                                               // PAGO
+        mayus(c.pago),                                        // PAGO
         c.kilometros,                                         // M VEHICULO
         '',                                                   // PO SI (no se guarda)
         '',                                                   // FACTURA (no se guarda)
