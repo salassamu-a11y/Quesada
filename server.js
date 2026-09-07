@@ -987,14 +987,16 @@ function adminHTML(citas, vista = 'proximas', pendientes = { acabadas: 0, incide
   // Iconos de las acciones del listado (WhatsApp, Editar, Eliminar): SVG
   // inline de trazo, 16px en escritorio (1.25rem en móvil, ver el @media).
   // Sin librería a propósito: el panel ya carga Tailwind por CDN y no
-  // necesita otra dependencia de red por tres dibujos.
+  // necesita otra dependencia de red por cinco dibujos.
   const svg = (paths) => `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths}</svg>`;
   const ICONO = {
     whatsapp: svg('<path d="M21 12a8.5 8.5 0 0 1-12.4 7.6L4 21l1.4-4.6A8.5 8.5 0 1 1 21 12z"/><path d="M9.5 10c.3 1.9 2.6 4.2 4.5 4.5l1.5-1.5 2 1-.5 1.5c-3 1-8.5-4.5-7.5-7.5L11 7.5l1 2z"/>'),
     editar:   svg('<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/>'),
-    eliminar: svg('<path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/>')
+    eliminar: svg('<path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/>'),
+    excel:    svg('<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18M3 15h18M10 4v16"/>'),
+    copiado:  svg('<path d="M20 6 9 17l-5-5"/>')
   };
-  // Clases comunes de los tres botones-icono (el color de fondo lo pone cada uno).
+  // Clases comunes de los cuatro botones-icono (el color de fondo lo pone cada uno).
   const CLASE_ICONO = 'inline-flex items-center justify-center p-1.5 rounded-lg transition-colors';
   vista = resolverVista(vista);
   const esCalendario = vista === VISTA_CALENDARIO;
@@ -1077,8 +1079,30 @@ function adminHTML(citas, vista = 'proximas', pendientes = { acabadas: 0, incide
       ].filter(Boolean).join(' · ');
       // Línea 2 de la columna PRECIO: la forma de pago, si la hay.
       const lineaPago = c.pago ? escapeHtml(c.pago) : '';
+      // Línea para "Copiar al Excel" (atributo data-excel del <tr>): las 12
+      // columnas del Diario.ods del taller separadas por TABULACIÓN, en su
+      // orden. Las tres que el panel no guarda (PO SI, FACTURA, FECHA COBRO)
+      // van vacías para que al pegar cuadren las columnas. Sin cabeceras.
+      // Tabs y saltos de línea dentro de un campo pasan a espacio para no
+      // romper la rejilla; en el atributo el tab viaja como &#9;.
+      const celdaExcel = (v) => String(v == null ? '' : v).replace(/[\t\r\n]+/g, ' ').trim();
+      const mFecha = /^(\d{4})-(\d{2})-(\d{2})$/.exec(c.fecha || '');
+      const lineaExcel = [
+        mFecha ? `${mFecha[3]}/${mFecha[2]}/${mFecha[1].slice(2)}` : c.fecha,  // FECHA (dd/mm/aa)
+        c.vehiculo,                                           // MARCA
+        c.matricula,                                          // MATRICULAS
+        [c.servicio, c.detalle].filter(Boolean).join(' — '),  // DESCRIPCIÓN
+        c.nombre,                                             // NOMBRE CLIENTE
+        c.telefono,                                           // NUMERO
+        c.pago,                                               // PAGO
+        c.kilometros,                                         // M VEHICULO
+        '',                                                   // PO SI (no se guarda)
+        '',                                                   // FACTURA (no se guarda)
+        String(c.precio == null ? '' : c.precio).replace('.', ','),  // IMPORTE (punto decimal → coma: LibreOffice en español no reconoce el punto y la columna no sumaría; el dato guardado no se toca)
+        ''                                                    // FECHA COBRO (no se guarda)
+      ].map(celdaExcel).join('\t');
       return `
-      <tr id="cita-${id}" data-buscar="${escapeHtml([c.nombre, c.telefono, c.matricula].filter(Boolean).join(' | '))}" class="border-b border-white/5 hover:bg-white/5 transition-colors${claseFila}">
+      <tr id="cita-${id}" data-buscar="${escapeHtml([c.nombre, c.telefono, c.matricula].filter(Boolean).join(' | '))}" data-excel="${escapeHtml(lineaExcel).replace(/\t/g, '&#9;')}" class="border-b border-white/5 hover:bg-white/5 transition-colors${claseFila}">
         <td data-label="Nombre" class="px-2 py-3 text-white font-medium${pagada ? ' line-through' : ''}">${escapeHtml(c.nombre)}</td>
         <td data-label="Teléfono" class="px-2 py-3 text-gray-300">${c.telefono ? escapeHtml(c.telefono) : '<span class="text-gray-500">—</span>'}</td>
         <td data-label="Fecha y hora" class="px-2 py-3 whitespace-nowrap">
@@ -1122,6 +1146,8 @@ function adminHTML(citas, vista = 'proximas', pendientes = { acabadas: 0, incide
                   data-pago="${escapeHtml(c.pago || '')}"
                   title="Editar cita" aria-label="Editar cita"
                   class="${CLASE_ICONO} bg-white/5 hover:bg-white/10 text-gray-300 border border-white/10">${ICONO.editar}</button>
+          <button type="button" onclick="copiarExcel(this)" title="Copiar al Excel" aria-label="Copiar al Excel"
+                  class="${CLASE_ICONO} bg-white/5 hover:bg-white/10 text-gray-300 border border-white/10">${ICONO.excel}</button>
           <button onclick="eliminarCita('${id}')" title="Eliminar cita" aria-label="Eliminar cita"
                   class="${CLASE_ICONO} bg-red-900/50 hover:bg-red-800/60 text-red-400 border border-red-700/50">${ICONO.eliminar}</button>
         </td>
@@ -1254,7 +1280,10 @@ function adminHTML(citas, vista = 'proximas', pendientes = { acabadas: 0, incide
         <div class="relative">
           <input id="buscar-citas" type="search" placeholder="Buscar nombre, teléfono o matrícula" aria-label="Buscar citas" autocomplete="off" class="text-xs bg-[#060D1F] border border-white/10 text-gray-300 rounded-lg pl-2 pr-7 py-1.5 w-64 focus:outline-none focus:border-[#2563EB] placeholder:text-gray-500">
           <button type="button" id="buscar-limpiar" onclick="limpiarBusqueda()" aria-label="Limpiar búsqueda" title="Limpiar (Esc)" class="absolute right-1.5 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white text-sm leading-none px-1" style="display:none">&times;</button>
-        </div>`}
+        </div>
+        <!-- Copia al portapapeles, en formato de Excel, las citas VISIBLES
+             (vista activa + filtro del buscador). Ver copiarTodas(). -->
+        <button type="button" id="copiar-todas" onclick="copiarTodas(this)" title="Copiar al Excel las citas visibles" class="text-xs bg-[#060D1F] hover:bg-white/10 text-gray-300 border border-white/10 rounded-lg px-2 py-1.5 transition-colors inline-flex items-center gap-1.5 whitespace-nowrap">${ICONO.excel}<span>Copiar todas</span></button>`}
         <!-- Calendario: vista aparte, no un filtro del listado. Mismo estilo
              que "Recordatorios de mañana"; activo → borde y texto resaltados. -->
         <a href="/admin?ver=calendario"${esCalendario ? ' aria-current="page"' : ''} class="${esCalendario ? 'bg-white/10 text-white border-[#FFD700]/60' : 'bg-[#0D1B3E] hover:bg-white/10 text-gray-300 border-white/10'} border text-sm font-semibold px-5 py-2.5 rounded-lg transition-colors">${ETIQUETA_CALENDARIO}</a>
@@ -1638,6 +1667,74 @@ ${cuerpo}
       // Por si el navegador restaura el valor al volver atrás.
       filtrarCitas();
     })();
+
+    // ── Copiar al Excel ─────────────────────────────────────────────────
+    // Cada <tr> trae en data-excel su línea ya montada por el servidor
+    // (12 columnas del Diario.ods separadas por tabulación, sin cabeceras).
+    // Al pegar en Excel/LibreOffice cada tabulación salta de celda y cada
+    // salto de línea, de fila.
+    var ICONO_COPIADO = ${JSON.stringify(ICONO.copiado)};
+    // navigator.clipboard solo existe en contexto seguro (HTTPS o
+    // localhost) y algunos navegadores lo rechazan: si falta o falla, se
+    // cae a un textarea temporal + execCommand('copy'). Resuelve true/false.
+    function copiarTexto(texto) {
+      var moderno = (navigator.clipboard && window.isSecureContext)
+        ? navigator.clipboard.writeText(texto).then(function () { return true; }, function () { return false; })
+        : Promise.resolve(false);
+      return moderno.then(function (ok) {
+        if (ok) return true;
+        var ta = document.createElement('textarea');
+        ta.value = texto;
+        ta.setAttribute('readonly', '');
+        ta.style.position = 'fixed';
+        ta.style.top = '-1000px';
+        document.body.appendChild(ta);
+        ta.select();
+        var hecho = false;
+        try { hecho = document.execCommand('copy'); } catch (e) { hecho = false; }
+        document.body.removeChild(ta);
+        return hecho;
+      });
+    }
+    // Confirmación sin alert: el botón pasa 1,5 s en verde con un ✓ (y el
+    // texto que se le pase, si lo tiene) o en rojo si falló, y vuelve solo.
+    // Mientras tanto ignora nuevos clics.
+    function avisarCopiado(btn, ok, texto) {
+      if (btn.dataset.ocupado) return;
+      btn.dataset.ocupado = '1';
+      var html = btn.innerHTML;
+      if (texto) btn.innerHTML = (ok ? ICONO_COPIADO : '') + '<span>' + texto + '</span>';
+      else if (ok) btn.innerHTML = ICONO_COPIADO;
+      btn.style.color = ok ? '#4ADE80' : '#F87171';
+      btn.style.borderColor = ok ? 'rgba(74,222,128,.5)' : 'rgba(248,113,113,.5)';
+      setTimeout(function () {
+        btn.innerHTML = html;
+        btn.style.color = '';
+        btn.style.borderColor = '';
+        delete btn.dataset.ocupado;
+      }, 1500);
+    }
+    // Icono de la fila: copia SOLO esa cita.
+    function copiarExcel(btn) {
+      if (btn.dataset.ocupado) return;
+      var tr = btn.closest('tr');
+      var linea = tr && tr.getAttribute('data-excel');
+      if (linea == null) return;
+      copiarTexto(linea).then(function (ok) { avisarCopiado(btn, ok); });
+    }
+    // Botón de la cabecera: copia las filas VISIBLES (vista activa y filtro
+    // del buscador; las ocultas llevan style.display = 'none'), una por línea.
+    function copiarTodas(btn) {
+      if (btn.dataset.ocupado) return;
+      var lineas = [];
+      document.querySelectorAll('#tabla-citas tbody tr[data-excel]').forEach(function (tr) {
+        if (tr.style.display !== 'none') lineas.push(tr.getAttribute('data-excel'));
+      });
+      if (!lineas.length) { avisarCopiado(btn, false, 'Nada que copiar'); return; }
+      copiarTexto(lineas.join('\\n')).then(function (ok) {
+        avisarCopiado(btn, ok, ok ? (lineas.length === 1 ? '1 cita copiada' : lineas.length + ' citas copiadas') : 'No se pudo copiar');
+      });
+    }
   </script>
 </body>
 </html>`;
