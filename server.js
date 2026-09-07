@@ -1845,8 +1845,13 @@ function recordatoriosHTML(citas, fecha) {
 // teléfono ni id. PROHIBIDO mostrar el precio: lo ve el cliente que espera y
 // cualquiera que pase. Los kilómetros NO se listan como dato: aparecen solo
 // como el campo "KM" a rellenar junto al botón ACABADO (ver tarjeta()), porque
-// los mecánicos los apuntan al terminar. Sin enlaces a /admin ni a otra
-// vista: es un callejón sin salida a propósito.
+// los mecánicos los apuntan al terminar. EXCEPCIÓN — PINCHAZOS: en los
+// servicios que contienen "pinchazo" ('Pinchazo turismo/furgoneta/moto' en
+// el panel) el campo junto a ACABADO es el PRECIO en vez de los km (depende
+// de la llanta y lo saben los mecánicos, no Vicky); ese campo sale SIEMPRE
+// VACÍO aunque la cita ya tenga precio, para no mostrar importes al cliente.
+// Sin enlaces a /admin ni a otra vista: es un callejón sin salida a
+// propósito.
 //
 // HTML autocontenido con CSS inline: cero JS y cero dependencias de red
 // (ni Tailwind CDN, a diferencia del panel). Una pantalla que pasa semanas
@@ -1909,6 +1914,10 @@ function tallerHTML(citas, fecha, esManana = false, token = null) {
   // Si la cita ya trae kilómetros (puestos por Vicky), el campo sale
   // rellenado. OJO: el required es SOLO del HTML; el servidor acepta la cita
   // sin kilómetros a propósito (ver POST /taller/acabar).
+  // PINCHAZOS (servicio que contiene "pinchazo"): en su lugar va el campo
+  // "€" (name="precio", inputmode="decimal", maxlength 10), también con
+  // required solo de HTML, y SIEMPRE VACÍO aunque la cita ya tenga precio:
+  // la pantalla la ve el cliente que espera y no debe mostrar importes.
   // Segunda fila: botón rojo "NO SE HACE" que DESPLIEGA el campo "Qué pasa"
   // + botón rojo "CONFIRMAR" (POST /taller/incidencia): el mecánico abre el
   // coche y el trabajo no se puede hacer; así avisa a Vicky desde la pantalla
@@ -1930,6 +1939,17 @@ function tallerHTML(citas, fecha, esManana = false, token = null) {
     // completo. Sin espacio, el nombre entero.
     const pila = String(c.nombre || '').trim().split(/\s+/)[0];
     const enTaller = c.estado === 'atendida';
+    // Pinchazos ('Pinchazo turismo/furgoneta/moto' en el panel): el campo
+    // que acompaña a ACABADO es el PRECIO, no los km. El precio depende de
+    // la llanta y lo ven los mecánicos, no Vicky; los km ahí no aportan.
+    // SIEMPRE VACÍO aunque la cita ya tenga precio: la pantalla la ve el
+    // cliente que espera y no debe mostrar importes (los km sí van
+    // prerrellenados, es distinto). El 'required' es solo del HTML, igual
+    // que en los km (ver POST /taller/acabar).
+    const pinchazo = String(c.servicio || '').toLowerCase().includes('pinchazo');
+    const campoAcabar = pinchazo
+      ? `<input type="text" name="precio" class="campo" inputmode="decimal" maxlength="10" placeholder="€" required autocomplete="off" aria-label="Precio">`
+      : `<input type="text" name="kilometros" class="campo" inputmode="numeric" pattern="[0-9]{1,7}" maxlength="7" placeholder="KM" required autocomplete="off" aria-label="Kilómetros" value="${escapeHtml(c.kilometros || '')}">`;
     return `
       <div class="cita${enTaller ? ' en-taller' : ''}">
         <div class="hora">${escapeHtml(c.hora)}</div>
@@ -1943,7 +1963,7 @@ function tallerHTML(citas, fecha, esManana = false, token = null) {
           <form method="post" action="/taller/acabar" class="accion acabar">
             <input type="hidden" name="k" value="${tokenEsc}">
             <input type="hidden" name="id" value="${escapeHtml(c.id)}">
-            <input type="text" name="kilometros" class="campo" inputmode="numeric" pattern="[0-9]{1,7}" maxlength="7" placeholder="KM" required autocomplete="off" aria-label="Kilómetros" value="${escapeHtml(c.kilometros || '')}">
+            ${campoAcabar}
             <button type="submit">ACABADO</button>
           </form>
           <input type="checkbox" id="inc-${escapeHtml(c.id)}" class="inc-toggle" aria-label="Indicar que no se hace">
@@ -2436,17 +2456,19 @@ const server = http.createServer(async (req, res) => {
 
   // POST /taller/acabar — botón "ACABADO". Endpoint lo más ESTRECHO posible:
   // pasa a 'acabada' (solo desde 'confirmada' o 'atendida') y, si vienen,
-  // guarda los kilómetros; no edita ningún otro campo, no borra, no
-  // retrocede y no devuelve datos de la cita. Si el token se filtrara, el
-  // daño máximo es marcar citas de hoy como acabadas y pisar sus kilómetros:
+  // guarda los kilómetros y/o el precio (el precio lo manda la pantalla en
+  // los PINCHAZOS, donde el campo junto a ACABADO es "€" en vez de "KM"; ver
+  // tallerHTML); no edita ningún otro campo, no borra, no retrocede y no
+  // devuelve datos de la cita. Si el token se filtrara, el daño máximo es
+  // marcar citas de hoy como acabadas y pisar sus kilómetros o su precio:
   // molesto y reversible en dos clics desde el panel.
   if (req.method === 'POST' && p === '/taller/acabar') {
     const prep = await prepararEscrituraTaller();
     if (!prep) return;
     const { body, volver, errorHtml } = prep;
     // Lectura fresca y parcheo de UN SOLO registro (regla del proyecto), y
-    // solo de 'estado' y, si vienen, 'kilometros': ni id, ni creadaEn, ni
-    // recordatorioEnviado ni nada más.
+    // solo de 'estado' y, si vienen, 'kilometros' y 'precio': ni id, ni
+    // creadaEn, ni recordatorioEnviado ni nada más.
     const citas = readCitas();
     const cita = citas.find(c => c.id === body.id);
     if (!cita) {
@@ -2476,8 +2498,19 @@ const server = http.createServer(async (req, res) => {
       errorHtml(409, 'Los kilómetros deben ser solo números (máximo 7 cifras)');
       return;
     }
+    // Precio (campo de ACABADO en los pinchazos): misma regla que validarCita
+    // (dígitos con coma o punto decimal, máximo 10, guardado como STRING).
+    // Inválido → 409 sin tocar nada. Vacío o ausente → 'acabada' igualmente
+    // y cita.precio no se toca: MISMO CRITERIO que los km, el 'required' es
+    // solo del HTML y el servidor no obliga.
+    const precio = typeof body.precio === 'string' ? body.precio.trim() : '';
+    if (precio && (precio.length > 10 || !/^\d+([.,]\d+)?$/.test(precio))) {
+      errorHtml(409, 'El precio solo admite números con coma o punto decimal (ej. 45,50), máximo 10 caracteres');
+      return;
+    }
     cita.estado = 'acabada';
     if (km) cita.kilometros = km;
+    if (precio) cita.precio = precio;
     writeCitas(citas);
     // 302 a la pantalla con el mismo token: se refresca sola tras pulsar.
     res.writeHead(302, { Location: volver, 'Cache-Control': 'no-store' });
