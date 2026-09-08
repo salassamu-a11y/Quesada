@@ -1104,7 +1104,7 @@ function adminHTML(citas, vista = 'proximas', pendientes = { acabadas: 0, incide
         mFecha ? `${mFecha[3]}/${mFecha[2]}/${mFecha[1].slice(2)}` : c.fecha,  // FECHA (dd/mm/aa)
         mayus(c.vehiculo),                                    // MARCA
         mayus(c.matricula),                                   // MATRICULAS
-        mayus([c.servicio, c.detalle].filter(Boolean).join(' — ')),  // DESCRIPCIÓN
+        mayus([c.servicio, c.detalle].filter(Boolean).join(' ')),  // DESCRIPCIÓN (solo espacio, sin " — ": así lo quiere el cliente)
         mayus(c.nombre),                                      // NOMBRE CLIENTE
         c.telefono,                                           // NUMERO
         mayus(c.pago),                                        // PAGO
