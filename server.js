@@ -1091,6 +1091,14 @@ function adminHTML(citas, vista = 'proximas', pendientes = { acabadas: 0, incide
       // desplegables en minúscula. Fecha y números (teléfono, km, importe) no
       // se tocan: no tiene efecto y podría estropear el formato.
       const mayus = (v) => String(v == null ? '' : v).toUpperCase();
+      // Kilómetros como los escriben en su Excel: millares con PUNTO y sufijo
+      // "KM" pegado (112686 → 112.686KM, 500 → 500KM). Solo en la copia; el
+      // dato guardado, el listado y la pantalla del taller no cambian. Sin
+      // kilómetros, celda vacía.
+      const kmExcel = (v) => {
+        const km = String(v == null ? '' : v).trim();
+        return km ? km.replace(/\B(?=(\d{3})+$)/g, '.') + 'KM' : '';
+      };
       const mFecha = /^(\d{4})-(\d{2})-(\d{2})$/.exec(c.fecha || '');
       const lineaExcel = [
         mFecha ? `${mFecha[3]}/${mFecha[2]}/${mFecha[1].slice(2)}` : c.fecha,  // FECHA (dd/mm/aa)
@@ -1100,7 +1108,7 @@ function adminHTML(citas, vista = 'proximas', pendientes = { acabadas: 0, incide
         mayus(c.nombre),                                      // NOMBRE CLIENTE
         c.telefono,                                           // NUMERO
         mayus(c.pago),                                        // PAGO
-        c.kilometros,                                         // M VEHICULO
+        kmExcel(c.kilometros),                                // M VEHICULO (112.686KM)
         '',                                                   // PO SI (no se guarda)
         '',                                                   // FACTURA (no se guarda)
         String(c.precio == null ? '' : c.precio).replace('.', ','),  // IMPORTE (punto decimal → coma: LibreOffice en español no reconoce el punto y la columna no sumaría; el dato guardado no se toca)
@@ -1327,6 +1335,7 @@ function adminHTML(citas, vista = 'proximas', pendientes = { acabadas: 0, incide
               <option value="Pinchazo turismo">Pinchazo turismo</option>
               <option value="Pinchazo furgoneta">Pinchazo furgoneta</option>
               <option value="Pinchazo moto">Pinchazo moto</option>
+              <option value="Rueda suelta">Rueda suelta</option>
               <option value="Montaje de neumáticos">Montaje de neumáticos</option>
               <option value="Alineado">Alineado</option>
               <option value="Cruce">Cruce</option>
@@ -1845,11 +1854,12 @@ function recordatoriosHTML(citas, fecha) {
 // teléfono ni id. PROHIBIDO mostrar el precio: lo ve el cliente que espera y
 // cualquiera que pase. Los kilómetros NO se listan como dato: aparecen solo
 // como el campo "KM" a rellenar junto al botón ACABADO (ver tarjeta()), porque
-// los mecánicos los apuntan al terminar. EXCEPCIÓN — PINCHAZOS: en los
-// servicios que contienen "pinchazo" ('Pinchazo turismo/furgoneta/moto' en
-// el panel) el campo junto a ACABADO es el PRECIO en vez de los km (depende
-// de la llanta y lo saben los mecánicos, no Vicky); ese campo sale SIEMPRE
-// VACÍO aunque la cita ya tenga precio, para no mostrar importes al cliente.
+// los mecánicos los apuntan al terminar. EXCEPCIÓN — servicios de
+// SERVICIOS_CON_PRECIO (pinchazos y "Rueda suelta", ver servicioConPrecio()):
+// el campo junto a ACABADO es el PRECIO en vez de los km, porque no hay
+// kilómetros que apuntar o el importe depende de lo que vean los mecánicos;
+// ese campo sale SIEMPRE VACÍO aunque la cita ya tenga precio, para no
+// mostrar importes al cliente.
 // Sin enlaces a /admin ni a otra vista: es un callejón sin salida a
 // propósito.
 //
@@ -1878,6 +1888,19 @@ function recordatoriosHTML(citas, fecha) {
 // vacío no se pinta. El botón ACABADO solo es pulsable en 'atendida'; en
 // 'confirmada' se muestra DESACTIVADO como "SIN LLEGAR" (ver tarjeta()).
 // MAÑANA no se divide: ahí todas son 'confirmada' por definición.
+
+// Servicios en los que el campo junto a ACABADO es el PRECIO en vez de los
+// KM: los que no tienen kilómetros que apuntar o cuyo importe depende de lo
+// que vean los mecánicos. Cada entrada casa (sin distinguir mayúsculas)
+// contra el servicio de la cita: 'pinchazo' cubre los tres pinchazos del
+// panel; 'rueda suelta' es el cliente que trae solo la rueda, sin coche.
+// Para añadir un servicio, una línea aquí y nada más.
+const SERVICIOS_CON_PRECIO = ['pinchazo', 'rueda suelta'];
+function servicioConPrecio(servicio) {
+  const s = String(servicio || '').toLowerCase();
+  return SERVICIOS_CON_PRECIO.some((clave) => s.includes(clave));
+}
+
 function tallerHTML(citas, fecha, esManana = false, token = null) {
   const taller = escapeHtml(process.env.TALLER_NOMBRE || 'Taller');
   const fechaCruda = fechaLegible(fecha);
@@ -1914,7 +1937,8 @@ function tallerHTML(citas, fecha, esManana = false, token = null) {
   // Si la cita ya trae kilómetros (puestos por Vicky), el campo sale
   // rellenado. OJO: el required es SOLO del HTML; el servidor acepta la cita
   // sin kilómetros a propósito (ver POST /taller/acabar).
-  // PINCHAZOS (servicio que contiene "pinchazo"): en su lugar va el campo
+  // SERVICIOS CON PRECIO (pinchazos y "Rueda suelta", ver servicioConPrecio()):
+  // en su lugar va el campo
   // "€" (name="precio", inputmode="decimal", maxlength 10), también con
   // required solo de HTML, y SIEMPRE VACÍO aunque la cita ya tenga precio:
   // la pantalla la ve el cliente que espera y no debe mostrar importes.
@@ -1939,15 +1963,19 @@ function tallerHTML(citas, fecha, esManana = false, token = null) {
     // completo. Sin espacio, el nombre entero.
     const pila = String(c.nombre || '').trim().split(/\s+/)[0];
     const enTaller = c.estado === 'atendida';
-    // Pinchazos ('Pinchazo turismo/furgoneta/moto' en el panel): el campo
-    // que acompaña a ACABADO es el PRECIO, no los km. El precio depende de
-    // la llanta y lo ven los mecánicos, no Vicky; los km ahí no aportan.
-    // SIEMPRE VACÍO aunque la cita ya tenga precio: la pantalla la ve el
-    // cliente que espera y no debe mostrar importes (los km sí van
-    // prerrellenados, es distinto). El 'required' es solo del HTML, igual
-    // que en los km (ver POST /taller/acabar).
-    const pinchazo = String(c.servicio || '').toLowerCase().includes('pinchazo');
-    const campoAcabar = pinchazo
+    // Criterio del campo que acompaña a ACABADO (servicioConPrecio): es el
+    // PRECIO, no los km, en los servicios donde no hay kilómetros que
+    // apuntar o el importe depende de lo que vean los mecánicos:
+    //   - Pinchazos ('Pinchazo turismo/furgoneta/moto' en el panel): el
+    //     precio depende de la llanta y lo ven ellos al abrir la rueda.
+    //   - Rueda suelta: el cliente trae solo la rueda, sin coche; no hay
+    //     cuentakilómetros que leer.
+    // Para añadir otro servicio, ampliar servicioConPrecio, no encadenar
+    // condiciones aquí. El campo sale SIEMPRE VACÍO aunque la cita ya
+    // tenga precio: la pantalla la ve el cliente que espera y no debe
+    // mostrar importes (los km sí van prerrellenados, es distinto). El
+    // 'required' es solo del HTML, igual que en los km (ver POST /taller/acabar).
+    const campoAcabar = servicioConPrecio(c.servicio)
       ? `<input type="text" name="precio" class="campo" inputmode="decimal" maxlength="10" placeholder="€" required autocomplete="off" aria-label="Precio">`
       : `<input type="text" name="kilometros" class="campo" inputmode="numeric" pattern="[0-9]{1,7}" maxlength="7" placeholder="KM" required autocomplete="off" aria-label="Kilómetros" value="${escapeHtml(c.kilometros || '')}">`;
     return `
