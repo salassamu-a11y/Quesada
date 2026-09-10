@@ -1105,14 +1105,16 @@ function adminHTML(citas, vista = 'proximas', pendientes = { acabadas: 0, incide
       // la celda de Acciones: Vicky lo rellena cada vez que cobra y antes
       // tenía que abrir Editar. Guarda por fetch a POST /admin/cita/:id/pago
       // sin recargar (cambiarPago, en el <script> del panel). NO puede
-      // ensanchar la tabla (ajustada para caber a 1366 px sin scroll): con
-      // 'w-0 min-w-full' su ancho intrínseco no cuenta ("transferencia" es
-      // más larga que cualquier estado) y luego se estira al ancho del
-      // desplegable de estado, que es el que manda. data-pago guarda el valor
-      // persistido para volver a él si el guardado falla.
-      // SIN title a propósito: el tooltip nativo cerraba la lista al aparecer
-      // y los primeros clics caían en la fila de abajo. aria-label basta.
-      const selectPago = `<select onchange="cambiarPago(this)" data-id="${id}" data-pago="${escapeHtml(c.pago || '')}" aria-label="Forma de pago" class="w-0 min-w-full text-xs bg-[#060D1F] border border-white/10 text-gray-300 rounded-lg px-2 py-1.5 cursor-pointer focus:outline-none focus:border-[#2563EB]">
+      // ensanchar la tabla (ajustada para caber a 1366 px sin scroll), y
+      // "transferencia" es más larga que cualquier estado, así que lleva
+      // ANCHO FIJO (w-28) en vez de dejar que mande su ancho intrínseco.
+      // NO volver al truco 'w-0 min-w-full' (ancho 0 + min-width 100% para
+      // copiar el ancho del desplegable de estado): con él el navegador
+      // cerraba la lista nada más abrirla y los primeros clics caían en la
+      // fila de abajo (verificado en Chrome, 09/2026). Sin title: aria-label
+      // basta. data-pago guarda el valor persistido para volver a él si el
+      // guardado falla.
+      const selectPago = `<select onchange="cambiarPago(this)" data-id="${id}" data-pago="${escapeHtml(c.pago || '')}" aria-label="Forma de pago" class="w-28 text-xs bg-[#060D1F] border border-white/10 text-gray-300 rounded-lg px-2 py-1.5 cursor-pointer focus:outline-none focus:border-[#2563EB]">
               <option value="">— pago —</option>
               ${FORMAS_PAGO.map(f => `<option value="${f}"${c.pago === f ? ' selected' : ''}>${f}</option>`).join('')}
             </select>`;
