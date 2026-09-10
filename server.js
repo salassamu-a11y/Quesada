@@ -702,6 +702,14 @@ function horarioTaller(fecha, hora) {
 // una única normalización, sin copias.
 // Valores cerrados del <select> de forma de pago del panel. Vacío también vale.
 const FORMAS_PAGO = ['tarjeta', 'efectivo', 'transferencia'];
+// Quién hizo el trabajo (campo 'hechoPor' de la cita, opcional): valor
+// CERRADO, la letra que pulsa el mecánico en la pantalla del taller. Solo lo
+// escribe POST /taller/acabar; el panel lo muestra y NO lo edita (no está en
+// el formulario ni en camposVehiculo, así el PUT lo conserva sin tocarlo).
+const MECANICOS = { D: 'Dani', J: 'Jorge' };
+// Nombre a partir de la letra guardada; '' si no es una de las válidas
+// (hasOwnProperty: 'constructor' o 'toString' en el JSON no deben casar).
+const nombreMecanico = (letra) => Object.prototype.hasOwnProperty.call(MECANICOS, letra) ? MECANICOS[letra] : '';
 
 function camposVehiculo(body) {
   const s = v => (typeof v === 'string' ? v.trim() : '');
@@ -1130,7 +1138,8 @@ function adminHTML(citas, vista = 'proximas', pendientes = { acabadas: 0, incide
         '',                                                   // PO SI (no se guarda)
         '',                                                   // FACTURA (no se guarda)
         String(c.precio == null ? '' : c.precio).replace('.', ','),  // IMPORTE (punto decimal → coma: LibreOffice en español no reconoce el punto y la columna no sumaría; el dato guardado no se toca)
-        ''                                                    // FECHA COBRO (no se guarda: la apuntan a mano, ver comentario arriba)
+        '',                                                   // FECHA COBRO (no se guarda: la apuntan a mano, ver comentario arriba)
+        c.hechoPor                                            // QUIÉN LO HIZO (D/J, columna nueva al final de su hoja; vacío si no consta)
       ].map(celdaExcel).join('\t');
       return `
       <tr id="cita-${id}" data-buscar="${escapeHtml([c.nombre, c.telefono, c.matricula].filter(Boolean).join(' | '))}" data-excel="${escapeHtml(lineaExcel).replace(/\t/g, '&#9;')}" class="border-b border-white/5 hover:bg-white/5 transition-colors${claseFila}">
@@ -1140,7 +1149,7 @@ function adminHTML(citas, vista = 'proximas', pendientes = { acabadas: 0, incide
           <div class="text-gray-300">${escapeHtml(fechaCorta(c.fecha))}</div>
           <div class="text-[#FFD700] font-bold text-base mt-0.5">${escapeHtml(c.hora)}</div>
         </td>
-        <td data-label="Servicio" class="px-2 py-3 text-gray-300">${escapeHtml(c.servicio)}${c.detalle ? `<div class="text-xs text-gray-500 mt-0.5">${escapeHtml(c.detalle)}</div>` : ''}${conMotivo && c.motivo ? `<div class="text-xs text-red-400/80 mt-0.5">${escapeHtml(c.motivo)}</div>` : ''}</td>
+        <td data-label="Servicio" class="px-2 py-3 text-gray-300">${escapeHtml(c.servicio)}${c.detalle ? `<div class="text-xs text-gray-500 mt-0.5">${escapeHtml(c.detalle)}</div>` : ''}${conMotivo && c.motivo ? `<div class="text-xs text-red-400/80 mt-0.5">${escapeHtml(c.motivo)}</div>` : ''}${nombreMecanico(c.hechoPor) ? `<div class="text-xs text-gray-500 mt-0.5">Hecho por ${escapeHtml(nombreMecanico(c.hechoPor))}</div>` : ''}</td>
         <td data-label="Vehículo" class="px-2 py-3 whitespace-nowrap">${c.matricula ? `<div class="text-white font-semibold">${escapeHtml(c.matricula)}</div>` : ''}${lineaVehiculo ? `<div class="text-xs text-gray-500${c.matricula ? ' mt-0.5' : ''}">${lineaVehiculo}</div>` : ''}</td>
         <td data-label="Precio" class="px-2 py-3 text-right whitespace-nowrap">${c.precio ? `<div class="text-gray-300">${escapeHtml(c.precio)} €</div>` : ''}${lineaPago ? `<div class="text-xs text-gray-500${c.precio ? ' mt-0.5' : ''}">${lineaPago}</div>` : ''}</td>
         <td data-label="Estado" class="px-2 py-3">
@@ -1996,6 +2005,15 @@ function tallerHTML(citas, fecha, esManana = false, token = null) {
     const campoAcabar = servicioConPrecio(c.servicio)
       ? `<input type="text" name="precio" class="campo" inputmode="decimal" maxlength="10" placeholder="€" required autocomplete="off" aria-label="Precio">`
       : `<input type="text" name="kilometros" class="campo" inputmode="numeric" pattern="[0-9]{1,7}" maxlength="7" placeholder="KM" required autocomplete="off" aria-label="Kilómetros" value="${escapeHtml(c.kilometros || '')}">`;
+    // Quién hace el trabajo: dos radios OCULTOS con el mismo name y sus
+    // <label> con aspecto de botón (D / J), SIN JS: :checked pinta el
+    // elegido, mismo patrón que el checkbox del motivo. Botones y no campo de
+    // texto: se pulsa con las manos sucias y nadie escribe "d" o "Dani".
+    // Ninguno preseleccionado a propósito. 'required' solo del HTML, igual
+    // que km y precio (ver POST /taller/acabar).
+    const selectorQuien = Object.entries(MECANICOS).map(([letra, nombre]) =>
+      `<input type="radio" name="hechoPor" value="${letra}" id="hp-${letra}-${escapeHtml(c.id)}" class="hp-radio" required aria-label="${nombre}"><label for="hp-${letra}-${escapeHtml(c.id)}" class="hp-btn" title="${nombre}">${letra}</label>`
+    ).join('');
     return `
       <div class="cita${enTaller ? ' en-taller' : ''}">
         <div class="hora">${escapeHtml(c.hora)}</div>
@@ -2009,7 +2027,7 @@ function tallerHTML(citas, fecha, esManana = false, token = null) {
           <form method="post" action="/taller/acabar" class="accion acabar">
             <input type="hidden" name="k" value="${tokenEsc}">
             <input type="hidden" name="id" value="${escapeHtml(c.id)}">
-            ${campoAcabar}
+            <div class="quien-fila">${campoAcabar}${selectorQuien}</div>
             <button type="submit">ACABADO</button>
           </form>
           <input type="checkbox" id="inc-${escapeHtml(c.id)}" class="inc-toggle" aria-label="Indicar que no se hace">
@@ -2179,7 +2197,7 @@ function tallerHTML(citas, fecha, esManana = false, token = null) {
       margin-left: auto;
       flex-shrink: 0;
       display: grid;
-      grid-template-columns: 14rem 13rem;
+      grid-template-columns: 22rem 13rem;
       align-items: center;
       gap: .8rem;
     }
@@ -2194,6 +2212,33 @@ function tallerHTML(citas, fecha, esManana = false, token = null) {
     .inc-toggle:checked ~ .inc-abrir { display: none; }
     .inc-toggle:checked ~ .incidencia { display: contents; }
     .inc-toggle:focus-visible + .inc-abrir { outline: 3px solid #FFD700; outline-offset: 2px; }
+    /* Hueco de la columna 1 en la fila de ACABADO: el campo KM/precio (crece)
+       y a su derecha los dos botones D/J de quién hizo el trabajo. Los radios
+       van ocultos pero ENFOCABLES (mismo truco que .inc-toggle) y el label
+       contiguo hace de botón; position:relative contiene a los radios.
+       Tamaño de dedo: misma altura y fuente que el campo y ACABADO. */
+    .quien-fila { position: relative; display: flex; align-items: stretch; gap: .5rem; min-width: 0; }
+    .quien-fila .campo { flex: 1; min-width: 0; }
+    .hp-radio { position: absolute; width: 1px; height: 1px; opacity: 0; overflow: hidden; pointer-events: none; }
+    .hp-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      width: 3.6rem;
+      min-height: 5.5rem;
+      font-size: 1.9rem;
+      font-weight: 900;
+      color: #b9c4da;
+      background: rgba(255,255,255,.07);
+      border: 2px solid rgba(255,255,255,.18);
+      border-radius: 12px;
+      cursor: pointer;
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .hp-radio:checked + .hp-btn { color: #060D1F; background: #FFD700; border-color: #FFD700; }
+    .hp-radio:focus-visible + .hp-btn { outline: 3px solid #FFD700; outline-offset: 2px; }
     /* Campos KM y motivo: tienen que parecer CAMPOS, no botones. Fondo
        blanco muy translúcido (más claro que la tarjeta), SIN borde completo:
        solo una línea inferior de 2px que se vuelve amarilla con el foco, como
@@ -2326,6 +2371,7 @@ function tallerHTML(citas, fecha, esManana = false, token = null) {
       .inc-abrir { grid-column: 1; }
       .accion .campo { min-height: 4.4rem; font-size: 1.6rem; }
       .accion button { min-height: 4.4rem; font-size: 1.6rem; }
+      .hp-btn { min-height: 4.4rem; font-size: 1.6rem; }
       /* La jerarquía se mantiene: la fila de ACABADO grande, la de NO SE
          HACE más baja y con fuente menor, ambas a ancho completo. */
       .accion .campo.motivo { min-height: 3rem; font-size: 1.15rem; }
@@ -2554,9 +2600,20 @@ const server = http.createServer(async (req, res) => {
       errorHtml(409, 'El precio solo admite números con coma o punto decimal (ej. 45,50), máximo 10 caracteres');
       return;
     }
+    // Quién hizo el trabajo (botones D/J de la pantalla): valor cerrado
+    // (MECANICOS). Otro valor → 409 sin tocar nada. Vacío o ausente →
+    // 'acabada' igualmente y cita.hechoPor no se toca: MISMO CRITERIO que
+    // km y precio, el 'required' es solo del HTML. /taller/incidencia no lo
+    // pide: si el trabajo no se hace, no hay quien lo haya hecho.
+    const hechoPor = typeof body.hechoPor === 'string' ? body.hechoPor.trim() : '';
+    if (hechoPor && !nombreMecanico(hechoPor)) {
+      errorHtml(409, 'Indica quién ha hecho el trabajo (D o J)');
+      return;
+    }
     cita.estado = 'acabada';
     if (km) cita.kilometros = km;
     if (precio) cita.precio = precio;
+    if (hechoPor) cita.hechoPor = hechoPor;
     writeCitas(citas);
     // 302 a la pantalla con el mismo token: se refresca sola tras pulsar.
     res.writeHead(302, { Location: volver, 'Cache-Control': 'no-store' });
