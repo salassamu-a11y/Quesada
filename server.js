@@ -1097,6 +1097,10 @@ function adminHTML(citas, vista = 'proximas', pendientes = { acabadas: 0, incide
       // columnas del Diario.ods del taller separadas por TABULACIÓN, en su
       // orden. Las tres que el panel no guarda (PO SI, FACTURA, FECHA COBRO)
       // van vacías para que al pegar cuadren las columnas. Sin cabeceras.
+      // FECHA COBRO va SIEMPRE VACÍA a propósito: en su Excel significa
+      // cuándo pagó de verdad una empresa que factura a 30 días y la apuntan
+      // a mano; no es el momento en que Vicky marca 'pagada' (pagadaEn), así
+      // que copiarlo ahí metería un dato incorrecto.
       // Tabs y saltos de línea dentro de un campo pasan a espacio para no
       // romper la rejilla; en el atributo el tab viaja como &#9;.
       const celdaExcel = (v) => String(v == null ? '' : v).replace(/[\t\r\n]+/g, ' ').trim();
@@ -1114,8 +1118,6 @@ function adminHTML(citas, vista = 'proximas', pendientes = { acabadas: 0, incide
         return km ? km.replace(/\B(?=(\d{3})+$)/g, '.') + 'KM' : '';
       };
       const mFecha = /^(\d{4})-(\d{2})-(\d{2})$/.exec(c.fecha || '');
-      // FECHA COBRO: solo la fecha de pagadaEn ('YYYY-MM-DD HH:MM'), sin hora.
-      const mCobro = /^(\d{4})-(\d{2})-(\d{2})/.exec(c.pagadaEn || '');
       const lineaExcel = [
         mFecha ? `${mFecha[3]}/${mFecha[2]}/${mFecha[1].slice(2)}` : c.fecha,  // FECHA (dd/mm/aa)
         mayus(c.vehiculo),                                    // MARCA
@@ -1128,7 +1130,7 @@ function adminHTML(citas, vista = 'proximas', pendientes = { acabadas: 0, incide
         '',                                                   // PO SI (no se guarda)
         '',                                                   // FACTURA (no se guarda)
         String(c.precio == null ? '' : c.precio).replace('.', ','),  // IMPORTE (punto decimal → coma: LibreOffice en español no reconoce el punto y la columna no sumaría; el dato guardado no se toca)
-        mCobro ? `${mCobro[3]}/${mCobro[2]}/${mCobro[1].slice(2)}` : ''  // FECHA COBRO (dd/mm/aa de pagadaEn; sin él, vacía)
+        ''                                                    // FECHA COBRO (no se guarda: la apuntan a mano, ver comentario arriba)
       ].map(celdaExcel).join('\t');
       return `
       <tr id="cita-${id}" data-buscar="${escapeHtml([c.nombre, c.telefono, c.matricula].filter(Boolean).join(' | '))}" data-excel="${escapeHtml(lineaExcel).replace(/\t/g, '&#9;')}" class="border-b border-white/5 hover:bg-white/5 transition-colors${claseFila}">
@@ -2840,8 +2842,9 @@ const server = http.createServer(async (req, res) => {
       // Marca de tiempo del cobro: se escribe al ENTRAR en 'pagada' (si ya
       // lo estaba no se pisa) y se borra al SALIR (Vicky se equivocó y la
       // devuelve a otro estado). Vicky no lo ve ni lo edita: sirve para
-      // ordenar las pagadas del listado y rellenar FECHA COBRO en la copia
-      // al Excel. Las citas anteriores no lo tienen; undefined tolerado.
+      // ordenar las pagadas del listado. NO se copia al Excel: FECHA COBRO
+      // es otra cosa (cuándo pagó de verdad una empresa a 30 días).
+      // Las citas anteriores no lo tienen; undefined tolerado.
       if (body.estado === 'pagada') {
         if (cita.estado !== 'pagada') cita.pagadaEn = ahoraMadrid();
       } else {
