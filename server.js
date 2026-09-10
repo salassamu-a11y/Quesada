@@ -531,6 +531,20 @@ function hoyMadrid() {
   return fechaMadrid(new Date());
 }
 
+// "Ahora" en Europe/Madrid como 'YYYY-MM-DD HH:MM', comparable como texto
+// (igual que fecha+hora del resto del proyecto). Mismo patrón Intl que
+// fechaMadrid(): NUNCA toISOString(), que en Render daría UTC. hourCycle
+// 'h23' evita que la medianoche salga como "24:00".
+const FMT_HORA_MADRID = new Intl.DateTimeFormat('en-CA', {
+  timeZone: 'Europe/Madrid', hour: '2-digit', minute: '2-digit', hourCycle: 'h23'
+});
+function ahoraMadrid() {
+  const d = new Date();
+  const p = {};
+  for (const { type, value } of FMT_HORA_MADRID.formatToParts(d)) p[type] = value;
+  return `${fechaMadrid(d)} ${p.hour}:${p.minute}`;
+}
+
 // "2026-08-12" → "martes 12 de agosto", para la variable {{2}} de la plantilla.
 // Se ancla a mediodía UTC: Madrid va +1/+2h, así que nunca cae en el día
 // anterior al formatear en zona local.
@@ -1100,6 +1114,8 @@ function adminHTML(citas, vista = 'proximas', pendientes = { acabadas: 0, incide
         return km ? km.replace(/\B(?=(\d{3})+$)/g, '.') + 'KM' : '';
       };
       const mFecha = /^(\d{4})-(\d{2})-(\d{2})$/.exec(c.fecha || '');
+      // FECHA COBRO: solo la fecha de pagadaEn ('YYYY-MM-DD HH:MM'), sin hora.
+      const mCobro = /^(\d{4})-(\d{2})-(\d{2})/.exec(c.pagadaEn || '');
       const lineaExcel = [
         mFecha ? `${mFecha[3]}/${mFecha[2]}/${mFecha[1].slice(2)}` : c.fecha,  // FECHA (dd/mm/aa)
         mayus(c.vehiculo),                                    // MARCA
@@ -1112,7 +1128,7 @@ function adminHTML(citas, vista = 'proximas', pendientes = { acabadas: 0, incide
         '',                                                   // PO SI (no se guarda)
         '',                                                   // FACTURA (no se guarda)
         String(c.precio == null ? '' : c.precio).replace('.', ','),  // IMPORTE (punto decimal → coma: LibreOffice en español no reconoce el punto y la columna no sumaría; el dato guardado no se toca)
-        ''                                                    // FECHA COBRO (no se guarda)
+        mCobro ? `${mCobro[3]}/${mCobro[2]}/${mCobro[1].slice(2)}` : ''  // FECHA COBRO (dd/mm/aa de pagadaEn; sin él, vacía)
       ].map(celdaExcel).join('\t');
       return `
       <tr id="cita-${id}" data-buscar="${escapeHtml([c.nombre, c.telefono, c.matricula].filter(Boolean).join(' | '))}" data-excel="${escapeHtml(lineaExcel).replace(/\t/g, '&#9;')}" class="border-b border-white/5 hover:bg-white/5 transition-colors${claseFila}">
@@ -2712,8 +2728,19 @@ const server = http.createServer(async (req, res) => {
       // ascendentes de listado; 'todas' es histórico descendente y el
       // calendario coloca por franja, no por posición en la lista.
       const CERRADAS = new Set(['pagada', 'cancelada']);
+      // Dentro del bloque de cerradas: las que tienen pagadaEn primero,
+      // ordenadas por ese valor ASCENDENTE (lo primero cobrado arriba, que
+      // es el orden en que Vicky va facturando); las que no lo tienen
+      // (canceladas y pagadas antiguas) después, en orden cronológico.
+      const cmpCobro = (a, b) => {
+        const pa = a.pagadaEn || '', pb = b.pagadaEn || '';
+        if (pa && pb) return pa.localeCompare(pb);
+        return (pb ? 1 : 0) - (pa ? 1 : 0);
+      };
       const cmpCerradasAlFinal = (a, b) =>
-        (CERRADAS.has(a.estado) - CERRADAS.has(b.estado)) || cmpAsc(a, b);
+        (CERRADAS.has(a.estado) - CERRADAS.has(b.estado))
+        || (CERRADAS.has(a.estado) && cmpCobro(a, b))
+        || cmpAsc(a, b);
       // Filtros solo por comparación de strings ISO, sin new Date():
       //  - proximas: hoy y siguientes, ascendente, cerradas al final (por defecto).
       //  - hoy:      solo la fecha de hoy, ascendente, cerradas al final.
@@ -2809,6 +2836,16 @@ const server = http.createServer(async (req, res) => {
         res.writeHead(400, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ ok: false, error: 'Estado inválido: debe ser pendiente, confirmada, atendida, acabada, llamado, incidencia, pagada o cancelada' }));
         return;
+      }
+      // Marca de tiempo del cobro: se escribe al ENTRAR en 'pagada' (si ya
+      // lo estaba no se pisa) y se borra al SALIR (Vicky se equivocó y la
+      // devuelve a otro estado). Vicky no lo ve ni lo edita: sirve para
+      // ordenar las pagadas del listado y rellenar FECHA COBRO en la copia
+      // al Excel. Las citas anteriores no lo tienen; undefined tolerado.
+      if (body.estado === 'pagada') {
+        if (cita.estado !== 'pagada') cita.pagadaEn = ahoraMadrid();
+      } else {
+        delete cita.pagadaEn;
       }
       cita.estado = body.estado;
       writeCitas(citas);
