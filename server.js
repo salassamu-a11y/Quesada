@@ -1101,6 +1101,21 @@ function adminHTML(citas, vista = 'proximas', pendientes = { acabadas: 0, incide
       ].filter(Boolean).join(' · ');
       // Línea 2 de la columna PRECIO: la forma de pago, si la hay.
       const lineaPago = c.pago ? escapeHtml(c.pago) : '';
+      // Desplegable de forma de pago de la fila, apilado BAJO el de estado en
+      // la celda de Acciones: Vicky lo rellena cada vez que cobra y antes
+      // tenía que abrir Editar. Guarda por fetch a POST /admin/cita/:id/pago
+      // sin recargar (cambiarPago, en el <script> del panel). NO puede
+      // ensanchar la tabla (ajustada para caber a 1366 px sin scroll): con
+      // 'w-0 min-w-full' su ancho intrínseco no cuenta ("transferencia" es
+      // más larga que cualquier estado) y luego se estira al ancho del
+      // desplegable de estado, que es el que manda. data-pago guarda el valor
+      // persistido para volver a él si el guardado falla.
+      // SIN title a propósito: el tooltip nativo cerraba la lista al aparecer
+      // y los primeros clics caían en la fila de abajo. aria-label basta.
+      const selectPago = `<select onchange="cambiarPago(this)" data-id="${id}" data-pago="${escapeHtml(c.pago || '')}" aria-label="Forma de pago" class="w-0 min-w-full text-xs bg-[#060D1F] border border-white/10 text-gray-300 rounded-lg px-2 py-1.5 cursor-pointer focus:outline-none focus:border-[#2563EB]">
+              <option value="">— pago —</option>
+              ${FORMAS_PAGO.map(f => `<option value="${f}"${c.pago === f ? ' selected' : ''}>${f}</option>`).join('')}
+            </select>`;
       // Línea para "Copiar al Excel" (atributo data-excel del <tr>): las 12
       // columnas del Diario.ods del taller separadas por TABULACIÓN, en su
       // orden. Las tres que el panel no guarda (PO SI, FACTURA, FECHA COBRO)
@@ -1156,19 +1171,22 @@ function adminHTML(citas, vista = 'proximas', pendientes = { acabadas: 0, incide
           <span class="px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap ${estadoBadge(c.estado)}">${escapeHtml(c.estado)}${pagada && c.pago ? ` · ${escapeHtml(c.pago)}` : ''}</span>
         </td>
         <td data-label="Acciones" class="px-2 py-3 flex items-center gap-1.5">
-          <form method="post" action="/admin/cita/${id}/estado" class="inline">
-            ${camposVista}
-            <select name="estado" onchange="this.form.submit()" class="text-xs bg-[#060D1F] border border-white/10 text-gray-300 rounded-lg px-2 py-1.5 cursor-pointer focus:outline-none focus:border-[#2563EB]">
-              ${c.estado === 'pendiente' ? '<option selected>pendiente</option>' : ''}
-              <option ${c.estado === 'confirmada' ? 'selected' : ''}>confirmada</option>
-              <option ${c.estado === 'atendida'   ? 'selected' : ''}>atendida</option>
-              <option ${c.estado === 'acabada'    ? 'selected' : ''}>acabada</option>
-              <option ${c.estado === 'llamado'    ? 'selected' : ''}>llamado</option>
-              <option ${c.estado === 'incidencia' ? 'selected' : ''}>incidencia</option>
-              <option ${c.estado === 'pagada'     ? 'selected' : ''}>pagada</option>
-              <option ${c.estado === 'cancelada'  ? 'selected' : ''}>cancelada</option>
-            </select>
-          </form>
+          <div class="flex flex-col gap-1">
+            <form method="post" action="/admin/cita/${id}/estado" class="inline">
+              ${camposVista}
+              <select name="estado" onchange="this.form.submit()" class="text-xs bg-[#060D1F] border border-white/10 text-gray-300 rounded-lg px-2 py-1.5 cursor-pointer focus:outline-none focus:border-[#2563EB]">
+                ${c.estado === 'pendiente' ? '<option selected>pendiente</option>' : ''}
+                <option ${c.estado === 'confirmada' ? 'selected' : ''}>confirmada</option>
+                <option ${c.estado === 'atendida'   ? 'selected' : ''}>atendida</option>
+                <option ${c.estado === 'acabada'    ? 'selected' : ''}>acabada</option>
+                <option ${c.estado === 'llamado'    ? 'selected' : ''}>llamado</option>
+                <option ${c.estado === 'incidencia' ? 'selected' : ''}>incidencia</option>
+                <option ${c.estado === 'pagada'     ? 'selected' : ''}>pagada</option>
+                <option ${c.estado === 'cancelada'  ? 'selected' : ''}>cancelada</option>
+              </select>
+            </form>
+            ${selectPago}
+          </div>
           ${accionTic}
           ${accionWa}
           <button onclick="editarCita(this)"
@@ -1563,6 +1581,43 @@ ${cuerpo}
       if (!confirm('¿Eliminar esta cita? Esta acción no se puede deshacer.')) return;
       const res = await fetch('/admin/cita/' + id, { method: 'DELETE' });
       if (res.ok) location.reload();
+    }
+    // Desplegable de forma de pago de la fila (bajo el de estado): guarda SOLO
+    // cita.pago vía POST /admin/cita/:id/pago y NO recarga la página (Vicky
+    // perdería la posición y lo que estuviera tecleando): el propio desplegable
+    // ya muestra el valor. Sí se actualizan el data-pago del botón Editar (si
+    // no, abrir Editar y guardar pisaría el pago con el valor viejo) y la
+    // columna PAGO del data-excel de la fila (Copiar al Excel). El badge
+    // "pagada · tarjeta" no se toca hasta la siguiente recarga, a propósito.
+    // Si falla: borde rojo 1,5 s, aviso en el title y vuelta al valor anterior.
+    async function cambiarPago(sel) {
+      var anterior = sel.dataset.pago || '';
+      var nuevo = sel.value;
+      var ok = false;
+      try {
+        var res = await fetch('/admin/cita/' + sel.dataset.id + '/pago', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ pago: nuevo })
+        });
+        ok = res.ok;
+      } catch (e) { ok = false; }
+      if (ok) {
+        sel.dataset.pago = nuevo;
+        var tr = sel.closest('tr');
+        var editar = tr && tr.querySelector('button[data-pago]');
+        if (editar) editar.dataset.pago = nuevo;
+        var linea = tr && tr.getAttribute('data-excel');
+        if (linea != null) {
+          var cols = linea.split('\\t');
+          if (cols.length > 6) { cols[6] = nuevo.toUpperCase(); tr.setAttribute('data-excel', cols.join('\\t')); }
+        }
+        return;
+      }
+      sel.value = anterior;
+      sel.style.borderColor = 'rgba(248,113,113,.7)';
+      sel.title = 'No se pudo guardar la forma de pago';
+      setTimeout(function () { sel.style.borderColor = ''; sel.removeAttribute('title'); }, 1500);
     }
     async function guardarNuevaCita() {
       const nombre   = document.getElementById('nc-nombre').value.trim();
@@ -3007,6 +3062,46 @@ const server = http.createServer(async (req, res) => {
         return;
       }
       cita.recordatorioEnviado = true;
+      writeCitas(citas);
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: true }));
+      return;
+    }
+
+    // POST /admin/cita/:id/pago — cambia SOLO la forma de pago desde el
+    // desplegable de la fila del listado (bajo el de estado; cambiarPago en el
+    // <script> del panel), sin recargar: Vicky la rellena cada vez que cobra y
+    // antes tenía que abrir Editar. Dentro del bloque POST/DELETE, así hereda
+    // isSameOrigin. Mismo valor cerrado que el formulario (FORMAS_PAGO); vacío
+    // también vale y borra el campo. Lectura fresca y parcheo de un solo
+    // registro (regla del proyecto): no toca ningún otro campo.
+    const pagoMatch = p.match(/^\/admin\/cita\/([^/]+)\/pago$/);
+    if (req.method === 'POST' && pagoMatch) {
+      const body = await parseBody(req);
+      if (body === BODY_TOO_LARGE) {
+        res.writeHead(413, { 'Content-Type': 'application/json', 'Connection': 'close' });
+        res.end(JSON.stringify({ ok: false, error: 'Cuerpo demasiado grande' }));
+        return;
+      }
+      if (!body) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: false, error: 'Cuerpo de la petición inválido' }));
+        return;
+      }
+      const pago = typeof body.pago === 'string' ? body.pago.trim() : '';
+      if (pago && !FORMAS_PAGO.includes(pago)) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: false, error: 'La forma de pago debe ser tarjeta, efectivo o transferencia' }));
+        return;
+      }
+      const citas = readCitas();
+      const cita = citas.find(c => c.id === pagoMatch[1]);
+      if (!cita) {
+        res.writeHead(404, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: false, error: 'Cita no encontrada' }));
+        return;
+      }
+      if (pago) cita.pago = pago; else delete cita.pago;
       writeCitas(citas);
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ ok: true }));
