@@ -843,6 +843,32 @@ function validarCita(body, permitirPasado = false) {
 // pasa a 'llamado' (el cliente tiene que enterarse igual).
 const SIGUIENTE_ESTADO = { confirmada: 'atendida', atendida: 'acabada', acabada: 'llamado', incidencia: 'llamado', llamado: 'pagada' };
 
+// Ciclo real: confirmada → atendida → acabada → llamado → pagada, más
+// cancelada (no vino) e incidencia (salida lateral: el coche está en el
+// taller y el trabajo no se puede hacer; desde ahí también se avanza a
+// 'llamado'). 'pendiente' se conserva solo por datos históricos.
+// ÚNICA lista de estados válidos: la usan POST /admin/cita/:id/estado y el
+// PUT /admin/cita/:id (desplegable de estado del formulario de edición).
+const ESTADOS_VALIDOS = ['pendiente', 'confirmada', 'atendida', 'acabada', 'llamado', 'incidencia', 'pagada', 'cancelada'];
+
+// Cambia el estado de una cita manteniendo la marca de tiempo del cobro:
+// pagadaEn se escribe al ENTRAR en 'pagada' (si ya lo estaba no se pisa) y
+// se borra al SALIR (Vicky se equivocó y la devuelve a otro estado). Vicky
+// no lo ve ni lo edita: sirve para ordenar las pagadas del listado. NO se
+// copia al Excel: FECHA COBRO es otra cosa (cuándo pagó de verdad una
+// empresa a 30 días). Las citas anteriores no lo tienen; undefined tolerado.
+// Lo usan el desplegable/✓ del listado y el formulario de edición: un solo
+// sitio para que una cita marcada 'pagada' desde el formulario no se quede
+// sin hora de cobro.
+function aplicarEstado(cita, estado) {
+  if (estado === 'pagada') {
+    if (cita.estado !== 'pagada') cita.pagadaEn = ahoraMadrid();
+  } else {
+    delete cita.pagadaEn;
+  }
+  cita.estado = estado;
+}
+
 // Citas pendientes de llamar al cliente: 'acabada' (trabajo terminado) e
 // 'incidencia' (el coche está en el taller y el trabajo NO se puede hacer;
 // distinto de 'cancelada', que es que el cliente no vino). Las dos reclaman
@@ -977,7 +1003,8 @@ function calendarioHTML(citas, lunes, hoy) {
       data-vehiculo="${escapeHtml(c.vehiculo || '')}"
       data-kilometros="${escapeHtml(c.kilometros || '')}"
       data-precio="${escapeHtml(c.precio || '')}"
-      data-pago="${escapeHtml(c.pago || '')}"`;
+      data-pago="${escapeHtml(c.pago || '')}"
+      data-estado="${escapeHtml(c.estado)}"`;
     return `<div onclick="editarCita(this)" ${datos} class="rounded px-1.5 py-1 text-[11px] leading-tight cursor-pointer hover:ring-1 hover:ring-white/40 ${estadoBadge(c.estado)}${cerrada ? ' opacity-50' : ''}" title="${escapeHtml(c.estado)}${c.detalle ? ' · ' + escapeHtml(c.detalle) : ''} · pulsar para editar">
       <span class="font-bold">${cuando}</span> ${nombre}<br><span class="opacity-80">${escapeHtml(c.servicio)}</span>${detalle}</div>`;
   };
@@ -1244,6 +1271,7 @@ function adminHTML(citas, vista = 'proximas', pendientes = { acabadas: 0, incide
                   data-kilometros="${escapeHtml(c.kilometros || '')}"
                   data-precio="${escapeHtml(c.precio || '')}"
                   data-pago="${escapeHtml(c.pago || '')}"
+                  data-estado="${escapeHtml(c.estado)}"
                   title="Editar cita" aria-label="Editar cita"
                   class="${CLASE_ICONO} bg-white/5 hover:bg-white/10 text-gray-300 border border-white/10">${ICONO.editar}</button>
           <button type="button" onclick="copiarExcel(this)" title="Copiar al Excel" aria-label="Copiar al Excel"
@@ -1462,6 +1490,22 @@ function adminHTML(citas, vista = 'proximas', pendientes = { acabadas: 0, incide
               <option value="transferencia">Transferencia</option>
             </select>
           </div>
+          <!-- Estado: SOLO en modo edición (editarCita lo muestra, reset lo
+               oculta). En el alta las citas nacen en 'confirmada' y no tiene
+               sentido elegirlo. Mismas opciones que el desplegable de la fila;
+               'pendiente' solo si la cita ya está en él (editarCita). -->
+          <div id="nc-estado-wrap" class="hidden">
+            <label class="block text-xs text-gray-400 mb-1.5 uppercase tracking-wide">Estado</label>
+            <select id="nc-estado" class="w-full bg-[#060D1F] border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-[#2563EB]">
+              <option value="confirmada">confirmada</option>
+              <option value="atendida">atendida</option>
+              <option value="acabada">acabada</option>
+              <option value="llamado">llamado</option>
+              <option value="incidencia">incidencia</option>
+              <option value="pagada">pagada</option>
+              <option value="cancelada">cancelada</option>
+            </select>
+          </div>
         </div>
         <div class="mt-5 flex gap-3">
           <button id="nc-guardar" onclick="guardarNuevaCita()" class="bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-sm font-medium px-5 py-2 rounded-lg transition-colors">Guardar cita</button>
@@ -1491,6 +1535,13 @@ ${cuerpo}
       var legacy = sel.querySelector('option[data-legacy]');
       if (legacy) legacy.remove();
       sel.value = '';
+      // Estado: solo existe en modo edición. Se retira la opción temporal
+      // 'pendiente' (dato histórico) y se oculta el bloque.
+      var selEstado = document.getElementById('nc-estado');
+      var legacyEstado = selEstado.querySelector('option[data-legacy]');
+      if (legacyEstado) legacyEstado.remove();
+      selEstado.value = 'confirmada';
+      document.getElementById('nc-estado-wrap').classList.add('hidden');
       document.getElementById('nc-titulo').textContent = 'Nueva cita';
       document.getElementById('nc-guardar').textContent = 'Guardar cita';
       document.getElementById('nc-error').classList.add('hidden');
@@ -1559,6 +1610,19 @@ ${cuerpo}
         sel.appendChild(opt);
         sel.value = d.servicio;
       }
+      // Estado actual de la cita; 'pendiente' (histórico) se ofrece solo si
+      // la cita ya está en él, igual que el desplegable de la fila.
+      var selEstado = document.getElementById('nc-estado');
+      selEstado.value = d.estado;
+      if (d.estado && selEstado.value !== d.estado) {
+        var optEstado = document.createElement('option');
+        optEstado.value = d.estado;
+        optEstado.textContent = d.estado;
+        optEstado.setAttribute('data-legacy', '');
+        selEstado.insertBefore(optEstado, selEstado.firstChild);
+        selEstado.value = d.estado;
+      }
+      document.getElementById('nc-estado-wrap').classList.remove('hidden');
       document.getElementById('nc-titulo').textContent = 'Editar cita';
       document.getElementById('nc-guardar').textContent = 'Guardar cambios';
       avisoHorario();
@@ -1686,10 +1750,14 @@ ${cuerpo}
 
       // Modo edición → PUT /admin/cita/:id; modo alta → POST /admin/cita.
       const editando = citaEditandoId !== null;
+      const datos = { nombre, telefono, fecha, hora, servicio, detalle, matricula, vehiculo, kilometros, precio, pago };
+      // El estado solo viaja en edición: en el alta la cita nace 'confirmada'
+      // y el PUT, si no recibe 'estado', conserva el actual.
+      if (editando) datos.estado = document.getElementById('nc-estado').value;
       const res = await fetch(editando ? '/admin/cita/' + citaEditandoId : '/admin/cita', {
         method: editando ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nombre, telefono, fecha, hora, servicio, detalle, matricula, vehiculo, kilometros, precio, pago })
+        body: JSON.stringify(datos)
       });
 
       if (res.ok) {
@@ -2986,28 +3054,14 @@ const server = http.createServer(async (req, res) => {
         res.end(JSON.stringify({ ok: false, error: 'Cita no encontrada' }));
         return;
       }
-      // Ciclo real: confirmada → atendida → acabada → llamado → pagada, más
-      // cancelada (no vino) e incidencia (salida lateral: el coche está en el
-      // taller y el trabajo no se puede hacer; desde ahí también se avanza a
-      // 'llamado'). 'pendiente' se conserva solo por datos históricos.
-      const validos = ['pendiente', 'confirmada', 'atendida', 'acabada', 'llamado', 'incidencia', 'pagada', 'cancelada'];
-      if (!validos.includes(body.estado)) {
+      // Lista y lógica de pagadaEn compartidas con el PUT (ESTADOS_VALIDOS,
+      // aplicarEstado), junto a SIGUIENTE_ESTADO.
+      if (!ESTADOS_VALIDOS.includes(body.estado)) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ ok: false, error: 'Estado inválido: debe ser pendiente, confirmada, atendida, acabada, llamado, incidencia, pagada o cancelada' }));
         return;
       }
-      // Marca de tiempo del cobro: se escribe al ENTRAR en 'pagada' (si ya
-      // lo estaba no se pisa) y se borra al SALIR (Vicky se equivocó y la
-      // devuelve a otro estado). Vicky no lo ve ni lo edita: sirve para
-      // ordenar las pagadas del listado. NO se copia al Excel: FECHA COBRO
-      // es otra cosa (cuándo pagó de verdad una empresa a 30 días).
-      // Las citas anteriores no lo tienen; undefined tolerado.
-      if (body.estado === 'pagada') {
-        if (cita.estado !== 'pagada') cita.pagadaEn = ahoraMadrid();
-      } else {
-        delete cita.pagadaEn;
-      }
-      cita.estado = body.estado;
+      aplicarEstado(cita, body.estado);
       writeCitas(citas);
       // Vuelta a la misma vista (y semana) desde la que se cambió el estado,
       // con ancla en la fila tocada para que el navegador conserve la altura
@@ -3043,10 +3097,12 @@ const server = http.createServer(async (req, res) => {
 
     // PUT /admin/cita/:id — edita los datos de una cita existente (Vicky
     // precisa el servicio o la rueda cuando llega el coche). Misma validación
-    // que el alta (validarCita, sin reglas duplicadas). CONSERVA id, creadaEn,
-    // estado y recordatorioEnviado: corregir datos no reabre un recordatorio
-    // ya enviado ni cambia el estado. Dentro del bloque POST/PUT/DELETE, así
-    // hereda isSameOrigin.
+    // que el alta (validarCita, sin reglas duplicadas). CONSERVA id, creadaEn
+    // y recordatorioEnviado: corregir datos no reabre un recordatorio ya
+    // enviado. El ESTADO solo cambia si el body lo trae (desplegable del
+    // formulario en modo edición); si no viene, se conserva como hasta
+    // ahora, para que corregir un nombre no lo modifique por accidente.
+    // Dentro del bloque POST/PUT/DELETE, así hereda isSameOrigin.
     const putMatch = p.match(/^\/admin\/cita\/([^/]+)$/);
     if (req.method === 'PUT' && putMatch) {
       const body = await parseBody(req);
@@ -3075,6 +3131,14 @@ const server = http.createServer(async (req, res) => {
         res.end(JSON.stringify({ ok: false, error: errorValidacion }));
         return;
       }
+      // Estado opcional: misma lista que POST /admin/cita/:id/estado. Se
+      // valida ANTES de tocar nada, para no guardar a medias.
+      const cambiaEstado = body.estado !== undefined && body.estado !== null && body.estado !== '';
+      if (cambiaEstado && !ESTADOS_VALIDOS.includes(body.estado)) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: false, error: 'Estado inválido: debe ser pendiente, confirmada, atendida, acabada, llamado, incidencia, pagada o cancelada' }));
+        return;
+      }
       cita.nombre   = body.nombre || '';
       cita.telefono = typeof body.telefono === 'string' ? body.telefono.trim() : '';
       cita.fecha    = body.fecha || '';
@@ -3086,6 +3150,9 @@ const server = http.createServer(async (req, res) => {
       // Object.assign no borra claves. Minimización de datos: fuera al guardar.
       delete cita.tipoVehiculo;
       delete cita.factura;
+      // Mismo tratamiento de pagadaEn que el desplegable de la fila
+      // (aplicarEstado): marca de cobro al entrar en 'pagada', borrada al salir.
+      if (cambiaEstado) aplicarEstado(cita, body.estado);
       writeCitas(citas);
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ ok: true }));
