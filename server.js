@@ -2109,7 +2109,7 @@ function tallerHTML(citas, fecha, esManana = false, token = null) {
     // Ninguno preseleccionado a propósito. 'required' solo del HTML, igual
     // que km y precio (ver POST /taller/acabar).
     const selectorQuien = Object.entries(MECANICOS).map(([letra, nombre]) =>
-      `<input type="radio" name="hechoPor" value="${letra}" id="hp-${letra}-${escapeHtml(c.id)}" class="hp-radio" required aria-label="${nombre}"><label for="hp-${letra}-${escapeHtml(c.id)}" class="hp-btn" title="${nombre}">${letra}</label>`
+      `<span class="hp"><input type="radio" name="hechoPor" value="${letra}" id="hp-${letra}-${escapeHtml(c.id)}" class="hp-radio" required aria-label="${nombre}"><label for="hp-${letra}-${escapeHtml(c.id)}" class="hp-btn" title="${nombre}">${letra}</label></span>`
     ).join('');
     return `
       <div class="cita${enTaller ? ' en-taller' : ''}">
@@ -2310,13 +2310,16 @@ function tallerHTML(citas, fecha, esManana = false, token = null) {
     .inc-toggle:checked ~ .incidencia { display: contents; }
     .inc-toggle:focus-visible + .inc-abrir { outline: 3px solid #FFD700; outline-offset: 2px; }
     /* Hueco de la columna 1 en la fila de ACABADO: el campo KM/precio (crece)
-       y a su derecha los dos botones D/J de quién hizo el trabajo. Los radios
-       van ocultos pero ENFOCABLES (mismo truco que .inc-toggle) y el label
-       contiguo hace de botón; position:relative contiene a los radios.
+       y a su derecha los dos botones D/J de quién hizo el trabajo. Cada radio
+       va oculto pero ENFOCABLE, envuelto con su label en un .hp relativo y
+       estirado con inset:0 sobre el botón: así ocupa el mismo sitio que el
+       label y la burbuja de validación del navegador ("selecciona una
+       opción") apunta al botón, no a un punto vacío de la tarjeta.
        Tamaño de dedo: misma altura y fuente que el campo y ACABADO. */
-    .quien-fila { position: relative; display: flex; align-items: stretch; gap: .5rem; min-width: 0; }
+    .quien-fila { display: flex; align-items: stretch; gap: .5rem; min-width: 0; }
     .quien-fila .campo { flex: 1; min-width: 0; }
-    .hp-radio { position: absolute; width: 1px; height: 1px; opacity: 0; overflow: hidden; pointer-events: none; }
+    .hp { position: relative; display: flex; flex-shrink: 0; }
+    .hp-radio { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; pointer-events: none; }
     .hp-btn {
       display: flex;
       align-items: center;
