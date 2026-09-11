@@ -806,8 +806,8 @@ function validarCita(body, permitirPasado = false) {
     return 'El servicio no puede superar los 100 caracteres';
   }
 
-  if (typeof body.detalle === 'string' && body.detalle.length > 100) {
-    return 'El detalle no puede superar los 100 caracteres';
+  if (typeof body.detalle === 'string' && body.detalle.length > 300) {
+    return 'El detalle no puede superar los 300 caracteres';
   }
 
   // Matrícula, vehículo, km y precio: OPCIONALES los cuatro. Vacío → válido.
@@ -1460,7 +1460,7 @@ function adminHTML(citas, vista = 'proximas', pendientes = { acabadas: 0, incide
           </div>
           <div class="col-span-2">
             <label class="block text-xs text-gray-400 mb-1.5 uppercase tracking-wide">Detalle (opcional)</label>
-            <input id="nc-detalle" type="text" maxlength="100" placeholder="4 ruedas, 205/55 R16" class="w-full bg-[#060D1F] border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#2563EB]">
+            <input id="nc-detalle" type="text" maxlength="300" placeholder="4 ruedas, 205/55 R16" class="w-full bg-[#060D1F] border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#2563EB]">
           </div>
           <div>
             <label class="block text-xs text-gray-400 mb-1.5 uppercase tracking-wide">Vehículo</label>
@@ -2180,7 +2180,7 @@ function tallerHTML(citas, fecha, esManana = false, token = null) {
       `<span class="hp"><input type="radio" name="hechoPor" value="${letra}" id="hp-${letra}-${escapeHtml(c.id)}" class="hp-radio" required aria-label="${nombre}"><label for="hp-${letra}-${escapeHtml(c.id)}" class="hp-btn" title="${nombre}">${letra}</label></span>`
     ).join('');
     return `
-      <div class="cita${enTaller ? ' en-taller' : ''}">
+      <div class="cita${enTaller ? ' en-taller' : ''}"${c.detalle ? ` title="${escapeHtml(c.detalle)}"` : ''}>
         <div class="hora">${escapeHtml(c.hora)}</div>
         <div class="datos">
           <div class="nombre">${escapeHtml(pila)}${enTaller ? '<span class="etiqueta">EN TALLER</span>' : ''}</div>
@@ -2331,7 +2331,15 @@ function tallerHTML(citas, fecha, esManana = false, token = null) {
     }
     .nombre { font-size: 2.2rem; font-weight: 700; }
     .servicio { font-size: 1.5rem; color: #b9c4da; margin-top: .3rem; }
-    .detalle { font-size: 1.25rem; color: #8fa3c7; margin-top: .35rem; }
+    /* Máximo DOS líneas con puntos suspensivos: el detalle admite 300
+       caracteres y a este tamaño serían 4-5 líneas, la tarjeta crecería y
+       las citas de abajo saldrían del viewport de la pantalla fija. El
+       texto completo va en el title de la tarjeta. */
+    .detalle {
+      font-size: 1.25rem; color: #8fa3c7; margin-top: .35rem;
+      display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2;
+      overflow: hidden;
+    }
     .coche { font-size: 1.4rem; color: #b9c4da; margin-top: .5rem; }
     .matricula {
       display: inline-block;
@@ -2812,8 +2820,8 @@ const server = http.createServer(async (req, res) => {
       errorHtml(409, 'Esa cita ya no está en el taller');
       return;
     }
-    // Motivo: texto libre, trim y máximo 100 caracteres (mismo tope que
-    // 'detalle'). Vacío o ausente → se marca 'incidencia' IGUALMENTE y
+    // Motivo: texto libre, trim y máximo 100 caracteres (tope propio: el de
+    // 'detalle' subió a 300). Vacío o ausente → se marca 'incidencia' IGUALMENTE y
     // cita.motivo no se toca: el 'required' es SOLO del HTML, mismo criterio
     // que con los kilómetros en /taller/acabar. NO añadir aquí validación
     // de obligatoriedad.
