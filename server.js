@@ -411,7 +411,8 @@ async function sendWhatsApp(cita) {
     throw new Error('TWILIO_CONTENT_SID no configurado: no se puede enviar la plantilla de WhatsApp');
   }
 
-  const clean = cita.telefono.replace(/[\s\-]/g, '').replace(/^(\+34|34)/, '');
+  // Con dos teléfonos guardados se usa SIEMPRE el primero (el del titular).
+  const clean = limpiarTelefono(separarTelefonos(cita.telefono)[0]);
   const to = `whatsapp:+34${clean}`;
   // {{4}} lleva servicio + detalle en una sola variable: la plantilla de Meta
   // tiene exactamente 5 y añadir una sexta obligaría a reaprobarla entera.
@@ -616,11 +617,44 @@ function lunesDesdeParam(semana) {
   return lunesDe(hoyMadrid());
 }
 
+// Normalización común de un teléfono: sin espacios ni guiones, sin prefijo.
+function limpiarTelefono(tel) {
+  return String(tel ?? '').replace(/[\s\-]/g, '').replace(/^(\+34|34)/, '');
+}
+
+// Regla de validez de UN número: 9 dígitos que empiecen por 6, 7, 8 o 9
+// (fijos admitidos; el WhatsApp exige móvil, eso lo decide telefonoWa()).
+function telefonoValido(tel) {
+  return /^[6789]\d{8}$/.test(limpiarTelefono(tel));
+}
+
+// El campo 'telefono' admite UNO O DOS números (quien trae el coche no siempre
+// es quien lo recoge), separados por barra, coma o guion, con o sin espacios.
+// Devuelve las partes tal cual las escribió Vicky (solo trim), sin reformatear;
+// vacío → []. Barra y coma siempre separan. El guion es AMBIGUO ("963-593-087"
+// es UN número con guiones): solo separa si a ambos lados queda un teléfono
+// válido. Si nada separa, es un único número (válido o no: eso lo dice
+// validarCita).
+function separarTelefonos(raw) {
+  const s = String(raw ?? '').trim();
+  if (!s) return [];
+  const porBarraComa = s.split(/[\/,]/).map((t) => t.trim());
+  if (porBarraComa.length > 1) return porBarraComa;
+  for (let i = s.indexOf('-'); i !== -1; i = s.indexOf('-', i + 1)) {
+    const izq = s.slice(0, i).trim();
+    const der = s.slice(i + 1).trim();
+    if (telefonoValido(izq) && telefonoValido(der)) return [izq, der];
+  }
+  return [s];
+}
+
 // Teléfono en formato wa.me ('34XXXXXXXXX'), o null si no es un móvil español
 // válido. Misma normalización que sendWhatsApp(), pero aquí un número mal
 // metido no puede romper nada: se devuelve null y la fila muestra un aviso.
+// Con dos números usa SIEMPRE EL PRIMERO (el del titular de la cita): si ese
+// no es móvil devuelve null aunque el segundo sí lo sea.
 function telefonoWa(tel) {
-  const clean = String(tel ?? '').replace(/[\s\-]/g, '').replace(/^(\+34|34)/, '');
+  const clean = limpiarTelefono(separarTelefonos(tel)[0]);
   return /^[67]\d{8}$/.test(clean) ? `34${clean}` : null;
 }
 
@@ -735,14 +769,20 @@ function validarCita(body, permitirPasado = false) {
   if (nombre.length > 100) return 'El nombre no puede superar los 100 caracteres';
 
   // Teléfono OPCIONAL: clientes empresa sin móvil o solo con fijo. Vacío,
-  // ausente o solo espacios → válido. Con contenido: 9 dígitos que empiecen
-  // por 6, 7, 8 o 9 tras limpiar espacios, guiones y prefijo +34/34.
+  // ausente o solo espacios → válido. Con contenido: UNO O DOS números
+  // (separarTelefonos), cada uno con 9 dígitos que empiecen por 6, 7, 8 o 9
+  // tras limpiar espacios, guiones y prefijo +34/34. Se guarda tal cual.
   // El WhatsApp sigue exigiendo móvil: eso lo decide telefonoWa(), no aquí.
   const telRaw = typeof body.telefono === 'string' ? body.telefono.trim() : '';
   if (telRaw) {
-    const tel = telRaw.replace(/[\s\-]/g, '').replace(/^(\+34|34)/, '');
-    if (!/^[6789]\d{8}$/.test(tel)) {
-      return 'El teléfono debe tener 9 dígitos y empezar por 6, 7, 8 o 9, o dejarse vacío';
+    const tels = separarTelefonos(telRaw);
+    if (tels.length > 2) return 'Como máximo dos teléfonos, separados por barra, coma o guion';
+    const malo = tels.findIndex((t) => !telefonoValido(t));
+    if (malo !== -1) {
+      if (tels.length === 1) {
+        return 'El teléfono debe tener 9 dígitos y empezar por 6, 7, 8 o 9, o dejarse vacío';
+      }
+      return `El ${malo === 0 ? 'primer' : 'segundo'} teléfono debe tener 9 dígitos y empezar por 6, 7, 8 o 9`;
     }
   }
 
@@ -1159,9 +1199,9 @@ function adminHTML(citas, vista = 'proximas', pendientes = { acabadas: 0, incide
         c.hechoPor                                            // QUIÉN LO HIZO (D/J, columna nueva al final de su hoja; vacío si no consta)
       ].map(celdaExcel).join('\t');
       return `
-      <tr id="cita-${id}" data-buscar="${escapeHtml([c.nombre, c.telefono, c.matricula].filter(Boolean).join(' | '))}" data-excel="${escapeHtml(lineaExcel).replace(/\t/g, '&#9;')}" class="border-b border-white/5 hover:bg-white/5 transition-colors${claseFila}">
+      <tr id="cita-${id}" data-buscar="${escapeHtml([c.nombre, ...separarTelefonos(c.telefono), c.matricula].filter(Boolean).join(' | '))}" data-excel="${escapeHtml(lineaExcel).replace(/\t/g, '&#9;')}" class="border-b border-white/5 hover:bg-white/5 transition-colors${claseFila}">
         <td data-label="Nombre" class="px-2 py-3 text-white font-medium${pagada ? ' line-through' : ''}">${escapeHtml(c.nombre)}</td>
-        <td data-label="Teléfono" class="px-2 py-3 text-gray-300">${c.telefono ? escapeHtml(c.telefono) : '<span class="text-gray-500">—</span>'}</td>
+        <td data-label="Teléfono" class="px-2 py-3 text-gray-300">${c.telefono ? separarTelefonos(c.telefono).map((t) => `<div class="whitespace-nowrap">${escapeHtml(t)}</div>`).join('') : '<span class="text-gray-500">—</span>'}</td>
         <td data-label="Fecha y hora" class="px-2 py-3 whitespace-nowrap">
           <div class="text-gray-300">${escapeHtml(fechaCorta(c.fecha))}</div>
           <div class="text-[#FFD700] font-bold text-base mt-0.5">${escapeHtml(c.hora)}</div>
@@ -1364,7 +1404,7 @@ function adminHTML(citas, vista = 'proximas', pendientes = { acabadas: 0, incide
           </div>
           <div>
             <label class="block text-xs text-gray-400 mb-1.5 uppercase tracking-wide">Teléfono</label>
-            <input id="nc-telefono" type="tel" class="w-full bg-[#060D1F] border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-[#2563EB]">
+            <input id="nc-telefono" type="tel" placeholder="611 222 333 / 622 333 444" class="w-full bg-[#060D1F] border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-[#2563EB]">
           </div>
           <div>
             <label class="block text-xs text-gray-400 mb-1.5 uppercase tracking-wide">Fecha</label>
@@ -1883,7 +1923,7 @@ function recordatoriosHTML(citas, fecha) {
             ${enviado ? '<span class="ml-2 align-middle text-[11px] font-medium uppercase tracking-wide bg-green-900/50 text-green-400 border border-green-700/50 px-2 py-0.5 rounded-full">Ya enviado</span>' : ''}
           </p>
           <p class="text-sm text-gray-300 mt-1">${escapeHtml(c.servicio)}${c.detalle ? ` <span class="text-gray-500">— ${escapeHtml(c.detalle)}</span>` : ''}</p>
-          <p class="text-xs text-gray-500 mt-1">${c.telefono ? escapeHtml(c.telefono) : '<span class="text-gray-600">—</span>'}</p>
+          <p class="text-xs text-gray-500 mt-1">${c.telefono ? separarTelefonos(c.telefono).map((t) => `<span class="block">${escapeHtml(t)}</span>`).join('') : '<span class="text-gray-600">—</span>'}</p>
         </div>
         <div class="flex items-center gap-2 shrink-0">
           ${accionWa}
