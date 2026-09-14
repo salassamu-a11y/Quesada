@@ -2185,7 +2185,6 @@ function tallerHTML(citas, fecha, esManana = false, token = null) {
         <div class="datos">
           <div class="nombre">${escapeHtml(pila)}${enTaller ? '<span class="etiqueta">EN TALLER</span>' : ''}</div>
           <div class="servicio">${escapeHtml(c.servicio)}</div>
-          ${c.detalle ? `<div class="detalle">${escapeHtml(c.detalle)}</div>` : ''}
           ${c.matricula || c.vehiculo ? `<div class="coche">${c.matricula ? `<span class="matricula">${escapeHtml(c.matricula)}</span>` : ''}${c.vehiculo ? escapeHtml(c.vehiculo) : ''}</div>` : ''}
         </div>
         ${!conBoton ? '' : enTaller ? `<div class="acciones">
@@ -2204,6 +2203,7 @@ function tallerHTML(citas, fecha, esManana = false, token = null) {
             <button type="submit">CONFIRMAR</button>
           </form>
         </div>` : `<div class="acciones"><span class="sin-llegar">Aún no ha llegado</span></div>`}
+        ${c.detalle ? `<div class="detalle">${escapeHtml(c.detalle)}</div>` : ''}
       </div>`;
   };
 
@@ -2275,6 +2275,7 @@ function tallerHTML(citas, fecha, esManana = false, token = null) {
     .contador strong { color: #FFD700; }
     .cita {
       display: flex;
+      flex-wrap: wrap;
       align-items: center;
       gap: 2rem;
       background: #0D1B3E;
@@ -2331,12 +2332,17 @@ function tallerHTML(citas, fecha, esManana = false, token = null) {
     }
     .nombre { font-size: 2.2rem; font-weight: 700; }
     .servicio { font-size: 1.5rem; color: #b9c4da; margin-top: .3rem; }
-    /* Máximo DOS líneas con puntos suspensivos: el detalle admite 300
-       caracteres y a este tamaño serían 4-5 líneas, la tarjeta crecería y
-       las citas de abajo saldrían del viewport de la pantalla fija. El
-       texto completo va en el title de la tarjeta. */
+    /* Fila PROPIA a todo el ancho de la tarjeta, debajo de .datos y de
+       .acciones (flex-wrap en .cita + width:100%): dentro de .datos, con las
+       columnas fijas de .acciones, el texto se quedaba con ~230 px y rompía
+       a los 25 caracteres. Sin detalle el elemento no se pinta y la tarjeta
+       queda como antes. Máximo DOS líneas con puntos suspensivos: el detalle
+       admite 300 caracteres y a este tamaño serían 4-5 líneas, la tarjeta
+       crecería y las citas de abajo saldrían del viewport de la pantalla
+       fija. El texto completo va en el title de la tarjeta. */
     .detalle {
-      font-size: 1.25rem; color: #8fa3c7; margin-top: .35rem;
+      flex: none; width: 100%;
+      font-size: 1.25rem; color: #8fa3c7;
       display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2;
       overflow: hidden;
     }
