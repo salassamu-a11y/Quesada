@@ -740,7 +740,11 @@ const FORMAS_PAGO = ['tarjeta', 'efectivo', 'transferencia'];
 // CERRADO, la letra que pulsa el mecánico en la pantalla del taller. Solo lo
 // escribe POST /taller/acabar; el panel lo muestra y NO lo edita (no está en
 // el formulario ni en camposVehiculo, así el PUT lo conserva sin tocarlo).
-const MECANICOS = { D: 'Dani', J: 'Jorge' };
+// 'D+J' cuando el trabajo lo hacen los dos: viaja tal cual en el body
+// form-urlencoded (el navegador manda D%2BJ y URLSearchParams lo devuelve
+// como '+'; solo un '+' crudo se leería como espacio) y se copia al Excel
+// tal cual, como D o J.
+const MECANICOS = { D: 'Dani', J: 'Jorge', 'D+J': 'Dani y Jorge' };
 // Nombre a partir de la letra guardada; '' si no es una de las válidas
 // (hasOwnProperty: 'constructor' o 'toString' en el JSON no deben casar).
 const nombreMecanico = (letra) => Object.prototype.hasOwnProperty.call(MECANICOS, letra) ? MECANICOS[letra] : '';
@@ -1223,7 +1227,7 @@ function adminHTML(citas, vista = 'proximas', pendientes = { acabadas: 0, incide
         '',                                                   // FACTURA (no se guarda)
         String(c.precio == null ? '' : c.precio).replace('.', ','),  // IMPORTE (punto decimal → coma: LibreOffice en español no reconoce el punto y la columna no sumaría; el dato guardado no se toca)
         '',                                                   // FECHA COBRO (no se guarda: la apuntan a mano, ver comentario arriba)
-        c.hechoPor                                            // QUIÉN LO HIZO (D/J, columna nueva al final de su hoja; vacío si no consta)
+        c.hechoPor                                            // QUIÉN LO HIZO (D, J o D+J tal cual, sin pasar por nombreMecanico; columna nueva al final de su hoja; vacío si no consta)
       ].map(celdaExcel).join('\t');
       return `
       <tr id="cita-${id}" data-buscar="${escapeHtml([c.nombre, ...separarTelefonos(c.telefono), c.matricula].filter(Boolean).join(' | '))}" data-excel="${escapeHtml(lineaExcel).replace(/\t/g, '&#9;')}" class="border-b border-white/5 hover:bg-white/5 transition-colors${claseFila}">
@@ -2169,14 +2173,14 @@ function tallerHTML(citas, fecha, esManana = false, token = null) {
     const campoAcabar = servicioConPrecio(c.servicio)
       ? `<input type="text" name="precio" class="campo" inputmode="decimal" maxlength="10" placeholder="€" required autocomplete="off" aria-label="Precio">`
       : `<input type="text" name="kilometros" class="campo" inputmode="numeric" pattern="[0-9]{1,7}" maxlength="7" placeholder="KM" required autocomplete="off" aria-label="Kilómetros" value="${escapeHtml(c.kilometros || '')}">`;
-    // Quién hace el trabajo: dos radios OCULTOS con el mismo name y sus
-    // <label> con aspecto de botón (D / J), SIN JS: :checked pinta el
+    // Quién hace el trabajo: tres radios OCULTOS con el mismo name y sus
+    // <label> con aspecto de botón (D / J / D+J), SIN JS: :checked pinta el
     // elegido, mismo patrón que el checkbox del motivo. Botones y no campo de
     // texto: se pulsa con las manos sucias y nadie escribe "d" o "Dani".
     // Ninguno preseleccionado a propósito. 'required' solo del HTML, igual
     // que km y precio (ver POST /taller/acabar).
     const selectorQuien = Object.entries(MECANICOS).map(([letra, nombre]) =>
-      `<span class="hp"><input type="radio" name="hechoPor" value="${letra}" id="hp-${letra}-${escapeHtml(c.id)}" class="hp-radio" required aria-label="${nombre}"><label for="hp-${letra}-${escapeHtml(c.id)}" class="hp-btn" title="${nombre}">${letra}</label></span>`
+      `<span class="hp"><input type="radio" name="hechoPor" value="${letra}" id="hp-${letra}-${escapeHtml(c.id)}" class="hp-radio" required aria-label="${nombre}"><label for="hp-${letra}-${escapeHtml(c.id)}" class="hp-btn${letra.length > 1 ? ' hp-doble' : ''}" title="${nombre}">${letra}</label></span>`
     ).join('');
     return `
       <div class="cita${enTaller ? ' en-taller' : ''}"${c.detalle ? ` title="${escapeHtml(c.detalle)}"` : ''}>
@@ -2391,12 +2395,16 @@ function tallerHTML(citas, fecha, esManana = false, token = null) {
     .inc-toggle:checked ~ .incidencia { display: contents; }
     .inc-toggle:focus-visible + .inc-abrir { outline: 3px solid #FFD700; outline-offset: 2px; }
     /* Hueco de la columna 1 en la fila de ACABADO: el campo KM/precio (crece)
-       y a su derecha los dos botones D/J de quién hizo el trabajo. Cada radio
+       y a su derecha los tres botones D / J / D+J de quién hizo el trabajo
+       (el campo se estrecha lo justo para que quepan: flex:1 + min-width:0;
+       con 7 dígitos como máximo tiene holgura). Cada radio
        va oculto pero ENFOCABLE, envuelto con su label en un .hp relativo y
        estirado con inset:0 sobre el botón: así ocupa el mismo sitio que el
        label y la burbuja de validación del navegador ("selecciona una
        opción") apunta al botón, no a un punto vacío de la tarjeta.
-       Tamaño de dedo: misma altura y fuente que el campo y ACABADO. */
+       Tamaño de dedo: misma altura que el campo y ACABADO. Ancho mínimo, no
+       fijo: D y J quedan en 3.6rem y D+J crece lo que pide su texto (padding
+       lateral), sin cambiar el ancho total de .acciones (22rem 13rem). */
     .quien-fila { display: flex; align-items: stretch; gap: .5rem; min-width: 0; }
     .quien-fila .campo { flex: 1; min-width: 0; }
     .hp { position: relative; display: flex; flex-shrink: 0; }
@@ -2406,7 +2414,8 @@ function tallerHTML(citas, fecha, esManana = false, token = null) {
       align-items: center;
       justify-content: center;
       flex-shrink: 0;
-      width: 3.6rem;
+      min-width: 3.6rem;
+      padding: 0 .4rem;
       min-height: 5.5rem;
       font-size: 1.9rem;
       font-weight: 900;
@@ -2418,6 +2427,10 @@ function tallerHTML(citas, fecha, esManana = false, token = null) {
       touch-action: manipulation;
       -webkit-tap-highlight-color: transparent;
     }
+    /* D+J: tres caracteres a 1.9rem no caben en el hueco sin robarle al
+       campo el sitio de sus 7 dígitos; a 1.45rem el botón queda en ~3.9rem
+       y el campo conserva ~0.6rem de holgura con 7 cifras. */
+    .hp-btn.hp-doble { font-size: 1.45rem; }
     .hp-radio:checked + .hp-btn { color: #060D1F; background: #FFD700; border-color: #FFD700; }
     .hp-radio:focus-visible + .hp-btn { outline: 3px solid #FFD700; outline-offset: 2px; }
     /* Campos KM y motivo: tienen que parecer CAMPOS, no botones. Fondo
@@ -2429,7 +2442,7 @@ function tallerHTML(citas, fecha, esManana = false, token = null) {
       display: block;
       width: 100%;
       min-height: 5.5rem;
-      padding: 0 1rem;
+      padding: 0 .5rem; /* antes 1rem: con el tercer botón D+J el campo pierde ~4.4rem y con 1rem no cabían 7 dígitos (el motivo lleva su propio padding) */
       font: inherit;
       font-size: 1.9rem;
       font-weight: 800;
@@ -2781,14 +2794,14 @@ const server = http.createServer(async (req, res) => {
       errorHtml(409, 'El precio solo admite números con coma o punto decimal (ej. 45,50), máximo 10 caracteres');
       return;
     }
-    // Quién hizo el trabajo (botones D/J de la pantalla): valor cerrado
+    // Quién hizo el trabajo (botones D / J / D+J de la pantalla): valor cerrado
     // (MECANICOS). Otro valor → 409 sin tocar nada. Vacío o ausente →
     // 'acabada' igualmente y cita.hechoPor no se toca: MISMO CRITERIO que
     // km y precio, el 'required' es solo del HTML. /taller/incidencia no lo
     // pide: si el trabajo no se hace, no hay quien lo haya hecho.
     const hechoPor = typeof body.hechoPor === 'string' ? body.hechoPor.trim() : '';
     if (hechoPor && !nombreMecanico(hechoPor)) {
-      errorHtml(409, 'Indica quién ha hecho el trabajo (D o J)');
+      errorHtml(409, 'Indica quién ha hecho el trabajo (D, J o D+J)');
       return;
     }
     cita.estado = 'acabada';
