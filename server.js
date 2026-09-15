@@ -1490,11 +1490,12 @@ function adminHTML(citas, vista = 'proximas', pendientes = { acabadas: 0, incide
               <option value="transferencia">Transferencia</option>
             </select>
           </div>
-          <!-- Estado: SOLO en modo edición (editarCita lo muestra, reset lo
-               oculta). En el alta las citas nacen en 'confirmada' y no tiene
-               sentido elegirlo. Mismas opciones que el desplegable de la fila;
-               'pendiente' solo si la cita ya está en él (editarCita). -->
-          <div id="nc-estado-wrap" class="hidden">
+          <!-- Estado: visible en alta y en edición. En el alta arranca en
+               'confirmada' (reset), para un cliente que entra sin cita y ya
+               está en el taller o ha pagado. Mismas opciones que el desplegable
+               de la fila; 'pendiente' solo en edición y solo si la cita ya
+               está en él (editarCita). -->
+          <div id="nc-estado-wrap">
             <label class="block text-xs text-gray-400 mb-1.5 uppercase tracking-wide">Estado</label>
             <select id="nc-estado" class="w-full bg-[#060D1F] border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-[#2563EB]">
               <option value="confirmada">confirmada</option>
@@ -1535,13 +1536,12 @@ ${cuerpo}
       var legacy = sel.querySelector('option[data-legacy]');
       if (legacy) legacy.remove();
       sel.value = '';
-      // Estado: solo existe en modo edición. Se retira la opción temporal
-      // 'pendiente' (dato histórico) y se oculta el bloque.
+      // Estado: vuelve a 'confirmada' (valor por defecto del alta) y se
+      // retira la opción temporal 'pendiente' que editarCita pudo añadir.
       var selEstado = document.getElementById('nc-estado');
       var legacyEstado = selEstado.querySelector('option[data-legacy]');
       if (legacyEstado) legacyEstado.remove();
       selEstado.value = 'confirmada';
-      document.getElementById('nc-estado-wrap').classList.add('hidden');
       document.getElementById('nc-titulo').textContent = 'Nueva cita';
       document.getElementById('nc-guardar').textContent = 'Guardar cita';
       document.getElementById('nc-error').classList.add('hidden');
@@ -1622,7 +1622,6 @@ ${cuerpo}
         selEstado.insertBefore(optEstado, selEstado.firstChild);
         selEstado.value = d.estado;
       }
-      document.getElementById('nc-estado-wrap').classList.remove('hidden');
       document.getElementById('nc-titulo').textContent = 'Editar cita';
       document.getElementById('nc-guardar').textContent = 'Guardar cambios';
       avisoHorario();
@@ -1750,10 +1749,10 @@ ${cuerpo}
 
       // Modo edición → PUT /admin/cita/:id; modo alta → POST /admin/cita.
       const editando = citaEditandoId !== null;
-      const datos = { nombre, telefono, fecha, hora, servicio, detalle, matricula, vehiculo, kilometros, precio, pago };
-      // El estado solo viaja en edición: en el alta la cita nace 'confirmada'
-      // y el PUT, si no recibe 'estado', conserva el actual.
-      if (editando) datos.estado = document.getElementById('nc-estado').value;
+      // El estado viaja en los dos modos: el POST lo aplica (por defecto
+      // 'confirmada') y el PUT, si no lo recibiera, conservaría el actual.
+      const estado = document.getElementById('nc-estado').value;
+      const datos = { nombre, telefono, fecha, hora, servicio, detalle, matricula, vehiculo, kilometros, precio, pago, estado };
       const res = await fetch(editando ? '/admin/cita/' + citaEditandoId : '/admin/cita', {
         method: editando ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -3025,6 +3024,15 @@ const server = http.createServer(async (req, res) => {
         res.end(JSON.stringify({ ok: false, error: errorValidacion }));
         return;
       }
+      // Estado opcional (desplegable del formulario): misma lista y misma
+      // aplicarEstado() que el PUT, para que una cita creada directamente en
+      // 'pagada' reciba su pagadaEn. Sin estado → nace 'confirmada'.
+      const traeEstado = body.estado !== undefined && body.estado !== null && body.estado !== '';
+      if (traeEstado && !ESTADOS_VALIDOS.includes(body.estado)) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: false, error: 'Estado inválido: debe ser pendiente, confirmada, atendida, acabada, llamado, incidencia, pagada o cancelada' }));
+        return;
+      }
       const cita = {
         id: uuidv4(),
         nombre: body.nombre || '',
@@ -3039,6 +3047,7 @@ const server = http.createServer(async (req, res) => {
         recordatorioEnviado: false,
         creadaEn: new Date().toISOString(),
       };
+      aplicarEstado(cita, traeEstado ? body.estado : 'confirmada');
       const citas = readCitas();
       citas.push(cita);
       writeCitas(citas);
