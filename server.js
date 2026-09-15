@@ -2058,11 +2058,17 @@ function recordatoriosHTML(citas, fecha) {
 // Sin enlaces a /admin ni a otra vista: es un callejón sin salida a
 // propósito.
 //
-// HTML autocontenido con CSS inline: cero JS y cero dependencias de red
-// (ni Tailwind CDN, a diferencia del panel). Una pantalla que pasa semanas
-// abierta no puede quedarse sin estilos porque un CDN falle en uno de los
-// refrescos. El lenguaje visual del panel (navy #060D1F, tarjetas #0D1B3E,
-// acento #FFD700) se replica en el <style> propio.
+// HTML autocontenido con CSS inline y cero dependencias de red (ni Tailwind
+// CDN, a diferencia del panel). Una pantalla que pasa semanas abierta no
+// puede quedarse sin estilos porque un CDN falle en uno de los refrescos. El
+// lenguaje visual del panel (navy #060D1F, tarjetas #0D1B3E, acento #FFD700)
+// se replica en el <style> propio.
+//
+// JS: SÍ lleva un <script> inline (ver scriptPersistencia), pero la pantalla
+// tiene que FUNCIONAR ENTERA sin él: formularios <form method="post">,
+// botones reales, desplegable por checkbox. El script solo añade la
+// restauración de lo tecleado entre refrescos; si no carga o falla, el
+// comportamiento es exactamente el de antes (se pierde lo escrito).
 //
 // esManana=true cuando el handler ha saltado a las citas del día siguiente
 // (ver GET /taller): la cabecera antepone un rótulo "MAÑANA" grande en
@@ -2229,6 +2235,91 @@ function tallerHTML(citas, fecha, esManana = false, token = null) {
     cuerpo = bloque('taller', 'EN EL TALLER', citas.filter(c => c.estado === 'atendida'))
       + bloque('llegar', 'POR LLEGAR', citas.filter(c => c.estado !== 'atendida'));
   }
+
+  // PERSISTENCIA DE LO TECLEADO (km / precio / motivo) entre refrescos.
+  // La pantalla se recarga cada 60 s y los mecánicos también refrescan a
+  // mano; si apuntan los km al empezar y pulsan ACABADO veinte minutos
+  // después, sin esto se pierden. Guarda en localStorage por id de cita
+  // (clave 'taller:<id>' → { d: fecha, t: ms, v: { campo: valor } }) y al
+  // cargar rellena los campos: LO GUARDADO GANA sobre el value del servidor
+  // (los km que puso Vicky). Caduca a las 12 h y si es de otro día (d !==
+  // fecha de la página); las entradas caducadas de cualquier cita se purgan
+  // al cargar. NO guarda D / J / D+J: restaurar una selección vieja podría
+  // atribuir el trabajo al mecánico equivocado. Al enviar cualquiera de los
+  // dos formularios de la cita se borra su entrada (ya va al servidor; el
+  // submit solo dispara si pasa el required, así un envío bloqueado no
+  // borra nada). Si el motivo restaurado no está vacío, se marca el
+  // checkbox de NO SE HACE para que el campo quede a la vista. Todo en
+  // try/catch: localStorage deshabilitado o lleno → la pantalla sigue como
+  // si no hubiera script. Solo con conBoton: en MAÑANA no hay campos.
+  const scriptPersistencia = !conBoton ? '' : `
+  <script>
+  (function () {
+    try {
+      var PREFIJO = 'taller:';
+      var HOY = ${JSON.stringify(fecha)};
+      var MAX_MS = 12 * 60 * 60 * 1000;
+      var CAMPOS = ['kilometros', 'precio', 'motivo'];
+
+      // Entrada válida (misma fecha, menos de 12 h, con valores) o null.
+      function leer(clave) {
+        try {
+          var raw = localStorage.getItem(clave);
+          if (!raw) return null;
+          var e = JSON.parse(raw);
+          if (!e || e.d !== HOY || typeof e.t !== 'number' || Date.now() - e.t > MAX_MS || !e.v || typeof e.v !== 'object') return null;
+          return e;
+        } catch (_) { return null; }
+      }
+
+      // Purga: entradas caducadas, de otro día o ilegibles, de cualquier cita.
+      for (var i = localStorage.length - 1; i >= 0; i--) {
+        var k = localStorage.key(i);
+        if (k && k.indexOf(PREFIJO) === 0 && !leer(k)) localStorage.removeItem(k);
+      }
+
+      Array.prototype.forEach.call(document.querySelectorAll('.acciones form'), function (form) {
+        var idInput = form.querySelector('input[name="id"]');
+        if (!idInput || !idInput.value) return;
+        var id = idInput.value;
+        var clave = PREFIJO + id;
+        var campos = Array.prototype.filter.call(form.querySelectorAll('input[type="text"]'), function (el) {
+          return CAMPOS.indexOf(el.name) !== -1;
+        });
+
+        var guardado = leer(clave);
+        campos.forEach(function (el) {
+          // Restaurar: lo guardado gana sobre el value que trae el servidor.
+          var v = guardado && guardado.v[el.name];
+          if (typeof v === 'string' && v !== '') {
+            el.value = v;
+            if (el.name === 'motivo') {
+              var toggle = document.getElementById('inc-' + id);
+              if (toggle) toggle.checked = true;
+            }
+          }
+          // Guardar en cada tecleo. Campo vaciado → se quita del registro
+          // (al refrescar vuelve el valor del servidor, no una cadena vacía).
+          el.addEventListener('input', function () {
+            try {
+              var e = leer(clave) || { v: {} };
+              e.d = HOY;
+              e.t = Date.now();
+              if (el.value) e.v[el.name] = el.value; else delete e.v[el.name];
+              if (Object.keys(e.v).length) localStorage.setItem(clave, JSON.stringify(e));
+              else localStorage.removeItem(clave);
+            } catch (_) {}
+          });
+        });
+
+        // Enviado (ACABADO o CONFIRMAR): ya va al servidor, fuera lo guardado.
+        form.addEventListener('submit', function () {
+          try { localStorage.removeItem(clave); } catch (_) {}
+        });
+      });
+    } catch (_) {}
+  })();
+  </script>`;
 
   // AUTO-REFRESH sin JS: <meta refresh> SIN URL en el content. El HTML
   // Standard define ese caso como navegación a la URL COMPLETA del documento
@@ -2580,6 +2671,7 @@ function tallerHTML(citas, fecha, esManana = false, token = null) {
     <div class="contador"><strong>${citas.length}</strong> cita${citas.length !== 1 ? 's' : ''}</div>
   </header>
   ${cuerpo}
+  ${scriptPersistencia}
 </body>
 </html>`;
 }
