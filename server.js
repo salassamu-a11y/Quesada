@@ -905,6 +905,7 @@ function textoAcabadas(a, i) {
 const VISTAS = {
   proximas: 'Próximas',
   hoy:      'Hoy',
+  ayer:     'Ayer',
   llamar:   'Pendientes de llamar',
   todas:    'Todas',
 };
@@ -3058,6 +3059,7 @@ const server = http.createServer(async (req, res) => {
       // 'calendario' NO está en VISTAS pero es válido: lo resuelve resolverVista().
       const vista = resolverVista(url.searchParams.get('ver'));
       const hoy = hoyMadrid();
+      const ayer = sumarDias(hoy, -1);
       // Calendario: lunes de la semana a mostrar (?semana=; malformado o
       // ausente → semana en curso). El filtro trae lunes-domingo: sábado y
       // domingo no tienen columna, pero se listan aparte para no ocultar nada.
@@ -3089,12 +3091,14 @@ const server = http.createServer(async (req, res) => {
       // Filtros solo por comparación de strings ISO, sin new Date():
       //  - proximas: hoy y siguientes, ascendente, cerradas al final (por defecto).
       //  - hoy:      solo la fecha de hoy, ascendente, cerradas al final.
+      //  - ayer:     solo la fecha de ayer (sumarDias), ascendente, cerradas al final.
       //  - llamar:   'acabada' e 'incidencia', sin filtrar por fecha, ascendente.
       //  - calendario: de lunes a domingo de la semana pedida, ascendente.
       //  - todas:    histórico completo, DESCENDENTE (lo más reciente arriba).
       const FILTRO = {
         proximas: c => c.fecha >= hoy,
         hoy:      c => c.fecha === hoy,
+        ayer:     c => c.fecha === ayer,
         llamar:   c => c.estado === 'acabada' || c.estado === 'incidencia',
         calendario: c => c.fecha >= lunes && c.fecha <= domingo,
         todas:    () => true,
