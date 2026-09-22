@@ -1169,8 +1169,8 @@ function adminHTML(citas, vista = 'proximas', pendientes = { acabadas: 0, incide
       // la columna PRECIO (gris, a la derecha) no se entendía qué eran.
       const lineaVehiculo = [
         c.vehiculo ? escapeHtml(c.vehiculo) : '',
-        c.kilometros ? `${escapeHtml(c.kilometros)} km` : ''
-      ].filter(Boolean).join(' · ');
+        c.kilometros ? `${escapeHtml(c.kilometros)}&nbsp;km` : ''
+      ].filter(Boolean).join('&nbsp;· ');
       // Línea 2 de la columna PRECIO: la forma de pago, si la hay.
       const lineaPago = c.pago ? escapeHtml(c.pago) : '';
       // Desplegable de forma de pago de la fila, apilado BAJO el de estado en
@@ -1239,7 +1239,7 @@ function adminHTML(citas, vista = 'proximas', pendientes = { acabadas: 0, incide
           <div class="text-[#FFD700] font-bold text-base mt-0.5">${escapeHtml(c.hora)}</div>
         </td>
         <td data-label="Servicio" class="px-2 py-3 text-gray-300">${escapeHtml(c.servicio)}${c.detalle ? `<div class="text-xs text-gray-500 mt-0.5">${escapeHtml(c.detalle)}</div>` : ''}${conMotivo && c.motivo ? `<div class="text-xs text-red-400/80 mt-0.5">${escapeHtml(c.motivo)}</div>` : ''}${nombreMecanico(c.hechoPor) ? `<div class="text-xs text-gray-500 mt-0.5">Hecho por ${escapeHtml(nombreMecanico(c.hechoPor))}</div>` : ''}</td>
-        <td data-label="Vehículo" class="px-2 py-3 whitespace-nowrap">${c.matricula ? `<div class="text-white font-semibold">${escapeHtml(c.matricula)}</div>` : ''}${lineaVehiculo ? `<div class="text-xs text-gray-500${c.matricula ? ' mt-0.5' : ''}">${lineaVehiculo}</div>` : ''}</td>
+        <td data-label="Vehículo" class="px-2 py-3">${c.matricula ? `<div class="text-white font-semibold whitespace-nowrap">${escapeHtml(c.matricula)}</div>` : ''}${lineaVehiculo ? `<div class="text-xs text-gray-500${c.matricula ? ' mt-0.5' : ''}">${lineaVehiculo}</div>` : ''}</td>
         <td data-label="Precio" class="px-2 py-3 text-right whitespace-nowrap">${c.precio ? `<div class="text-gray-300">${escapeHtml(c.precio)} €</div>` : ''}${lineaPago ? `<div class="text-xs text-gray-500${c.precio ? ' mt-0.5' : ''}">${lineaPago}</div>` : ''}</td>
         <td data-label="Estado" class="px-2 py-3">
           <span class="px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap ${estadoBadge(c.estado)}">${escapeHtml(c.estado)}${pagada && c.pago ? ` · ${escapeHtml(c.pago)}` : ''}</span>
