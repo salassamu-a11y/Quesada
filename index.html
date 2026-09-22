@@ -1772,6 +1772,12 @@
                   <td class="py-2.5 font-medium text-gray-300">Lunes – Jueves</td>
                   <td class="py-2.5 text-right font-semibold text-white">8:00–14:00 &nbsp;·&nbsp; 15:30–20:00</td>
                 </tr>
+                <!-- HORARIO ESPECIAL 23/09/2026 — QUITAR EL 24/09 -->
+                <tr>
+                  <td class="py-2.5 font-medium text-q-yellow">Miércoles 23 de septiembre</td>
+                  <td class="py-2.5 text-right font-semibold text-q-yellow">8:00–16:00 <span class="text-xs font-normal text-gray-400">(solo este día)</span></td>
+                </tr>
+                <!-- FIN HORARIO ESPECIAL 23/09/2026 -->
                 <tr>
                   <td class="py-2.5 font-medium text-gray-300">Viernes</td>
                   <td class="py-2.5 text-right font-semibold text-white">8:00–16:00</td>
@@ -2061,6 +2067,17 @@
       const mins = now.getHours() * 60 + now.getMinutes();
 
       let isOpen = false;
+      // HORARIO ESPECIAL 23/09/2026 — QUITAR EL 24/09
+      // Miércoles 23/09/2026: abierto 8:00–16:00 continuo, sin cierre del mediodía.
+      // Fecha en Europe/Madrid comparada como string (misma forma que enVacaciones()).
+      const hoyMadrid = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'Europe/Madrid',
+        year: 'numeric', month: '2-digit', day: '2-digit'
+      }).format(now);
+      if (hoyMadrid === '2026-09-23') {
+        isOpen = (mins >= 480 && mins < 960);
+      } else
+      // FIN HORARIO ESPECIAL 23/09/2026
       if (day >= 1 && day <= 4) {
         isOpen = (mins >= 480 && mins < 840) || (mins >= 930 && mins < 1200);
       } else if (day === 5) {
