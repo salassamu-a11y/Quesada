@@ -1507,10 +1507,13 @@ function adminHTML(citas, vista = 'proximas', pendientes = { acabadas: 0, incide
       <div>
         <p class="text-[#FFD700] text-xs font-semibold uppercase tracking-widest mb-1">Panel de administración</p>
         <h1 class="text-2xl font-bold text-white">${taller}</h1>
-        <!-- Banda de coches acabados / con incidencia: solo indicador, sin
-             enlace. Se pinta ya desde el servidor con el valor real para que
-             aparezca antes de que ejecute ningún JS, y aunque el JS falle. -->
-        <div id="aviso-acabadas" class="${nPendientes > 0 ? '' : 'hidden'} mt-3 inline-block bg-[#FFD700] text-[#060D1F] text-lg font-bold px-5 py-2.5 rounded-lg" aria-live="polite">${textoAcabadas(pendientes.acabadas, pendientes.incidencias)}</div>
+        <!-- Banda de coches acabados / con incidencia: enlace a la vista
+             "Pendientes de llamar" con aspecto de banda (sin subrayado). Se
+             pinta ya desde el servidor con el valor real para que aparezca
+             antes de que ejecute ningún JS, y aunque el JS falle; el href es
+             un atributo, así que sondearAcabadas() puede reescribir el
+             textContent sin perder el enlace. -->
+        <a id="aviso-acabadas" href="/admin?ver=llamar" title="Ver las citas pendientes de llamar" class="${nPendientes > 0 ? '' : 'hidden'} mt-3 inline-block bg-[#FFD700] hover:bg-[#E6C200] text-[#060D1F] text-lg font-bold px-5 py-2.5 rounded-lg no-underline cursor-pointer" aria-live="polite">${textoAcabadas(pendientes.acabadas, pendientes.incidencias)}</a>
       </div>
       <div class="flex items-center gap-3">
         <!-- En la vista de calendario ninguna opción coincide: se antepone
