@@ -1455,7 +1455,7 @@ function adminHTML(citas, vista = 'proximas', pendientes = { acabadas: 0, incide
               <option value="Pinchazo turismo">Pinchazo turismo</option>
               <option value="Pinchazo furgoneta">Pinchazo furgoneta</option>
               <option value="Pinchazo moto">Pinchazo moto</option>
-              <option value="Rueda suelta">Rueda suelta</option>
+              <option value="Rueda suelta pinchazo">Rueda suelta pinchazo</option>
               <option value="Montaje de neumáticos">Montaje de neumáticos</option>
               <option value="Alineado">Alineado</option>
               <option value="Cruce">Cruce</option>
