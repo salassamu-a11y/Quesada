@@ -10,6 +10,7 @@ const cron = require('node-cron');
 const PORT = process.env.PORT || 3001;
 const DATA_DIR = process.env.DATA_DIR || __dirname;
 const CITAS_PATH = path.join(DATA_DIR, 'citas.json');
+const STOCK_PATH = path.join(DATA_DIR, 'stock.json');
 const BACKUP_DIR = path.join(DATA_DIR, 'backups');
 const BACKUP_KEEP_DAYS = 30;
 const BACKUP_KEEP_MIN = 7;
@@ -66,6 +67,41 @@ function writeCitas(citas) {
   fs.mkdirSync(path.dirname(CITAS_PATH), { recursive: true });
   fs.writeFileSync(tmp, JSON.stringify(citas, null, 2));
   fs.renameSync(tmp, CITAS_PATH);
+}
+
+// ---- Stock de ruedas (DATA_DIR/stock.json) ----
+// Array de { id, texto, fecha }: cada línea es una rueda que el taller tiene
+// para vender; Vicky la añade desde /admin/stock y la elimina al venderla.
+// Mismo patrón que readCitas/writeCitas pero en funciones PROPIAS a
+// propósito (no se generalizan las de citas): archivo corrupto → se
+// preserva como .corrupt-<timestamp> y se devuelve []; escritura atómica
+// .tmp + rename; mkdirSync del directorio antes de escribir.
+const STOCK_TEXTO_MAX = 120;
+
+function readStock() {
+  if (!fs.existsSync(STOCK_PATH)) return [];
+  try {
+    const stock = JSON.parse(fs.readFileSync(STOCK_PATH, 'utf8'));
+    if (!Array.isArray(stock)) throw new Error('no es un array');
+    return stock;
+  } catch (err) {
+    console.error(`[stock] stock.json ilegible o corrupto: ${err.message}`);
+    try {
+      const backup = `${STOCK_PATH}.corrupt-${Date.now()}`;
+      fs.renameSync(STOCK_PATH, backup);
+      console.error(`[stock] Archivo corrupto preservado en ${backup}`);
+    } catch (renameErr) {
+      console.error(`[stock] No se pudo preservar el archivo corrupto: ${renameErr.message}`);
+    }
+    return [];
+  }
+}
+
+function writeStock(stock) {
+  const tmp = `${STOCK_PATH}.tmp`;
+  fs.mkdirSync(path.dirname(STOCK_PATH), { recursive: true });
+  fs.writeFileSync(tmp, JSON.stringify(stock, null, 2));
+  fs.renameSync(tmp, STOCK_PATH);
 }
 
 const BACKUP_RE = /^citas-\d{4}-\d{2}-\d{2}\.json$/;
@@ -160,6 +196,77 @@ function purgarBackups() {
   // 24h de antigüedad (uno reciente puede ser una escritura en curso).
   // Bucle aparte: no cuentan para BACKUP_KEEP_MIN / BACKUP_KEEP_DAYS.
   for (const f of entradas.filter(f => BACKUP_TMP_RE.test(f))) {
+    try {
+      const ruta = path.join(BACKUP_DIR, f);
+      if (Date.now() - fs.statSync(ruta).mtimeMs > 24 * 60 * 60 * 1000) {
+        fs.unlinkSync(ruta);
+        console.log(`[backup] .tmp huérfano borrado: ${f}`);
+      }
+    } catch (err) {
+      console.warn(`[backup] No se pudo borrar ${f}: ${err.message}`);
+    }
+  }
+}
+
+// ---- Backup del stock (capas 1 y 2; la 3, GitHub, NO sube el stock) ----
+// Copia diaria de stock.json a BACKUP_DIR/stock-YYYY-MM-DD.json, llamada
+// justo después de backupCitas() (cron de las 03:00 y backup de arranque).
+// Mismo criterio que backupCitas: lee el archivo CRUDO (nunca vía
+// readStock(), que renombra el corrupto) y si no parsea NO escribe nada.
+// Si stock.json no existe todavía, no hace nada. Funciones y expresiones
+// regulares PROPIAS: purgarBackups() y las copias de citas no cambian.
+const BACKUP_STOCK_RE = /^stock-\d{4}-\d{2}-\d{2}\.json$/;
+const BACKUP_STOCK_TMP_RE = /^stock-\d{4}-\d{2}-\d{2}\.json\.tmp$/;
+
+function backupStock() {
+  try {
+    if (!fs.existsSync(STOCK_PATH)) return;
+    const raw = fs.readFileSync(STOCK_PATH, 'utf8');
+    try {
+      JSON.parse(raw);
+    } catch (err) {
+      console.error(`[backup] GRAVE: stock.json no parsea (${err.message}); backup del stock OMITIDO para no pisar la última copia buena`);
+      return;
+    }
+    fs.mkdirSync(BACKUP_DIR, { recursive: true });
+    const nombreHoy = `stock-${hoyMadrid()}.json`;
+    const destino = path.join(BACKUP_DIR, nombreHoy);
+    const tmp = `${destino}.tmp`;
+    fs.writeFileSync(tmp, raw);
+    fs.renameSync(tmp, destino);
+    console.log(`[backup] Copia diaria del stock escrita: ${nombreHoy} (${Buffer.byteLength(raw)} bytes)`);
+
+    purgarBackupsStock();
+  } catch (err) {
+    console.error(`[backup] Error inesperado en el backup del stock: ${err.message}`);
+  }
+}
+
+// Purga de las copias stock-*.json con la misma retención que purgarBackups
+// (BACKUP_KEEP_DAYS por la fecha del NOMBRE, mínimo BACKUP_KEEP_MIN copias).
+// Solo toca archivos que casan con BACKUP_STOCK_RE; el resto se ignora.
+function purgarBackupsStock() {
+  const entradas = fs.readdirSync(BACKUP_DIR);
+  const backups = entradas
+    .filter(f => BACKUP_STOCK_RE.test(f))
+    .sort()
+    .reverse();
+  const limite = `stock-${fechaMadrid(new Date(Date.now() - BACKUP_KEEP_DAYS * 24 * 60 * 60 * 1000))}.json`;
+  const caducados = backups.slice(BACKUP_KEEP_MIN).filter(f => f < limite);
+  if (caducados.length > 0) {
+    const borrados = [];
+    for (const f of caducados) {
+      try {
+        fs.unlinkSync(path.join(BACKUP_DIR, f));
+        borrados.push(f);
+      } catch (err) {
+        console.warn(`[backup] No se pudo borrar ${f}: ${err.message}`);
+      }
+    }
+    console.log(`[backup] Purga del stock: ${borrados.length} copias antiguas borradas (${borrados.join(', ')})`);
+  }
+  // .tmp huérfanos del stock con más de 24h, igual que en purgarBackups.
+  for (const f of entradas.filter(f => BACKUP_STOCK_TMP_RE.test(f))) {
     try {
       const ruta = path.join(BACKUP_DIR, f);
       if (Date.now() - fs.statSync(ruta).mtimeMs > 24 * 60 * 60 * 1000) {
@@ -499,6 +606,11 @@ cron.schedule('0 19 * * *', async () => {
 // Backup diario de citas.json a las 03:00 — bloque independiente; no toca
 // el cron de recordatorios de las 19:00.
 cron.schedule('0 3 * * *', backupCitas, { timezone: 'Europe/Madrid' });
+
+// Backup diario del stock a las 03:00, justo después del de citas. Los dos
+// backups son independientes (archivos distintos) y el orden entre ellos da
+// igual. Cron propio: el de citas no se toca.
+cron.schedule('0 3 * * *', backupStock, { timezone: 'Europe/Madrid' });
 
 // Subida del backup del día a GitHub a las 03:15 — 15 min después del backup
 // local para que el archivo ya exista. Bloque independiente: no toca el cron
@@ -1428,6 +1540,7 @@ function adminHTML(citas, vista = 'proximas', pendientes = { acabadas: 0, incide
     <div class="mb-5 flex flex-wrap items-center gap-3">
       <button onclick="toggleNuevaCita()" class="bg-[#FFD700] hover:bg-[#E6C200] text-[#060D1F] text-sm font-bold px-5 py-2.5 rounded-lg transition-colors">+ Nueva cita</button>
       <a href="/admin/recordatorios" class="bg-[#0D1B3E] hover:bg-white/10 text-gray-300 border border-white/10 text-sm font-semibold px-5 py-2.5 rounded-lg transition-colors">Recordatorios de mañana</a>
+      <a href="/admin/stock" class="bg-[#0D1B3E] hover:bg-white/10 text-gray-300 border border-white/10 text-sm font-semibold px-5 py-2.5 rounded-lg transition-colors">Stock</a>
       <div id="nueva-cita-form" class="hidden mt-4 w-full bg-[#0D1B3E] border border-white/10 rounded-xl p-6 max-w-2xl">
         <h2 id="nc-titulo" class="text-base font-semibold text-white mb-5">Nueva cita</h2>
         <div class="grid grid-cols-2 gap-4">
@@ -2037,6 +2150,65 @@ function recordatoriosHTML(citas, fecha) {
       else alert('No se pudo marcar el recordatorio como enviado.');
     }
   </script>
+</body>
+</html>`;
+}
+
+// ---- Stock de ruedas (GET /admin/stock) ----
+// Página propia, mismo estilo que recordatoriosHTML. Una línea por rueda
+// (fecha de alta + texto) con su botón de eliminar; el alta es un formulario
+// clásico y el borrado otro por línea, ambos con recarga (302). Sin JS salvo
+// la confirmación del borrado. Más reciente arriba. escapeHtml en texto e id,
+// tanto en el HTML como en los atributos.
+function stockHTML(stock) {
+  const taller = escapeHtml(process.env.TALLER_NOMBRE || 'Panel de Citas');
+
+  const lista = stock.length === 0
+    ? `<div class="bg-[#0D1B3E] border border-white/10 rounded-xl p-10 text-center">
+        <p class="text-white font-medium">No hay ruedas en stock</p>
+      </div>`
+    : stock.map(r => {
+      const id = escapeHtml(r.id);
+      return `
+      <div class="bg-[#0D1B3E] border border-white/10 rounded-xl px-5 py-4 mb-2 flex items-center gap-4">
+        <span class="shrink-0 text-xs text-gray-500 whitespace-nowrap">${escapeHtml(fechaCorta(r.fecha))}</span>
+        <p class="flex-1 min-w-0 text-white break-words">${escapeHtml(r.texto)}</p>
+        <form method="post" action="/admin/stock/${id}/borrar" class="shrink-0" onsubmit="return confirm('¿Eliminar esta rueda del stock?')">
+          <button type="submit" title="Eliminar del stock" aria-label="Eliminar del stock" class="text-sm bg-[#060D1F] hover:bg-red-900/60 text-gray-300 hover:text-red-300 border border-white/10 px-3 py-2 rounded-lg transition-colors">Eliminar</button>
+        </form>
+      </div>`;
+    }).join('');
+
+  return `<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>${taller} — Stock de ruedas</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-[#060D1F] min-h-screen p-4 md:p-6 font-sans">
+  <div class="max-w-3xl mx-auto">
+    <header class="flex flex-wrap items-center justify-between gap-4 mb-6">
+      <div>
+        <p class="text-[#FFD700] text-xs font-semibold uppercase tracking-widest mb-1">Ruedas para vender</p>
+        <h1 class="text-2xl font-bold text-white">Stock</h1>
+      </div>
+      <div class="flex flex-wrap items-center gap-3">
+        <a href="/admin" class="text-sm text-gray-400 hover:text-white transition-colors">← Volver al panel</a>
+        <a href="/admin/stock/backup" download class="text-sm text-gray-400 hover:text-white transition-colors">Descargar copia del stock</a>
+        <span class="bg-[#0D1B3E] text-gray-400 text-sm px-4 py-2 rounded-full border border-white/10">${stock.length} anotaci${stock.length !== 1 ? 'ones' : 'ón'}</span>
+      </div>
+    </header>
+
+    <form method="post" action="/admin/stock" class="flex flex-col sm:flex-row gap-2 mb-6">
+      <input type="text" name="texto" required maxlength="${STOCK_TEXTO_MAX}" autocomplete="off" placeholder="2 Michelin 205/55 R16 91V" autofocus
+             class="flex-1 min-w-0 bg-[#0D1B3E] border border-white/10 rounded-lg px-4 py-2.5 text-white placeholder-gray-600 text-sm focus:outline-none focus:border-[#FFD700]/60">
+      <button type="submit" class="bg-[#FFD700] hover:bg-[#E6C200] text-[#060D1F] text-sm font-bold px-5 py-2.5 rounded-lg transition-colors">Añadir</button>
+    </form>
+
+    ${lista}
+  </div>
 </body>
 </html>`;
 }
@@ -3001,6 +3173,41 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
+    // GET /admin/stock — página del stock de ruedas, más reciente arriba
+    // (orden inverso al de alta: el array se guarda en orden de creación).
+    // Hereda auth y rate-limit del bloque /admin.
+    if (req.method === 'GET' && p === '/admin/stock') {
+      const stock = readStock().slice().reverse();
+      res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' });
+      res.end(stockHTML(stock));
+      return;
+    }
+
+    // GET /admin/stock/backup — descarga directa de stock.json (bytes crudos),
+    // mismas cabeceras que GET /admin/backup. 404 si aún no existe.
+    if (req.method === 'GET' && p === '/admin/stock/backup') {
+      if (!fs.existsSync(STOCK_PATH)) {
+        res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
+        res.end('No encontrado');
+        return;
+      }
+      try {
+        const buf = fs.readFileSync(STOCK_PATH);
+        res.writeHead(200, {
+          'Content-Type': 'application/json; charset=utf-8',
+          'Content-Disposition': `attachment; filename="stock-${hoyMadrid()}.json"`,
+          'Content-Length': buf.length,
+          'Cache-Control': 'no-store',
+        });
+        res.end(buf);
+      } catch (err) {
+        console.error(`[backup] Error al servir stock.json para descarga: ${err.message}`);
+        res.writeHead(500, { 'Content-Type': 'text/plain; charset=utf-8' });
+        res.end('Error interno');
+      }
+      return;
+    }
+
     // GET /admin/manifest.json — manifiesto de aplicación web del panel.
     // Existe SOLO para que el navegador ofrezca "instalar" el panel como app y
     // navigator.setAppBadge() pueda pintar el número de coches acabados sobre
@@ -3312,6 +3519,56 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
+    // POST /admin/stock — añade una rueda al stock desde el formulario de
+    // /admin/stock (form-urlencoded). Texto obligatorio, trim() y máximo
+    // STOCK_TEXTO_MAX caracteres → si no, 400. Lectura fresca tras el await
+    // de parseBody y 302 de vuelta a la página. Dentro del bloque
+    // POST/PUT/DELETE, así hereda isSameOrigin.
+    if (req.method === 'POST' && p === '/admin/stock') {
+      const body = await parseBody(req);
+      if (body === BODY_TOO_LARGE) {
+        res.writeHead(413, { 'Content-Type': 'text/plain; charset=utf-8', 'Connection': 'close' });
+        res.end('Cuerpo demasiado grande');
+        return;
+      }
+      if (!body) {
+        res.writeHead(400, { 'Content-Type': 'text/plain; charset=utf-8' });
+        res.end('Cuerpo de la petición inválido');
+        return;
+      }
+      const texto = typeof body.texto === 'string' ? body.texto.trim() : '';
+      if (!texto || texto.length > STOCK_TEXTO_MAX) {
+        res.writeHead(400, { 'Content-Type': 'text/plain; charset=utf-8' });
+        res.end(`El texto es obligatorio y no puede superar ${STOCK_TEXTO_MAX} caracteres`);
+        return;
+      }
+      const stock = readStock();
+      stock.push({ id: uuidv4(), texto, fecha: hoyMadrid() });
+      writeStock(stock);
+      res.writeHead(302, { Location: '/admin/stock' });
+      res.end();
+      return;
+    }
+
+    // POST /admin/stock/:id/borrar — elimina UNA rueda (vendida). Lectura
+    // fresca, se quita solo esa entrada y 302 a la página. Id inexistente →
+    // 404. Sin body que leer. Hereda isSameOrigin.
+    const stockBorrarMatch = p.match(/^\/admin\/stock\/([^/]+)\/borrar$/);
+    if (req.method === 'POST' && stockBorrarMatch) {
+      const stock = readStock();
+      const idx = stock.findIndex(r => r.id === stockBorrarMatch[1]);
+      if (idx === -1) {
+        res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
+        res.end('Rueda no encontrada');
+        return;
+      }
+      stock.splice(idx, 1);
+      writeStock(stock);
+      res.writeHead(302, { Location: '/admin/stock' });
+      res.end();
+      return;
+    }
+
     // POST /admin/cita/:id/pago — cambia SOLO la forma de pago desde el
     // desplegable de la fila del listado (bajo el de estado; cambiarPago en el
     // <script> del panel), sin recargar: Vicky la rellena cada vez que cobra y
@@ -3421,5 +3678,9 @@ server.listen(PORT, () => {
   // pisar el backup bueno de la madrugada con un estado más reciente.
   if (!fs.existsSync(path.join(BACKUP_DIR, `citas-${hoyMadrid()}.json`))) {
     backupCitas();
+  }
+  // Lo mismo para el stock, justo después y con su propio archivo del día.
+  if (!fs.existsSync(path.join(BACKUP_DIR, `stock-${hoyMadrid()}.json`))) {
+    backupStock();
   }
 });

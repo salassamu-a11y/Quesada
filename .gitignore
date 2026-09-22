@@ -6,6 +6,7 @@ node_modules/
 
 # Datos generados en runtime
 citas.json
+stock.json
 
 # Capturas de desarrollo
 
