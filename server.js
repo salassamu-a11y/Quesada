@@ -2159,10 +2159,19 @@ function recordatoriosHTML(citas, fecha) {
 
 // ---- Stock de ruedas (GET /admin/stock) ----
 // Página propia, mismo estilo que recordatoriosHTML. Una línea por rueda
-// (fecha de alta + texto) con su botón de eliminar; el alta es un formulario
-// clásico y el borrado otro por línea, ambos con recarga (302). Sin JS salvo
-// la confirmación del borrado. Más reciente arriba. escapeHtml en texto e id,
-// tanto en el HTML como en los atributos.
+// (fecha de alta + texto) con sus botones de editar y eliminar; el alta es un
+// formulario clásico y el borrado y la edición otros por línea, todos con
+// recarga (302). Sin JS salvo la confirmación del borrado. Más reciente
+// arriba. escapeHtml en texto e id, tanto en el HTML como en los atributos.
+//
+// EDITAR sin JS: mismo patrón checkbox + label que el "NO SE HACE" de la
+// pantalla del taller. Cada línea lleva un <input type="checkbox" class="ed-toggle">
+// oculto pero enfocable (absolute + opacity:0, NUNCA display:none, que lo
+// sacaría del tabulador), SIN name y FUERA de ambos formularios (no entra en
+// ningún body). El botón "Editar" es su <label>; con :checked ~ se esconde la
+// vista normal (.ed-ver) y aparece el formulario (.ed-form) con el texto en un
+// input, "Guardar" (POST /admin/stock/:id/editar) y "Cancelar" (otro <label>
+// del mismo checkbox: desmarca y vuelve a la vista sin enviar nada).
 function stockHTML(stock) {
   const taller = escapeHtml(process.env.TALLER_NOMBRE || 'Panel de Citas');
 
@@ -2172,12 +2181,26 @@ function stockHTML(stock) {
       </div>`
     : stock.map(r => {
       const id = escapeHtml(r.id);
+      const fecha = escapeHtml(fechaCorta(r.fecha));
       return `
-      <div class="bg-[#0D1B3E] border border-white/10 rounded-xl px-5 py-4 mb-2 flex items-center gap-4">
-        <span class="shrink-0 text-xs text-gray-500 whitespace-nowrap">${escapeHtml(fechaCorta(r.fecha))}</span>
-        <p class="flex-1 min-w-0 text-white break-words">${escapeHtml(r.texto)}</p>
-        <form method="post" action="/admin/stock/${id}/borrar" class="shrink-0" onsubmit="return confirm('¿Eliminar esta rueda del stock?')">
-          <button type="submit" title="Eliminar del stock" aria-label="Eliminar del stock" class="text-sm bg-[#060D1F] hover:bg-red-900/60 text-gray-300 hover:text-red-300 border border-white/10 px-3 py-2 rounded-lg transition-colors">Eliminar</button>
+      <div class="relative bg-[#0D1B3E] border border-white/10 rounded-xl px-5 py-4 mb-2">
+        <input type="checkbox" id="ed-${id}" class="ed-toggle" aria-label="Editar esta línea">
+        <div class="ed-ver flex flex-wrap sm:flex-nowrap items-center gap-x-4 gap-y-2">
+          <span class="shrink-0 text-xs text-gray-500 whitespace-nowrap">${fecha}</span>
+          <p class="order-last sm:order-none w-full sm:w-auto sm:flex-1 min-w-0 text-white break-words">${escapeHtml(r.texto)}</p>
+          <label for="ed-${id}" title="Editar el texto" class="ed-abrir ml-auto sm:ml-0 shrink-0 cursor-pointer text-sm bg-[#060D1F] hover:bg-white/10 text-gray-300 hover:text-white border border-white/10 px-3 py-2 rounded-lg transition-colors">Editar</label>
+          <form method="post" action="/admin/stock/${id}/borrar" class="shrink-0" onsubmit="return confirm('¿Eliminar esta rueda del stock?')">
+            <button type="submit" title="Eliminar del stock" aria-label="Eliminar del stock" class="text-sm bg-[#060D1F] hover:bg-red-900/60 text-gray-300 hover:text-red-300 border border-white/10 px-3 py-2 rounded-lg transition-colors">Eliminar</button>
+          </form>
+        </div>
+        <form method="post" action="/admin/stock/${id}/editar" class="ed-form flex-col sm:flex-row sm:items-center gap-2">
+          <span class="shrink-0 text-xs text-gray-500 whitespace-nowrap">${fecha}</span>
+          <input type="text" name="texto" required maxlength="${STOCK_TEXTO_MAX}" autocomplete="off" value="${escapeHtml(r.texto)}"
+                 class="flex-1 min-w-0 bg-[#060D1F] border border-white/10 rounded-lg px-4 py-2.5 text-white text-sm focus:outline-none focus:border-[#FFD700]/60">
+          <div class="flex gap-2 shrink-0">
+            <button type="submit" class="flex-1 sm:flex-none bg-[#FFD700] hover:bg-[#E6C200] text-[#060D1F] text-sm font-bold px-4 py-2 rounded-lg transition-colors">Guardar</button>
+            <label for="ed-${id}" class="flex-1 sm:flex-none text-center cursor-pointer text-sm bg-[#060D1F] hover:bg-white/10 text-gray-300 hover:text-white border border-white/10 px-3 py-2 rounded-lg transition-colors">Cancelar</label>
+          </div>
         </form>
       </div>`;
     }).join('');
@@ -2189,6 +2212,14 @@ function stockHTML(stock) {
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>${taller} — Stock de ruedas</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* Editar sin JS: checkbox oculto pero enfocable (nunca display:none) */
+    .ed-toggle { position: absolute; width: 1px; height: 1px; opacity: 0; overflow: hidden; pointer-events: none; }
+    .ed-form { display: none; }
+    .ed-toggle:checked ~ .ed-ver { display: none; }
+    .ed-toggle:checked ~ .ed-form { display: flex; }
+    .ed-toggle:focus-visible ~ .ed-ver .ed-abrir { outline: 2px solid #FFD700; outline-offset: 2px; }
+  </style>
 </head>
 <body class="bg-[#060D1F] min-h-screen p-4 md:p-6 font-sans">
   <div class="max-w-3xl mx-auto">
@@ -3566,6 +3597,46 @@ const server = http.createServer(async (req, res) => {
         return;
       }
       stock.splice(idx, 1);
+      writeStock(stock);
+      res.writeHead(302, { Location: '/admin/stock' });
+      res.end();
+      return;
+    }
+
+    // POST /admin/stock/:id/editar — cambia SOLO el texto de UNA rueda desde
+    // el formulario de edición de la línea (form-urlencoded). Misma
+    // validación que el alta: texto obligatorio, trim() y máximo
+    // STOCK_TEXTO_MAX → si no, 400. Lectura fresca tras el await de parseBody,
+    // se parchea solo esa entrada y 302 a la página. Id inexistente → 404.
+    // id y fecha NO cambian: la fecha es cuándo entró la rueda en el taller,
+    // no cuándo se tocó la línea. Hereda isSameOrigin.
+    const stockEditarMatch = p.match(/^\/admin\/stock\/([^/]+)\/editar$/);
+    if (req.method === 'POST' && stockEditarMatch) {
+      const body = await parseBody(req);
+      if (body === BODY_TOO_LARGE) {
+        res.writeHead(413, { 'Content-Type': 'text/plain; charset=utf-8', 'Connection': 'close' });
+        res.end('Cuerpo demasiado grande');
+        return;
+      }
+      if (!body) {
+        res.writeHead(400, { 'Content-Type': 'text/plain; charset=utf-8' });
+        res.end('Cuerpo de la petición inválido');
+        return;
+      }
+      const texto = typeof body.texto === 'string' ? body.texto.trim() : '';
+      if (!texto || texto.length > STOCK_TEXTO_MAX) {
+        res.writeHead(400, { 'Content-Type': 'text/plain; charset=utf-8' });
+        res.end(`El texto es obligatorio y no puede superar ${STOCK_TEXTO_MAX} caracteres`);
+        return;
+      }
+      const stock = readStock();
+      const rueda = stock.find(r => r.id === stockEditarMatch[1]);
+      if (!rueda) {
+        res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
+        res.end('Rueda no encontrada');
+        return;
+      }
+      rueda.texto = texto;
       writeStock(stock);
       res.writeHead(302, { Location: '/admin/stock' });
       res.end();
