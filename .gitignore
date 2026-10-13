@@ -11,3 +11,5 @@ stock.json
 # Capturas de desarrollo
 
 backups/
+
+.archify/
