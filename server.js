@@ -14,6 +14,9 @@ const STOCK_PATH = path.join(DATA_DIR, 'stock.json');
 const BACKUP_DIR = path.join(DATA_DIR, 'backups');
 const BACKUP_KEEP_DAYS = 30;
 const BACKUP_KEEP_MIN = 7;
+// Días que una cita CERRADA (pagada/cancelada) permanece en citas.json
+// antes de que purgarCitas() la borre. Las abiertas no caducan nunca.
+const RETENCION_DIAS = 7;
 
 // Cliente perezoso: instanciarlo al cargar el módulo hace que unas
 // credenciales ausentes o mal escritas tumben TODO el servidor al arrancar
@@ -276,6 +279,63 @@ function purgarBackupsStock() {
     } catch (err) {
       console.warn(`[backup] No se pudo borrar ${f}: ${err.message}`);
     }
+  }
+}
+
+// --- Purga semanal de citas cerradas (minimización de datos) ------------
+// Borra de citas.json las citas CERRADAS (estado en CERRADAS: pagada o
+// cancelada) cuya fecha sea <= hoy - RETENCION_DIAS. Las abiertas NO se
+// borran nunca, por antiguas que sean: una cita abierta significa trabajo
+// pendiente y tiene que seguir viéndose (decisión del cliente). El <= es a
+// propósito: el cron corre los lunes a las 20:00 y la cita del lunes
+// anterior cumple exactamente los 7 días; Vicky ha tenido todo el día para
+// verla. Fecha ausente o malformada → no se borra, se loggea aparte.
+// Antes de borrar se asegura la copia del día en BACKUP_DIR; sin ella no se
+// borra nada. Todo en try/catch: un fallo loggea y no tumba el proceso
+// (mismo criterio que subirBackupGitHub). NO se llama desde server.listen:
+// un redeploy a media tarde no puede disparar un borrado. stock.json no se
+// toca: las ruedas pueden llevar meses.
+function purgarCitas() {
+  try {
+    const hoy = hoyMadrid();
+    const limite = sumarDias(hoy, -RETENCION_DIAS);
+
+    // Copia asegurada ANTES de borrar: si no existe la de hoy, se crea y se
+    // vuelve a comprobar. Si sigue sin existir (citas.json corrupto, disco
+    // no montado…), no se borra nada.
+    const copiaHoy = path.join(BACKUP_DIR, `citas-${hoy}.json`);
+    if (!fs.existsSync(copiaHoy)) backupCitas();
+    if (!fs.existsSync(copiaHoy)) {
+      console.error(`[purga] No existe ${copiaHoy} ni se pudo crear; purga OMITIDA, nada borrado`);
+      return;
+    }
+
+    const citas = readCitas();
+    const FECHA_ISO = /^\d{4}-\d{2}-\d{2}$/;
+    const conservadas = [];
+    let borradas = 0, abiertasViejas = 0, sinFecha = 0;
+    for (const c of citas) {
+      const fechaOk = typeof c.fecha === 'string' && FECHA_ISO.test(c.fecha);
+      if (!fechaOk) {
+        sinFecha++;
+        conservadas.push(c);
+        continue;
+      }
+      const caducada = c.fecha <= limite;
+      if (caducada && CERRADAS.has(c.estado)) {
+        borradas++;
+        continue;
+      }
+      if (caducada) abiertasViejas++;
+      conservadas.push(c);
+    }
+
+    if (sinFecha) console.warn(`[purga] ${sinFecha} cita(s) con fecha ausente o malformada: conservadas sin evaluar`);
+    console.log(`[purga] Límite ${limite}: ${borradas} borradas, ${conservadas.length} quedan (${abiertasViejas} anteriores al límite pero aún abiertas)`);
+    if (borradas === 0) return;
+    writeCitas(conservadas);
+  } catch (err) {
+    console.error(`[purga] Error en la purga de citas: ${err.message}`);
   }
 }
 
@@ -619,6 +679,11 @@ cron.schedule('15 3 * * *', () => {
   subirBackupGitHub().catch(err => console.error('[backup-remoto]', err.message));
 }, { timezone: 'Europe/Madrid' });
 
+// Purga semanal de citas cerradas: LUNES a las 20:00 (taller ya cerrado).
+// Bloque independiente: no toca los cron de las 03:00, 03:15 ni 19:00, y
+// NO se llama desde server.listen (ver purgarCitas).
+cron.schedule('0 20 * * 1', purgarCitas, { timezone: 'Europe/Madrid' });
+
 // Escapa datos variables antes de interpolarlos en el HTML del panel (anti-XSS).
 function escapeHtml(str) {
   return String(str)
@@ -864,11 +929,11 @@ const nombreMecanico = (letra) => Object.prototype.hasOwnProperty.call(MECANICOS
 function camposVehiculo(body) {
   const s = v => (typeof v === 'string' ? v.trim() : '');
   return {
-    matricula:    s(body.matricula).replace(/\s+/g, '').toUpperCase(),
-    vehiculo:     s(body.vehiculo),
-    kilometros:   s(body.kilometros),
-    precio:       s(body.precio),
-    pago:         s(body.pago),
+    matricula: s(body.matricula).replace(/\s+/g, '').toUpperCase(),
+    vehiculo: s(body.vehiculo),
+    kilometros: s(body.kilometros),
+    precio: s(body.precio),
+    pago: s(body.pago),
   };
 }
 
@@ -966,6 +1031,10 @@ const SIGUIENTE_ESTADO = { confirmada: 'atendida', atendida: 'acabada', acabada:
 // ÚNICA lista de estados válidos: la usan POST /admin/cita/:id/estado y el
 // PUT /admin/cita/:id (desplegable de estado del formulario de edición).
 const ESTADOS_VALIDOS = ['pendiente', 'confirmada', 'atendida', 'acabada', 'llamado', 'incidencia', 'pagada', 'cancelada'];
+// Estados CERRADOS (ciclo terminado): van al final del listado
+// (cmpCerradasAlFinal en GET /admin) y son los únicos que purgarCitas()
+// puede borrar. ÚNICA lista: no duplicarla.
+const CERRADAS = new Set(['pagada', 'cancelada']);
 
 // Cambia el estado de una cita manteniendo la marca de tiempo del cobro:
 // pagadaEn se escribe al ENTRAR en 'pagada' (si ya lo estaba no se pisa) y
@@ -993,7 +1062,7 @@ function aplicarEstado(cita, estado) {
 // inicial de la banda) y GET /admin/acabadas (sondeo).
 function contarAcabadas(citas) {
   return {
-    acabadas:    citas.filter(c => c.estado === 'acabada').length,
+    acabadas: citas.filter(c => c.estado === 'acabada').length,
     incidencias: citas.filter(c => c.estado === 'incidencia').length,
   };
 }
@@ -1016,10 +1085,10 @@ function textoAcabadas(a, i) {
 // y para adminHTML, para que no caiga en el fallback a 'proximas'.
 const VISTAS = {
   proximas: 'Próximas',
-  hoy:      'Hoy',
-  ayer:     'Ayer',
-  llamar:   'Pendientes de llamar',
-  todas:    'Todas',
+  hoy: 'Hoy',
+  ayer: 'Ayer',
+  llamar: 'Pendientes de llamar',
+  todas: 'Todas',
 };
 const VISTA_CALENDARIO = 'calendario';
 const ETIQUETA_CALENDARIO = 'Calendario';
@@ -1040,13 +1109,13 @@ function resolverVista(ver) {
 // de siempre, distinto del sólido de 'acabada'.
 const estadoBadge = e =>
   e === 'confirmada' ? 'bg-green-900/50 text-green-400 border border-green-700/50' :
-  e === 'atendida'   ? 'bg-blue-900/50 text-blue-300 border border-blue-700/50' :
-  e === 'acabada'    ? 'bg-[#FFD700] text-[#060D1F] border border-[#FFD700]' :
-  e === 'incidencia' ? 'bg-red-600 text-white border border-red-600' :
-  e === 'llamado'    ? 'bg-slate-800/50 text-slate-400 border border-slate-600/50' :
-  e === 'pagada'     ? 'bg-gray-900/50 text-gray-500 border border-gray-700/50' :
-  e === 'cancelada'  ? 'bg-red-900/50 text-red-400 border border-red-700/50' :
-                       'bg-yellow-900/50 text-yellow-400 border border-yellow-700/50';
+    e === 'atendida' ? 'bg-blue-900/50 text-blue-300 border border-blue-700/50' :
+      e === 'acabada' ? 'bg-[#FFD700] text-[#060D1F] border border-[#FFD700]' :
+        e === 'incidencia' ? 'bg-red-600 text-white border border-red-600' :
+          e === 'llamado' ? 'bg-slate-800/50 text-slate-400 border border-slate-600/50' :
+            e === 'pagada' ? 'bg-gray-900/50 text-gray-500 border border-gray-700/50' :
+              e === 'cancelada' ? 'bg-red-900/50 text-red-400 border border-red-700/50' :
+                'bg-yellow-900/50 text-yellow-400 border border-yellow-700/50';
 
 // ---- Vista de calendario semanal (GET /admin?ver=calendario) ----
 // Rejilla propia, NO la tabla del listado: columnas lunes-viernes, filas de
@@ -1056,7 +1125,7 @@ const estadoBadge = e =>
 // una línea bajo la rejilla.
 const DIAS_SEMANA = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie'];
 const CAL_INICIO = 8 * 60;    // primera franja: 08:00
-const CAL_FIN    = 20 * 60;   // última franja: 20:00 (cubre 20:00-20:29)
+const CAL_FIN = 20 * 60;   // última franja: 20:00 (cubre 20:00-20:29)
 
 // Franja [min, min+30) ABIERTA si cabe entera en un tramo del taller. Réplica
 // de los tramos de horarioTaller() por índice de columna (0 = lunes … 4 =
@@ -1146,10 +1215,10 @@ function calendarioHTML(citas, lunes, hoy) {
     filas.push(`<tr class="border-t border-white/5">
       <th scope="row" class="px-2 py-1 text-right text-[11px] font-normal text-gray-500 align-top whitespace-nowrap">${hora}</th>
       ${dias.map((d, col) => {
-        const abierta = franjaAbierta(col, min);
-        const libre = abierta && celdas[col][f].length === 0 && d >= hoy ? hora : false;
-        return celda(col, celdas[col][f], abierta ? '' : ' bg-black/25', libre);
-      }).join('')}
+      const abierta = franjaAbierta(col, min);
+      const libre = abierta && celdas[col][f].length === 0 && d >= hoy ? hora : false;
+      return celda(col, celdas[col][f], abierta ? '' : ' bg-black/25', libre);
+    }).join('')}
     </tr>`);
   }
   if (otras.some(a => a.length > 0)) {
@@ -1197,10 +1266,10 @@ function adminHTML(citas, vista = 'proximas', pendientes = { acabadas: 0, incide
   const svg = (paths) => `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths}</svg>`;
   const ICONO = {
     whatsapp: svg('<path d="M21 12a8.5 8.5 0 0 1-12.4 7.6L4 21l1.4-4.6A8.5 8.5 0 1 1 21 12z"/><path d="M9.5 10c.3 1.9 2.6 4.2 4.5 4.5l1.5-1.5 2 1-.5 1.5c-3 1-8.5-4.5-7.5-7.5L11 7.5l1 2z"/>'),
-    editar:   svg('<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/>'),
+    editar: svg('<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/>'),
     eliminar: svg('<path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/>'),
-    excel:    svg('<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18M3 15h18M10 4v16"/>'),
-    copiado:  svg('<path d="M20 6 9 17l-5-5"/>')
+    excel: svg('<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18M3 15h18M10 4v16"/>'),
+    copiado: svg('<path d="M20 6 9 17l-5-5"/>')
   };
   // Clases comunes de los cuatro botones-icono (el color de fondo lo pone cada uno).
   const CLASE_ICONO = 'inline-flex items-center justify-center p-1.5 rounded-lg transition-colors';
@@ -1240,7 +1309,7 @@ function adminHTML(citas, vista = 'proximas', pendientes = { acabadas: 0, incide
       const claseFila = acabada
         ? ' border-l-4 border-l-[#FFD700] bg-[#FFD700]/5'
         : incidencia ? ' border-l-4 border-l-red-500 bg-red-500/5'
-        : (pagada || c.estado === 'cancelada') ? ' opacity-50' : '';
+          : (pagada || c.estado === 'cancelada') ? ' opacity-50' : '';
 
       // Botón ✓: avanza UN paso reutilizando POST /admin/cita/:id/estado
       // (formulario con el destino en un hidden). Sin siguiente paso, sin botón.
@@ -1363,12 +1432,12 @@ function adminHTML(citas, vista = 'proximas', pendientes = { acabadas: 0, incide
               <select name="estado" onchange="this.form.submit()" class="text-xs bg-[#060D1F] border border-white/10 text-gray-300 rounded-lg px-2 py-1.5 cursor-pointer focus:outline-none focus:border-[#2563EB]">
                 ${c.estado === 'pendiente' ? '<option selected>pendiente</option>' : ''}
                 <option ${c.estado === 'confirmada' ? 'selected' : ''}>confirmada</option>
-                <option ${c.estado === 'atendida'   ? 'selected' : ''}>atendida</option>
-                <option ${c.estado === 'acabada'    ? 'selected' : ''}>acabada</option>
-                <option ${c.estado === 'llamado'    ? 'selected' : ''}>llamado</option>
+                <option ${c.estado === 'atendida' ? 'selected' : ''}>atendida</option>
+                <option ${c.estado === 'acabada' ? 'selected' : ''}>acabada</option>
+                <option ${c.estado === 'llamado' ? 'selected' : ''}>llamado</option>
                 <option ${c.estado === 'incidencia' ? 'selected' : ''}>incidencia</option>
-                <option ${c.estado === 'pagada'     ? 'selected' : ''}>pagada</option>
-                <option ${c.estado === 'cancelada'  ? 'selected' : ''}>cancelada</option>
+                <option ${c.estado === 'pagada' ? 'selected' : ''}>pagada</option>
+                <option ${c.estado === 'cancelada' ? 'selected' : ''}>cancelada</option>
               </select>
             </form>
             ${selectPago}
@@ -3315,7 +3384,7 @@ const server = http.createServer(async (req, res) => {
       // bajan: reclaman acción y se quedan en su sitio. Solo en las vistas
       // ascendentes de listado; 'todas' es histórico descendente y el
       // calendario coloca por franja, no por posición en la lista.
-      const CERRADAS = new Set(['pagada', 'cancelada']);
+      // (CERRADAS es la constante de módulo, compartida con purgarCitas.)
       // Dentro del bloque de cerradas: las que tienen pagadaEn primero,
       // ordenadas por ese valor ASCENDENTE (lo primero cobrado arriba, que
       // es el orden en que Vicky va facturando); las que no lo tienen
@@ -3338,15 +3407,15 @@ const server = http.createServer(async (req, res) => {
       //  - todas:    histórico completo, DESCENDENTE (lo más reciente arriba).
       const FILTRO = {
         proximas: c => c.fecha >= hoy,
-        hoy:      c => c.fecha === hoy,
-        ayer:     c => c.fecha === ayer,
-        llamar:   c => c.estado === 'acabada' || c.estado === 'incidencia',
+        hoy: c => c.fecha === hoy,
+        ayer: c => c.fecha === ayer,
+        llamar: c => c.estado === 'acabada' || c.estado === 'incidencia',
         calendario: c => c.fecha >= lunes && c.fecha <= domingo,
-        todas:    () => true,
+        todas: () => true,
       };
       const cmp = vista === 'todas' ? (a, b) => cmpAsc(b, a)
-                : vista === VISTA_CALENDARIO ? cmpAsc
-                : cmpCerradasAlFinal;
+        : vista === VISTA_CALENDARIO ? cmpAsc
+          : cmpCerradasAlFinal;
       const visibles = citas.filter(FILTRO[vista])
         .sort(cmp);
       res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
@@ -3512,12 +3581,12 @@ const server = http.createServer(async (req, res) => {
         res.end(JSON.stringify({ ok: false, error: 'Estado inválido: debe ser pendiente, confirmada, atendida, acabada, llamado, incidencia, pagada o cancelada' }));
         return;
       }
-      cita.nombre   = body.nombre || '';
+      cita.nombre = body.nombre || '';
       cita.telefono = typeof body.telefono === 'string' ? body.telefono.trim() : '';
-      cita.fecha    = body.fecha || '';
-      cita.hora     = body.hora || '';
+      cita.fecha = body.fecha || '';
+      cita.hora = body.hora || '';
       cita.servicio = body.servicio || '';
-      cita.detalle  = typeof body.detalle === 'string' ? body.detalle.trim() : '';
+      cita.detalle = typeof body.detalle === 'string' ? body.detalle.trim() : '';
       Object.assign(cita, camposVehiculo(body));   // matricula, vehiculo, kilometros, precio, pago
       // Campos retirados (09/2026): las citas antiguas los conservarían porque
       // Object.assign no borra claves. Minimización de datos: fuera al guardar.
@@ -3743,7 +3812,7 @@ server.listen(PORT, () => {
 
   // Misma filosofía que el aviso de Twilio: se avisa, no se aborta.
   if (process.env.GITHUB_BACKUP_ENABLED === 'true' &&
-      (!process.env.GITHUB_BACKUP_TOKEN || !process.env.GITHUB_BACKUP_REPO)) {
+    (!process.env.GITHUB_BACKUP_TOKEN || !process.env.GITHUB_BACKUP_REPO)) {
     console.warn('[backup-remoto] GITHUB_BACKUP_ENABLED=true pero falta GITHUB_BACKUP_TOKEN o GITHUB_BACKUP_REPO; la subida diaria a GitHub no funcionará.');
   }
 
