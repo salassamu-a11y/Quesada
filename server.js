@@ -1334,10 +1334,15 @@ function adminHTML(citas, vista = 'proximas', pendientes = { acabadas: 0, incide
       // DOS ESCAPADOS DISTINTOS, no intercambiables: encodeURIComponent SOLO
       // para el valor de ?text= (es una URL), escapeHtml para el resto (HTML).
       //
-      // WhatsApp, Editar y Eliminar van como ICONOS sin texto (SVG inline,
-      // sin librería): con texto la columna Acciones no cabía en la pantalla
-      // del taller y Editar/Eliminar quedaban fuera. El title/aria-label
-      // conserva el nombre de la acción. El ✓ y el desplegable no cambian.
+      // WhatsApp, Editar, Excel y Eliminar van como ICONOS sin texto (SVG
+      // inline, sin librería): con texto la columna Acciones no cabía en la
+      // pantalla del taller y Editar/Eliminar quedaban fuera. El title/aria-label
+      // conserva el nombre de la acción. El ✓ sigue siendo TEXTO a propósito:
+      // CAMBIA DATOS, y como icono se confundía con el ✓ que muestra el botón
+      // Excel al copiar (ICONO.copiado). Los cinco van en una rejilla 3+2
+      // (ver la celda de Acciones) y los dos desplegables (estado y pago)
+      // viven en la columna ESTADO, bajo el badge: así la columna Acciones
+      // mide ~120 px en vez de ~310 y la tabla cabe con margen a 1366 px.
       const accionWa = wa
         ? `<a href="https://wa.me/${wa}?text=${encodeURIComponent(textoRecordatorio(c, false))}"
               target="_blank" rel="noopener" title="Enviar recordatorio por WhatsApp" aria-label="Enviar recordatorio por WhatsApp"
@@ -1355,12 +1360,14 @@ function adminHTML(citas, vista = 'proximas', pendientes = { acabadas: 0, incide
       // Línea 2 de la columna PRECIO: la forma de pago, si la hay.
       const lineaPago = c.pago ? escapeHtml(c.pago) : '';
       // Desplegable de forma de pago de la fila, apilado BAJO el de estado en
-      // la celda de Acciones: Vicky lo rellena cada vez que cobra y antes
-      // tenía que abrir Editar. Guarda por fetch a POST /admin/cita/:id/pago
-      // sin recargar (cambiarPago, en el <script> del panel). NO puede
-      // ensanchar la tabla (ajustada para caber a 1366 px sin scroll), y
-      // "transferencia" es más larga que cualquier estado, así que lleva
-      // ANCHO FIJO (w-28) en vez de dejar que mande su ancho intrínseco.
+      // la celda de ESTADO (debajo del badge; antes los dos iban en Acciones,
+      // que llegaba a 310 px y desbordaba la tabla): Vicky lo rellena cada vez
+      // que cobra y antes tenía que abrir Editar. Guarda por fetch a
+      // POST /admin/cita/:id/pago sin recargar (cambiarPago, en el <script>
+      // del panel). NO puede ensanchar la tabla (ajustada para caber a 1366 px
+      // sin scroll), y "transferencia" es más larga que cualquier estado, así
+      // que lleva ANCHO FIJO (w-28, igual que el de estado) en vez de dejar
+      // que mande su ancho intrínseco.
       // NO volver al truco 'w-0 min-w-full' (ancho 0 + min-width 100% para
       // copiar el ancho del desplegable de estado): con él el navegador
       // cerraba la lista nada más abrirla y los primeros clics caían en la
@@ -1423,13 +1430,11 @@ function adminHTML(citas, vista = 'proximas', pendientes = { acabadas: 0, incide
         <td data-label="Vehículo" class="px-2 py-3">${c.matricula ? `<div class="text-white font-semibold whitespace-nowrap">${escapeHtml(c.matricula)}</div>` : ''}${lineaVehiculo ? `<div class="text-xs text-gray-500${c.matricula ? ' mt-0.5' : ''}">${lineaVehiculo}</div>` : ''}</td>
         <td data-label="Precio" class="px-2 py-3 text-right whitespace-nowrap">${c.precio ? `<div class="text-gray-300">${escapeHtml(c.precio)} €</div>` : ''}${lineaPago ? `<div class="text-xs text-gray-500${c.precio ? ' mt-0.5' : ''}">${lineaPago}</div>` : ''}</td>
         <td data-label="Estado" class="px-2 py-3">
-          <span class="px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap ${estadoBadge(c.estado)}">${escapeHtml(c.estado)}${pagada && c.pago ? ` · ${escapeHtml(c.pago)}` : ''}</span>
-        </td>
-        <td data-label="Acciones" class="px-2 py-3 flex items-center gap-1.5">
-          <div class="flex flex-col gap-1">
+          <div class="flex flex-col items-start gap-1">
+            <span class="px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap ${estadoBadge(c.estado)}">${escapeHtml(c.estado)}</span>
             <form method="post" action="/admin/cita/${id}/estado" class="inline">
               ${camposVista}
-              <select name="estado" onchange="this.form.submit()" class="text-xs bg-[#060D1F] border border-white/10 text-gray-300 rounded-lg px-2 py-1.5 cursor-pointer focus:outline-none focus:border-[#2563EB]">
+              <select name="estado" onchange="this.form.submit()" class="w-28 text-xs bg-[#060D1F] border border-white/10 text-gray-300 rounded-lg px-2 py-1.5 cursor-pointer focus:outline-none focus:border-[#2563EB]">
                 ${c.estado === 'pendiente' ? '<option selected>pendiente</option>' : ''}
                 <option ${c.estado === 'confirmada' ? 'selected' : ''}>confirmada</option>
                 <option ${c.estado === 'atendida' ? 'selected' : ''}>atendida</option>
@@ -1442,6 +1447,9 @@ function adminHTML(citas, vista = 'proximas', pendientes = { acabadas: 0, incide
             </form>
             ${selectPago}
           </div>
+        </td>
+        <td data-label="Acciones" class="px-2 py-3">
+          <div class="acciones-iconos grid grid-cols-[repeat(3,max-content)] gap-1">
           ${accionTic}
           ${accionWa}
           <button onclick="editarCita(this)"
@@ -1464,6 +1472,7 @@ function adminHTML(citas, vista = 'proximas', pendientes = { acabadas: 0, incide
                   class="${CLASE_ICONO} bg-white/5 hover:bg-white/10 text-gray-300 border border-white/10">${ICONO.excel}</button>
           <button onclick="eliminarCita('${id}')" title="Eliminar cita" aria-label="Eliminar cita"
                   class="${CLASE_ICONO} bg-red-900/50 hover:bg-red-800/60 text-red-400 border border-red-700/50">${ICONO.eliminar}</button>
+          </div>
         </td>
       </tr>`;
     }).join('');
@@ -1560,12 +1569,18 @@ function adminHTML(citas, vista = 'proximas', pendientes = { acabadas: 0, incide
         padding: .5rem 1rem .75rem;
       }
       #tabla-citas td[data-label="Acciones"]::before { position: static; width: 100%; }
+      /* La rejilla 3+2 de escritorio pasa a fila envuelta en móvil. */
+      #tabla-citas td[data-label="Acciones"] .acciones-iconos {
+        display: flex; flex-wrap: wrap; gap: .5rem; width: auto;
+      }
       #tabla-citas td[data-label="Acciones"] button,
       #tabla-citas td[data-label="Acciones"] a,
       #tabla-citas td[data-label="Acciones"] span,
-      #tabla-citas td[data-label="Acciones"] select {
+      #tabla-citas td[data-label="Estado"] select {
         font-size: .875rem; min-height: 2.5rem; padding: .5rem .9rem;
       }
+      /* Los dos desplegables (estado y pago) viven bajo el badge de Estado. */
+      #tabla-citas td[data-label="Estado"] select { width: 11rem; }
       #tabla-citas td[data-label="Acciones"] svg { width: 1.25rem; height: 1.25rem; }
     }
   </style>
@@ -1882,8 +1897,9 @@ ${cuerpo}
     // perdería la posición y lo que estuviera tecleando): el propio desplegable
     // ya muestra el valor. Sí se actualizan el data-pago del botón Editar (si
     // no, abrir Editar y guardar pisaría el pago con el valor viejo) y la
-    // columna PAGO del data-excel de la fila (Copiar al Excel). El badge
-    // "pagada · tarjeta" no se toca hasta la siguiente recarga, a propósito.
+    // columna PAGO del data-excel de la fila (Copiar al Excel). El badge de
+    // estado ya no lleva la forma de pago (solo "pagada"): no hay nada más
+    // que actualizar en la fila.
     // Si falla: borde rojo 1,5 s, aviso en el title y vuelta al valor anterior.
     async function cambiarPago(sel) {
       var anterior = sel.dataset.pago || '';
