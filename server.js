@@ -1315,7 +1315,7 @@ function adminHTML(citas, vista = 'proximas', pendientes = { acabadas: 0, incide
       // (formulario con el destino en un hidden). Sin siguiente paso, sin botón.
       const siguiente = SIGUIENTE_ESTADO[c.estado];
       const accionTic = siguiente
-        ? `<form method="post" action="/admin/cita/${id}/estado" class="inline">
+        ? `<form method="post" action="/admin/cita/${id}/estado" class="inline" onsubmit="return comprobarKmFila(this)">
             <input type="hidden" name="estado" value="${siguiente}">
             ${camposVista}
             <button type="submit" title="Marcar como ${siguiente}" aria-label="Marcar como ${siguiente}"
@@ -1434,7 +1434,7 @@ function adminHTML(citas, vista = 'proximas', pendientes = { acabadas: 0, incide
             <span class="px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap ${estadoBadge(c.estado)}">${escapeHtml(c.estado)}</span>
             <form method="post" action="/admin/cita/${id}/estado" class="inline">
               ${camposVista}
-              <select name="estado" onchange="this.form.submit()" class="w-28 text-xs bg-[#060D1F] border border-white/10 text-gray-300 rounded-lg px-2 py-1.5 cursor-pointer focus:outline-none focus:border-[#2563EB]">
+              <select name="estado" onchange="if (comprobarKmFila(this.form)) this.form.submit()" class="w-28 text-xs bg-[#060D1F] border border-white/10 text-gray-300 rounded-lg px-2 py-1.5 cursor-pointer focus:outline-none focus:border-[#2563EB]">
                 ${c.estado === 'pendiente' ? '<option selected>pendiente</option>' : ''}
                 <option ${c.estado === 'confirmada' ? 'selected' : ''}>confirmada</option>
                 <option ${c.estado === 'atendida' ? 'selected' : ''}>atendida</option>
@@ -1530,6 +1530,12 @@ function adminHTML(citas, vista = 'proximas', pendientes = { acabadas: 0, incide
     }
     #nc-fecha:hover::-webkit-calendar-picker-indicator,
     #nc-hora:hover::-webkit-calendar-picker-indicator { opacity: 1; }
+
+    /* Intento de marcar 'pagada' SIN kilómetros (ver comprobarKmFila): celda
+       Vehículo de la fila y campo KM del formulario en rojo. box-shadow
+       inset: no ensancha la celda ni la tabla. */
+    #tabla-citas td.km-falta { box-shadow: inset 0 0 0 2px #EF4444; background: rgba(239,68,68,.12); }
+    #nc-kilometros.km-falta { border-color: #EF4444 !important; }
 
     /* ── Móvil (≤700px): cabecera apilada, banda compacta y listado en
        tarjetas. Acotado a #tabla-citas: la rejilla del calendario queda
@@ -1727,9 +1733,84 @@ ${cuerpo}
     // Un ÚNICO formulario (#nueva-cita-form) para alta y edición; lo que
     // cambia es el título, el botón y a qué endpoint se envía.
     var citaEditandoId = null;
+    // Estado que tenía la cita al abrir Editar (null en alta): una cita que
+    // YA está en 'pagada' sin km se puede seguir editando sin que se bloquee.
+    var citaEditandoEstado = null;
+
+    // ── Kilómetros obligatorios para marcar 'pagada' — SOLO EN EL NAVEGADOR ──
+    // Cuando Vicky no está, los mecánicos cobran desde el panel (no desde la
+    // tablet) y se saltan los km; al día siguiente la columna del Excel sale
+    // vacía y el coche ya se fue. En la pantalla del taller el campo ya es
+    // required; aquí faltaba. EL SERVIDOR NO VALIDA ESTO A PROPÓSITO (regla
+    // del proyecto: nadie debe quedarse sin poder cerrar un coche).
+    //  - Solo al pasar a 'pagada'. 'cancelada' y el resto pasan sin km.
+    //  - "0" cuenta como km puestos (salida acordada con el cliente).
+    //  - Los servicios de SERVICIOS_CON_PRECIO (pinchazos, rueda suelta) NO se
+    //    bloquean: en ellos la tablet pide PRECIO y los km no se apuntan en
+    //    ninguna parte del sistema.
+    //  - Una cita que ya está en 'pagada' sin km no se toca ni se marca.
+    // La lista es LA MISMA constante del servidor, inyectada al pintar el
+    // panel (sin segunda lista); la función es copia literal de
+    // servicioConPrecio() de server.js.
+    var SERVICIOS_CON_PRECIO = ${JSON.stringify(SERVICIOS_CON_PRECIO)};
+    function servicioConPrecio(servicio) {
+      var s = String(servicio || '').toLowerCase();
+      return SERVICIOS_CON_PRECIO.some(function (clave) { return s.includes(clave); });
+    }
+    function faltanKmParaPagar(estado, servicio, kilometros) {
+      return estado === 'pagada' && !servicioConPrecio(servicio) && String(kilometros || '').trim() === '';
+    }
+    var MSG_FALTAN_KM = 'Faltan los kilómetros. Si no se pudieron apuntar, pon 0.';
+
+    // Resalta en rojo la celda Vehículo de la fila. Sin fila (alta, o edición
+    // desde el bloque del CALENDARIO, donde no hay <tr id="cita-..."> ni
+    // celda Vehículo) no hace nada: mensaje y foco funcionan igual.
+    function marcarFilaSinKm(tr) {
+      var td = tr && tr.querySelector('td[data-label="Vehículo"]');
+      if (td) { td.classList.add('km-falta'); td.title = MSG_FALTAN_KM; }
+    }
+    // Quita el rojo de todas las filas marcadas. Se llama al cerrar el
+    // formulario con Cancelar (y al abrirlo vacío con "+ Nueva cita"): si no,
+    // las filas seguirían en rojo hasta recargar la página.
+    function limpiarMarcasKm() {
+      document.querySelectorAll('#tabla-citas td.km-falta').forEach(function (td) {
+        td.classList.remove('km-falta');
+        td.removeAttribute('title');
+      });
+    }
+    // Deja el formulario listo para arreglarlo en un paso: mensaje visible,
+    // estado en 'pagada' y foco en KM. Al guardar, el PUT aplica km y estado
+    // a la vez (aplicarEstado escribe pagadaEn).
+    function pedirKm() {
+      document.getElementById('nc-estado').value = 'pagada';
+      var errEl = document.getElementById('nc-error');
+      errEl.textContent = MSG_FALTAN_KM;
+      errEl.classList.remove('hidden');
+      var km = document.getElementById('nc-kilometros');
+      km.classList.add('km-falta');
+      km.focus({ preventScroll: true });
+    }
+    // Vías de la FILA: botón ✓ (onsubmit) y desplegable de estado (onchange).
+    // Lee servicio, km y estado actual de los data-* del botón Editar de la
+    // misma fila. Devuelve true si el envío puede seguir; si no, no se envía
+    // nada, el desplegable vuelve al estado actual, se marca la fila y se
+    // abre Editar con el foco en KM.
+    function comprobarKmFila(form) {
+      var tr = form.closest('tr');
+      var editar = tr && tr.querySelector('button[data-estado]');
+      var destino = form.elements.estado.value;
+      if (!editar || !faltanKmParaPagar(destino, editar.dataset.servicio, editar.dataset.kilometros)) return true;
+      if (form.elements.estado.tagName === 'SELECT') form.elements.estado.value = editar.dataset.estado;
+      marcarFilaSinKm(tr);
+      editarCita(editar);
+      pedirKm();
+      return false;
+    }
 
     function resetFormularioCita() {
       citaEditandoId = null;
+      citaEditandoEstado = null;
+      document.getElementById('nc-kilometros').classList.remove('km-falta');
       ['nc-nombre', 'nc-telefono', 'nc-fecha', 'nc-hora', 'nc-detalle',
        'nc-matricula', 'nc-vehiculo', 'nc-kilometros', 'nc-precio',
        'nc-pago'].forEach(function (id) {
@@ -1758,6 +1839,7 @@ ${cuerpo}
     function toggleNuevaCita() {
       var form = document.getElementById('nueva-cita-form');
       if (form.classList.contains('hidden') || citaEditandoId !== null) {
+        limpiarMarcasKm();
         resetFormularioCita();
         form.classList.remove('hidden');
       } else {
@@ -1769,6 +1851,7 @@ ${cuerpo}
     // siguiente "+ Nueva cita" salga vacío y vuelva a crear, no a editar.
     function cerrarFormularioCita() {
       document.getElementById('nueva-cita-form').classList.add('hidden');
+      limpiarMarcasKm();
       resetFormularioCita();
     }
 
@@ -1793,6 +1876,7 @@ ${cuerpo}
       var d = btn.dataset;
       resetFormularioCita();
       citaEditandoId = d.id;
+      citaEditandoEstado = d.estado;
       document.getElementById('nc-nombre').value   = d.nombre;
       document.getElementById('nc-telefono').value = d.telefono;
       document.getElementById('nc-fecha').value    = d.fecha;
@@ -1958,6 +2042,13 @@ ${cuerpo}
       // El estado viaja en los dos modos: el POST lo aplica (por defecto
       // 'confirmada') y el PUT, si no lo recibiera, conservaría el actual.
       const estado = document.getElementById('nc-estado').value;
+      // Pasar a 'pagada' sin km (edición o alta directa en 'pagada'): no se
+      // envía nada. Si la cita YA estaba en 'pagada', no se bloquea.
+      if (!(editando && citaEditandoEstado === 'pagada') && faltanKmParaPagar(estado, servicio, kilometros)) {
+        marcarFilaSinKm(editando ? document.getElementById('cita-' + citaEditandoId) : null);
+        pedirKm();
+        return;
+      }
       const datos = { nombre, telefono, fecha, hora, servicio, detalle, matricula, vehiculo, kilometros, precio, pago, estado };
       const res = await fetch(editando ? '/admin/cita/' + citaEditandoId : '/admin/cita', {
         method: editando ? 'PUT' : 'POST',
