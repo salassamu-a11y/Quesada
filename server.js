@@ -11,6 +11,7 @@ const PORT = process.env.PORT || 3001;
 const DATA_DIR = process.env.DATA_DIR || __dirname;
 const CITAS_PATH = path.join(DATA_DIR, 'citas.json');
 const STOCK_PATH = path.join(DATA_DIR, 'stock.json');
+const METRICAS_PATH = path.join(DATA_DIR, 'metricas.json');
 const BACKUP_DIR = path.join(DATA_DIR, 'backups');
 const BACKUP_KEEP_DAYS = 30;
 const BACKUP_KEEP_MIN = 7;
@@ -105,6 +106,43 @@ function writeStock(stock) {
   fs.mkdirSync(path.dirname(STOCK_PATH), { recursive: true });
   fs.writeFileSync(tmp, JSON.stringify(stock, null, 2));
   fs.renameSync(tmp, STOCK_PATH);
+}
+
+// ---- Métricas de tiempos (DATA_DIR/metricas.json) ----
+// Array de { fecha, hora, servicio, incidencia, espera, trabajo, aviso,
+// recogida }: una entrada por cita purgada, con las duraciones EN MINUTOS de
+// su ciclo (ver metricaDeCita). Lo escribe SOLO purgarCitas(), justo antes
+// de borrar la cita. SIN nombre, teléfono, matrícula, id, precio ni
+// hechoPor, A PROPÓSITO: al no llevar datos personales puede conservarse
+// aunque las citas se borren. NO añadir hechoPor: sería medir a un
+// trabajador identificable, y eso se decide aparte.
+// Mismo patrón que readStock/writeStock, en funciones PROPIAS: archivo
+// corrupto → se preserva como .corrupt-<timestamp> y se devuelve [];
+// escritura atómica .tmp + rename; mkdirSync del directorio antes.
+function readMetricas() {
+  if (!fs.existsSync(METRICAS_PATH)) return [];
+  try {
+    const metricas = JSON.parse(fs.readFileSync(METRICAS_PATH, 'utf8'));
+    if (!Array.isArray(metricas)) throw new Error('no es un array');
+    return metricas;
+  } catch (err) {
+    console.error(`[metricas] metricas.json ilegible o corrupto: ${err.message}`);
+    try {
+      const backup = `${METRICAS_PATH}.corrupt-${Date.now()}`;
+      fs.renameSync(METRICAS_PATH, backup);
+      console.error(`[metricas] Archivo corrupto preservado en ${backup}`);
+    } catch (renameErr) {
+      console.error(`[metricas] No se pudo preservar el archivo corrupto: ${renameErr.message}`);
+    }
+    return [];
+  }
+}
+
+function writeMetricas(metricas) {
+  const tmp = `${METRICAS_PATH}.tmp`;
+  fs.mkdirSync(path.dirname(METRICAS_PATH), { recursive: true });
+  fs.writeFileSync(tmp, JSON.stringify(metricas, null, 2));
+  fs.renameSync(tmp, METRICAS_PATH);
 }
 
 const BACKUP_RE = /^citas-\d{4}-\d{2}-\d{2}\.json$/;
@@ -282,6 +320,121 @@ function purgarBackupsStock() {
   }
 }
 
+// ---- Backup de las métricas (solo capa 1: sin descarga ni subida a GitHub) ----
+// Copia diaria de metricas.json a BACKUP_DIR/metricas-YYYY-MM-DD.json, junto
+// a las de citas y stock (cron de las 03:00 y backup de arranque). Clon de
+// backupStock/purgarBackupsStock en funciones y expresiones regulares
+// PROPIAS: lee el archivo CRUDO (nunca vía readMetricas(), que renombra el
+// corrupto), si no parsea NO escribe nada, y misma retención.
+const BACKUP_METRICAS_RE = /^metricas-\d{4}-\d{2}-\d{2}\.json$/;
+const BACKUP_METRICAS_TMP_RE = /^metricas-\d{4}-\d{2}-\d{2}\.json\.tmp$/;
+
+function backupMetricas() {
+  try {
+    if (!fs.existsSync(METRICAS_PATH)) return;
+    const raw = fs.readFileSync(METRICAS_PATH, 'utf8');
+    try {
+      JSON.parse(raw);
+    } catch (err) {
+      console.error(`[backup] GRAVE: metricas.json no parsea (${err.message}); backup de las métricas OMITIDO para no pisar la última copia buena`);
+      return;
+    }
+    fs.mkdirSync(BACKUP_DIR, { recursive: true });
+    const nombreHoy = `metricas-${hoyMadrid()}.json`;
+    const destino = path.join(BACKUP_DIR, nombreHoy);
+    const tmp = `${destino}.tmp`;
+    fs.writeFileSync(tmp, raw);
+    fs.renameSync(tmp, destino);
+    console.log(`[backup] Copia diaria de las métricas escrita: ${nombreHoy} (${Buffer.byteLength(raw)} bytes)`);
+
+    purgarBackupsMetricas();
+  } catch (err) {
+    console.error(`[backup] Error inesperado en el backup de las métricas: ${err.message}`);
+  }
+}
+
+function purgarBackupsMetricas() {
+  const entradas = fs.readdirSync(BACKUP_DIR);
+  const backups = entradas
+    .filter(f => BACKUP_METRICAS_RE.test(f))
+    .sort()
+    .reverse();
+  const limite = `metricas-${fechaMadrid(new Date(Date.now() - BACKUP_KEEP_DAYS * 24 * 60 * 60 * 1000))}.json`;
+  const caducados = backups.slice(BACKUP_KEEP_MIN).filter(f => f < limite);
+  if (caducados.length > 0) {
+    const borrados = [];
+    for (const f of caducados) {
+      try {
+        fs.unlinkSync(path.join(BACKUP_DIR, f));
+        borrados.push(f);
+      } catch (err) {
+        console.warn(`[backup] No se pudo borrar ${f}: ${err.message}`);
+      }
+    }
+    console.log(`[backup] Purga de las métricas: ${borrados.length} copias antiguas borradas (${borrados.join(', ')})`);
+  }
+  for (const f of entradas.filter(f => BACKUP_METRICAS_TMP_RE.test(f))) {
+    try {
+      const ruta = path.join(BACKUP_DIR, f);
+      if (Date.now() - fs.statSync(ruta).mtimeMs > 24 * 60 * 60 * 1000) {
+        fs.unlinkSync(ruta);
+        console.log(`[backup] .tmp huérfano borrado: ${f}`);
+      }
+    } catch (err) {
+      console.warn(`[backup] No se pudo borrar ${f}: ${err.message}`);
+    }
+  }
+}
+
+// Minutos entre dos marcas 'AAAA-MM-DD HH:MM' (hora de Madrid), o null si
+// falta alguna o no tiene ese formato. Las dos se leen como reloj de pared
+// con Date.UTC, sin new Date() sobre hora local: la resta es exacta salvo
+// que el tramo cruce un cambio de hora, donde se desvía 60 min (dos
+// madrugadas de domingo al año, con el taller cerrado; asumido).
+const MARCA_RE = /^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2})$/;
+function minutosEntre(desde, hasta) {
+  const ms = (s) => {
+    const m = typeof s === 'string' ? MARCA_RE.exec(s) : null;
+    return m ? Date.UTC(+m[1], m[2] - 1, +m[3], +m[4], +m[5]) : null;
+  };
+  const a = ms(desde), b = ms(hasta);
+  return a === null || b === null ? null : Math.round((b - a) / 60000);
+}
+
+// Entrada de metricas.json para una cita que se va a purgar, o null si no
+// se puede calcular NINGUNA duración (p. ej. una cancelada sin marcas).
+// Duraciones en minutos; la que no se pueda calcular por falta de marca va
+// a null.
+//  - espera:   de fecha+hora de la cita a atendidaEn. PUEDE SER NEGATIVA y
+//              se guarda igual: el cliente llegó antes de su hora.
+//  - trabajo:  de atendidaEn a acabadaEn (o, si no hay, a incidenciaEn).
+//  - aviso:    de acabadaEn (o incidenciaEn) a llamadoEn.
+//  - recogida: de llamadoEn a pagadaEn.
+// Salvo 'espera', una duración NEGATIVA va a null: son marcas desordenadas
+// (correcciones de estado), dato sucio. Solo copia fecha, hora y servicio de
+// la cita: NINGÚN dato personal (ver readMetricas).
+// 'hora' guarda SOLO LA HORA ENTERA ("10:30" → "10"), A PROPÓSITO: basta
+// para el análisis por franja del día y evita que la entrada se cruce
+// directamente con el Diario.ods del taller (fecha + descripción + nombre).
+// NO guardar los minutos. Si no casa con HH:MM, cadena vacía.
+function metricaDeCita(c) {
+  const noNegativa = (n) => (n !== null && n < 0 ? null : n);
+  const fin = c.acabadaEn || c.incidenciaEn;
+  const espera = minutosEntre(`${c.fecha} ${c.hora}`, c.atendidaEn);
+  const trabajo = noNegativa(minutosEntre(c.atendidaEn, fin));
+  const aviso = noNegativa(minutosEntre(fin, c.llamadoEn));
+  const recogida = noNegativa(minutosEntre(c.llamadoEn, c.pagadaEn));
+  if (espera === null && trabajo === null && aviso === null && recogida === null) return null;
+  const hh = typeof c.hora === 'string' ? /^(\d{2}):\d{2}$/.exec(c.hora) : null;
+  return {
+    fecha: c.fecha,
+    hora: hh ? hh[1] : '',
+    servicio: typeof c.servicio === 'string' ? c.servicio : '',
+    incidencia: !!c.incidenciaEn,
+    espera, trabajo, aviso, recogida,
+  };
+}
+
 // --- Purga semanal de citas cerradas (minimización de datos) ------------
 // Borra de citas.json las citas CERRADAS (estado en CERRADAS: pagada o
 // cancelada) cuya fecha sea <= hoy - RETENCION_DIAS. Las abiertas NO se
@@ -295,6 +448,11 @@ function purgarBackupsStock() {
 // (mismo criterio que subirBackupGitHub). NO se llama desde server.listen:
 // un redeploy a media tarde no puede disparar un borrado. stock.json no se
 // toca: las ruedas pueden llevar meses.
+// Antes de borrar, las duraciones del ciclo de cada cita (sin datos
+// personales) se añaden a metricas.json (metricaDeCita). Se escribe PRIMERO
+// metricas.json y DESPUÉS citas.json: si la primera escritura falla, salta
+// al catch y no se borra nada (se reintenta el lunes siguiente); el peor
+// caso al revés son entradas duplicadas, preferible a perderlas.
 function purgarCitas() {
   try {
     const hoy = hoyMadrid();
@@ -313,6 +471,7 @@ function purgarCitas() {
     const citas = readCitas();
     const FECHA_ISO = /^\d{4}-\d{2}-\d{2}$/;
     const conservadas = [];
+    const metricasNuevas = [];
     let borradas = 0, abiertasViejas = 0, sinFecha = 0;
     for (const c of citas) {
       const fechaOk = typeof c.fecha === 'string' && FECHA_ISO.test(c.fecha);
@@ -323,6 +482,8 @@ function purgarCitas() {
       }
       const caducada = c.fecha <= limite;
       if (caducada && CERRADAS.has(c.estado)) {
+        const metrica = metricaDeCita(c);
+        if (metrica) metricasNuevas.push(metrica);
         borradas++;
         continue;
       }
@@ -333,6 +494,10 @@ function purgarCitas() {
     if (sinFecha) console.warn(`[purga] ${sinFecha} cita(s) con fecha ausente o malformada: conservadas sin evaluar`);
     console.log(`[purga] Límite ${limite}: ${borradas} borradas, ${conservadas.length} quedan (${abiertasViejas} anteriores al límite pero aún abiertas)`);
     if (borradas === 0) return;
+    if (metricasNuevas.length > 0) {
+      writeMetricas(readMetricas().concat(metricasNuevas));
+      console.log(`[purga] ${metricasNuevas.length} entrada(s) añadidas a metricas.json`);
+    }
     writeCitas(conservadas);
   } catch (err) {
     console.error(`[purga] Error en la purga de citas: ${err.message}`);
@@ -671,6 +836,9 @@ cron.schedule('0 3 * * *', backupCitas, { timezone: 'Europe/Madrid' });
 // backups son independientes (archivos distintos) y el orden entre ellos da
 // igual. Cron propio: el de citas no se toca.
 cron.schedule('0 3 * * *', backupStock, { timezone: 'Europe/Madrid' });
+
+// Y el de las métricas, tercer backup independiente de las 03:00.
+cron.schedule('0 3 * * *', backupMetricas, { timezone: 'Europe/Madrid' });
 
 // Subida del backup del día a GitHub a las 03:15 — 15 min después del backup
 // local para que el archivo ya exista. Bloque independiente: no toca el cron
@@ -1045,12 +1213,27 @@ const CERRADAS = new Set(['pagada', 'cancelada']);
 // Lo usan el desplegable/✓ del listado y el formulario de edición: un solo
 // sitio para que una cita marcada 'pagada' desde el formulario no se quede
 // sin hora de cobro.
+//
+// Marcas del resto del ciclo (MARCAS_ESTADO): atendidaEn, acabadaEn,
+// incidenciaEn y llamadoEn, mismo formato (ahoraMadrid). Reglas DISTINTAS a
+// las de pagadaEn, a propósito: se escriben al ENTRAR en el estado, NO se
+// pisan si ya existen y NO se borran al retroceder. pagadaEn describe un
+// estado; estas describen HECHOS que ocurrieron, y borrarlas al corregir un
+// estado perdería el dato. Solo alimentan metricas.json al purgar
+// (metricaDeCita): no se muestran en el panel ni en /taller, no van al Excel
+// y no se piden en el formulario. Las citas anteriores no las tienen;
+// undefined tolerado. POST /taller/acabar y /taller/incidencia pasan también
+// por aquí: lo que marcan los mecánicos es lo que más interesa medir.
+const MARCAS_ESTADO = { atendida: 'atendidaEn', acabada: 'acabadaEn', incidencia: 'incidenciaEn', llamado: 'llamadoEn' };
+
 function aplicarEstado(cita, estado) {
   if (estado === 'pagada') {
     if (cita.estado !== 'pagada') cita.pagadaEn = ahoraMadrid();
   } else {
     delete cita.pagadaEn;
   }
+  const marca = Object.prototype.hasOwnProperty.call(MARCAS_ESTADO, estado) ? MARCAS_ESTADO[estado] : null;
+  if (marca && cita.estado !== estado && !cita[marca]) cita[marca] = ahoraMadrid();
   cita.estado = estado;
 }
 
@@ -3279,7 +3462,8 @@ const server = http.createServer(async (req, res) => {
       errorHtml(409, 'Indica quién ha hecho el trabajo (D, J o D+J)');
       return;
     }
-    cita.estado = 'acabada';
+    // Vía aplicarEstado (no cita.estado directo) para que quede acabadaEn.
+    aplicarEstado(cita, 'acabada');
     if (km) cita.kilometros = km;
     if (precio) cita.precio = precio;
     if (hechoPor) cita.hechoPor = hechoPor;
@@ -3319,7 +3503,8 @@ const server = http.createServer(async (req, res) => {
     // que con los kilómetros en /taller/acabar. NO añadir aquí validación
     // de obligatoriedad.
     const motivo = typeof body.motivo === 'string' ? body.motivo.trim().slice(0, 100) : '';
-    cita.estado = 'incidencia';
+    // Vía aplicarEstado (no cita.estado directo) para que quede incidenciaEn.
+    aplicarEstado(cita, 'incidencia');
     if (motivo) cita.motivo = motivo;
     writeCitas(citas);
     // 302 a la pantalla con el mismo token: se refresca sola tras pulsar.
@@ -3932,5 +4117,9 @@ server.listen(PORT, () => {
   // Lo mismo para el stock, justo después y con su propio archivo del día.
   if (!fs.existsSync(path.join(BACKUP_DIR, `stock-${hoyMadrid()}.json`))) {
     backupStock();
+  }
+  // Y para las métricas.
+  if (!fs.existsSync(path.join(BACKUP_DIR, `metricas-${hoyMadrid()}.json`))) {
+    backupMetricas();
   }
 });
