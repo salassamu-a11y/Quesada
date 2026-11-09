@@ -110,27 +110,51 @@ function writeStock(stock) {
 }
 
 // ---- Días de cierre del taller (DATA_DIR/cierres.json) ----
-// Array de { fecha, motivo }: fecha 'YYYY-MM-DD'; motivo string de hasta
-// CIERRE_MOTIVO_MAX caracteres, puede ir vacío. El motivo SE PUBLICA: sale
-// por GET /api/cierres hacia la web. Mismo patrón que readStock/writeStock,
-// en funciones PROPIAS: archivo corrupto → se preserva como
-// .corrupt-<timestamp> y se devuelve []; escritura atómica .tmp + rename;
-// mkdirSync del directorio antes de escribir.
+// Array de { inicio, fin, motivo, aviso }: RANGOS de fechas 'YYYY-MM-DD'
+// (un día suelto es inicio === fin).
+//   - motivo: texto INTERNO, solo para el panel (≤ CIERRE_MOTIVO_MAX). Puede
+//     hablar de empleados: NUNCA sale por GET /api/cierres.
+//   - aviso: texto PÚBLICO opcional (≤ CIERRE_AVISO_MAX), el único que sale
+//     hacia la web. Puede ir vacío.
+// Mismo patrón que readStock/writeStock, en funciones PROPIAS: archivo
+// corrupto → se preserva como .corrupt-<timestamp> y se devuelve [];
+// escritura atómica .tmp + rename; mkdirSync del directorio antes de escribir.
 // RE_FECHA_ISO es la MISMA expresión que usa validarCita (una sola copia).
-const CIERRE_MOTIVO_MAX = 80;
+const CIERRE_MOTIVO_MAX = 200;
+const CIERRE_AVISO_MAX = 80;
 const RE_FECHA_ISO = /^(\d{4})-(\d{2})-(\d{2})$/;
 
-// Normaliza al leer: descarta entradas sin fecha YYYY-MM-DD y deja motivo
-// siempre como string, para que ni la ruta pública ni el panel puedan
-// lanzar con un cierres.json editado a mano.
+// ¿La fecha cae dentro del rango del cierre? Strings YYYY-MM-DD, sin new Date().
+const cierreCubre = (c, fecha) => c.inicio <= fecha && fecha <= c.fin;
+
+// Normaliza al leer, ANTES de que nadie filtre por fin: es la única puerta
+// de lectura, así que todo el código ve siempre { inicio, fin, motivo, aviso }
+// con motivo y aviso como string (nunca undefined).
+// MIGRACIÓN: una entrada antigua { fecha, motivo } se lee como
+// { inicio: fecha, fin: fecha, motivo, aviso: '' }; el siguiente
+// guardarCierres() la persiste ya en el formato nuevo. El motivo antiguo
+// pasa a ser INTERNO (deja de publicarse).
+// Entrada sin inicio válido → se descarta. fin ausente, ilegible o anterior
+// a inicio → un solo día (lo más estrecho).
 function leerCierres() {
   if (!fs.existsSync(CIERRES_PATH)) return [];
   try {
     const cierres = JSON.parse(fs.readFileSync(CIERRES_PATH, 'utf8'));
     if (!Array.isArray(cierres)) throw new Error('no es un array');
     return cierres
-      .filter(c => c && typeof c.fecha === 'string' && RE_FECHA_ISO.test(c.fecha))
-      .map(c => ({ fecha: c.fecha, motivo: typeof c.motivo === 'string' ? c.motivo : '' }));
+      .map(c => {
+        if (!c || typeof c !== 'object') return null;
+        const inicio = typeof c.inicio === 'string' ? c.inicio : c.fecha;
+        if (typeof inicio !== 'string' || !RE_FECHA_ISO.test(inicio)) return null;
+        const fin = typeof c.fin === 'string' && RE_FECHA_ISO.test(c.fin) && c.fin >= inicio ? c.fin : inicio;
+        return {
+          inicio,
+          fin,
+          motivo: typeof c.motivo === 'string' ? c.motivo : '',
+          aviso: typeof c.aviso === 'string' ? c.aviso : ''
+        };
+      })
+      .filter(Boolean);
   } catch (err) {
     console.error(`[cierres] cierres.json ilegible o corrupto: ${err.message}`);
     try {
@@ -144,13 +168,17 @@ function leerCierres() {
   }
 }
 
-// Guarda SIEMPRE sin duplicados (si una fecha se repite gana la última
-// entrada) y ordenado por fecha ascendente; comparar strings YYYY-MM-DD
-// equivale a comparar cronológicamente.
+// Guarda SIEMPRE sin duplicados por INICIO (es la clave: si se repite gana
+// la última entrada) y ordenado por inicio ascendente; comparar strings
+// YYYY-MM-DD equivale a comparar cronológicamente. Los rangos pueden
+// solaparse entre sí: no se valida, la pregunta siempre es "¿esta fecha cae
+// dentro de algún rango?".
 function guardarCierres(lista) {
-  const porFecha = new Map();
-  for (const c of lista) porFecha.set(c.fecha, { fecha: c.fecha, motivo: c.motivo });
-  const ordenada = [...porFecha.values()].sort((a, b) => a.fecha.localeCompare(b.fecha));
+  const porInicio = new Map();
+  for (const c of lista) {
+    porInicio.set(c.inicio, { inicio: c.inicio, fin: c.fin, motivo: c.motivo || '', aviso: c.aviso || '' });
+  }
+  const ordenada = [...porInicio.values()].sort((a, b) => a.inicio.localeCompare(b.inicio));
   const tmp = `${CIERRES_PATH}.tmp`;
   fs.mkdirSync(path.dirname(CIERRES_PATH), { recursive: true });
   fs.writeFileSync(tmp, JSON.stringify(ordenada, null, 2));
@@ -1372,8 +1400,15 @@ function franjaAbierta(col, min) {
   return tramos.some(([ini, fin]) => min >= ini && min + 30 <= fin);
 }
 
-function calendarioHTML(citas, lunes, hoy) {
+// `cierres` = lista COMPLETA de leerCierres() (también rangos ya pasados,
+// para que las semanas anteriores se sigan viendo marcadas).
+function calendarioHTML(citas, lunes, hoy, cierres = []) {
   const dias = [0, 1, 2, 3, 4].map(i => sumarDias(lunes, i));
+  // Cierre que cubre cada columna (o null). Día dentro de un cierre: cabecera
+  // en rojo con el motivo INTERNO debajo y toda la columna con fondo rojizo
+  // apagado. Las celdas libres siguen siendo pulsables: el cierre es AVISO,
+  // no bloqueo (el confirm() de guardarNuevaCita avisa al guardar).
+  const cierreDia = dias.map(d => cierres.find(c => cierreCubre(c, d)) || null);
   const minutos = h => /^\d{2}:\d{2}$/.test(h) ? Number(h.slice(0, 2)) * 60 + Number(h.slice(3, 5)) : NaN;
   const hhmm = m => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
   // "2026-09-08" → "8/09" para el encabezado de columna, partiendo el string.
@@ -1437,7 +1472,9 @@ function calendarioHTML(citas, lunes, hoy) {
     const pulsable = libre
       ? ` cursor-pointer hover:bg-white/5" data-fecha="${dias[col]}" data-hora="${libre}" title="Nueva cita el ${escapeHtml(fechaCorta(dias[col]))} a las ${libre}" onclick="nuevaCitaEn(this)`
       : '';
-    return `<td class="px-1 py-0.5 align-top border-l border-white/5 space-y-1${hoyCol}${extra}${pulsable}">${lista.map(b => bloque(b)).join('')}</td>`;
+    // Día de cierre: el fondo rojizo sustituye al sombreado de franja cerrada.
+    const fondo = cierreDia[col] ? ' bg-red-900/20' : extra;
+    return `<td class="px-1 py-0.5 align-top border-l border-white/5 space-y-1${hoyCol}${fondo}${pulsable}">${lista.map(b => bloque(b)).join('')}</td>`;
   };
 
   const filas = [];
@@ -1476,7 +1513,16 @@ function calendarioHTML(citas, lunes, hoy) {
         <thead>
           <tr class="border-b border-white/10">
             <th class="w-16"></th>
-            ${dias.map((d, col) => `<th scope="col" class="px-2 py-2.5 text-xs font-semibold uppercase tracking-wider border-l border-white/5 ${d === hoy ? 'bg-[#FFD700] text-[#060D1F]' : 'text-[#FFD700]'}">${DIAS_SEMANA[col]} ${diaMes(d)}${d === hoy ? ' · hoy' : ''}</th>`).join('')}
+            ${dias.map((d, col) => {
+      const cierre = cierreDia[col];
+      // Cerrado gana a "hoy": cabecera en rojo (el " · hoy" se conserva).
+      const color = cierre ? 'bg-red-600 text-white' : d === hoy ? 'bg-[#FFD700] text-[#060D1F]' : 'text-[#FFD700]';
+      const motivo = cierre
+        ? `<div class="mt-0.5 text-[11px] font-normal normal-case tracking-normal break-words line-clamp-2">${cierre.motivo ? escapeHtml(cierre.motivo) : 'Cerrado'}</div>`
+        : '';
+      const title = cierre ? ` title="Taller cerrado${cierre.motivo ? ' · ' + escapeHtml(cierre.motivo) : ''}"` : '';
+      return `<th scope="col"${title} class="px-2 py-2.5 align-top text-xs font-semibold uppercase tracking-wider border-l border-white/5 ${color}">${DIAS_SEMANA[col]} ${diaMes(d)}${d === hoy ? ' · hoy' : ''}${motivo}</th>`;
+    }).join('')}
           </tr>
         </thead>
         <tbody>${filas.join('')}</tbody>
@@ -1512,29 +1558,39 @@ function adminHTML(citas, vista = 'proximas', pendientes = { acabadas: 0, incide
   const semana = esCalendario ? (lunes || lunesDe(hoy)) : null;
 
   // ---- Días de cierre (cierres = lista COMPLETA de leerCierres()) ----
-  // cierresFuturos (hoy incluido): la lista del bloque "Días cerrados" y la
-  // que viaja al <script> para el confirm() de guardarNuevaCita.
-  const cierresFuturos = cierres.filter(c => c.fecha >= hoy);
+  // cierresFuturos = rangos que aún no han terminado (fin >= hoy): la lista
+  // del bloque "Días cerrados" y la que viaja al <script> para el confirm()
+  // de guardarNuevaCita.
+  const cierresFuturos = cierres.filter(c => c.fin >= hoy);
   // Banda roja de la cabecera: solo en las vistas de UN día ('hoy' y 'ayer')
-  // y solo si ese día es un cierre. Comparación de strings, sin new Date().
+  // y solo si ese día cae dentro de algún rango (cierreCubre). Enseña el
+  // motivo INTERNO. Comparación de strings, sin new Date().
   const diaVisto = vista === 'hoy' ? hoy : vista === 'ayer' ? sumarDias(hoy, -1) : null;
-  const cierreVisto = diaVisto ? cierres.find(c => c.fecha === diaVisto) : null;
+  const cierreVisto = diaVisto ? cierres.find(c => cierreCubre(c, diaVisto)) : null;
   const bandaCierre = cierreVisto
     ? `<p id="aviso-cierre" class="mt-3 w-fit bg-red-600 text-white text-lg font-bold px-5 py-2.5 rounded-lg">${vista === 'hoy' ? 'Hoy el taller está cerrado' : 'Ayer el taller estuvo cerrado'}${cierreVisto.motivo ? ' · ' + escapeHtml(cierreVisto.motivo) : ''}</p>`
     : '';
   // Lista para el <script>. El motivo va SIN escapeHtml (confirm() pinta
   // texto plano), pero con "<" como <: un motivo con "</script>" no
   // puede cerrar la etiqueta.
-  const cierresJson = JSON.stringify(cierresFuturos).replace(/</g, '\\u003c');
+  // Al <script> solo viaja lo que usa el confirm(): rango y motivo interno.
+  const cierresJson = JSON.stringify(cierresFuturos.map(c => ({ inicio: c.inicio, fin: c.fin, motivo: c.motivo }))).replace(/</g, '\\u003c');
+  // "11/11/2026" para un día suelto, "01/08/2026 → 31/08/2026" para un rango.
+  const rangoCierre = c => c.inicio === c.fin
+    ? escapeHtml(fechaCorta(c.inicio))
+    : `${escapeHtml(fechaCorta(c.inicio))} → ${escapeHtml(fechaCorta(c.fin))}`;
   const filasCierres = cierresFuturos.length === 0
     ? '<li class="text-sm text-gray-500">Sin días cerrados a la vista</li>'
     : cierresFuturos.map(c => `
-          <li class="flex items-center gap-3 text-sm">
-            <span class="font-semibold text-[#FFD700] whitespace-nowrap">${escapeHtml(fechaCorta(c.fecha))}</span>
-            <span class="flex-1 min-w-0 break-words text-gray-300">${c.motivo ? escapeHtml(c.motivo) : '<span class="text-gray-500">Sin motivo</span>'}</span>
+          <li class="flex items-start gap-3 text-sm">
+            <div class="flex-1 min-w-0">
+              <div class="font-semibold text-[#FFD700]">${rangoCierre(c)}</div>
+              <div class="break-words text-gray-300">${c.motivo ? escapeHtml(c.motivo) : '<span class="text-gray-500">Sin motivo</span>'}</div>
+              ${c.aviso ? `<div class="break-words text-xs text-gray-500">En la web: ${escapeHtml(c.aviso)}</div>` : ''}
+            </div>
             <form method="post" action="/admin/cierres/eliminar" class="shrink-0">
-              <input type="hidden" name="fecha" value="${escapeHtml(c.fecha)}">
-              <button type="submit" title="Quitar este día de cierre" aria-label="Quitar el cierre del ${escapeHtml(fechaCorta(c.fecha))}" class="quitar-cierre bg-red-900/40 hover:bg-red-800/60 text-red-300 font-bold leading-none px-2.5 py-1.5 rounded-lg transition-colors">&times;</button>
+              <input type="hidden" name="inicio" value="${escapeHtml(c.inicio)}">
+              <button type="submit" title="Quitar este cierre" aria-label="Quitar el cierre del ${rangoCierre(c)}" class="quitar-cierre bg-red-900/40 hover:bg-red-800/60 text-red-300 font-bold leading-none px-2.5 py-1.5 rounded-lg transition-colors">&times;</button>
             </form>
           </li>`).join('');
 
@@ -1759,7 +1815,7 @@ function adminHTML(citas, vista = 'proximas', pendientes = { acabadas: 0, incide
         <tbody>${rows}<tr id="sin-resultados" style="display:none"><td colspan="8" class="px-2 py-8 text-center text-gray-500">Sin resultados</td></tr></tbody>
       </table>
     </div>`;
-  const cuerpo = semana ? calendarioHTML(citas, semana, hoy) : listado;
+  const cuerpo = semana ? calendarioHTML(citas, semana, hoy, cierres) : listado;
   return `<!DOCTYPE html>
 <html lang="es">
 <head>
@@ -1780,9 +1836,10 @@ function adminHTML(citas, vista = 'proximas', pendientes = { acabadas: 0, incide
     /* Los inputs date/time usan controles nativos: sin color-scheme, el
        navegador los dibuja en tema claro (icono oscuro sobre navy = invisible)
        y el desplegable del calendario sale blanco. */
-    #nc-fecha, #nc-hora, #ci-fecha { color-scheme: dark; }
+    #nc-fecha, #nc-hora, #ci-fecha, #ci-fin { color-scheme: dark; }
     #nc-fecha::-webkit-calendar-picker-indicator,
     #ci-fecha::-webkit-calendar-picker-indicator,
+    #ci-fin::-webkit-calendar-picker-indicator,
     #nc-hora::-webkit-calendar-picker-indicator {
       opacity: .75;
       cursor: pointer;
@@ -1790,6 +1847,7 @@ function adminHTML(citas, vista = 'proximas', pendientes = { acabadas: 0, incide
     }
     #nc-fecha:hover::-webkit-calendar-picker-indicator,
     #ci-fecha:hover::-webkit-calendar-picker-indicator,
+    #ci-fin:hover::-webkit-calendar-picker-indicator,
     #nc-hora:hover::-webkit-calendar-picker-indicator { opacity: 1; }
 
     /* Intento de marcar 'pagada' SIN kilómetros (ver comprobarKmFila): celda
@@ -1993,25 +2051,39 @@ function adminHTML(citas, vista = 'proximas', pendientes = { acabadas: 0, incide
       </div>
     </div>
 
-    <!-- Días cerrados: fechas en las que el taller no abre (leerCierres /
-         guardarCierres). <details> plegado para no empujar el listado; se
-         abre solo al volver de añadir o quitar (ancla #dias-cerrados, ver el
-         script). Formularios normales, sin JS: POST /admin/cierres y
-         POST /admin/cierres/eliminar. OJO: el motivo SE PUBLICA en la web
-         (GET /api/cierres), de ahí el texto de su etiqueta. -->
+    <!-- Días cerrados: rangos de fechas en los que el taller no abre
+         (leerCierres / guardarCierres). <details> plegado para no empujar el
+         listado; se abre solo al volver de añadir o quitar (ancla
+         #dias-cerrados, ver el script). Formularios normales, sin JS:
+         POST /admin/cierres y POST /admin/cierres/eliminar. "Hasta" vacío →
+         el servidor lo iguala a "Desde". El MOTIVO es interno y no sale del
+         panel; lo ÚNICO que se publica en la web (GET /api/cierres) es el
+         AVISO. -->
     <details id="dias-cerrados" class="mb-5 max-w-2xl bg-[#0D1B3E] border border-white/10 rounded-xl">
       <summary class="cursor-pointer select-none px-6 py-3 text-sm font-semibold text-gray-300 hover:text-white">Días cerrados${cierresFuturos.length ? ` (${cierresFuturos.length})` : ''}</summary>
       <div class="px-6 pb-6">
-        <form method="post" action="/admin/cierres" class="flex flex-col sm:flex-row sm:items-end gap-3">
+        <form method="post" action="/admin/cierres" class="space-y-3">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label for="ci-fecha" class="block text-xs text-gray-400 mb-1.5">Fecha</label>
+              <input id="ci-fecha" name="inicio" type="date" min="${hoy}" required class="w-full bg-[#060D1F] border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-[#2563EB]">
+            </div>
+            <div>
+              <label for="ci-fin" class="block text-xs text-gray-400 mb-1.5">Hasta (opcional)</label>
+              <input id="ci-fin" name="fin" type="date" min="${hoy}" aria-describedby="ci-fin-ayuda" class="w-full bg-[#060D1F] border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-[#2563EB]">
+              <p id="ci-fin-ayuda" class="mt-1.5 text-xs text-gray-500">Déjalo vacío si cierras un solo día.</p>
+            </div>
+          </div>
           <div>
-            <label for="ci-fecha" class="block text-xs text-gray-400 mb-1.5">Fecha</label>
-            <input id="ci-fecha" name="fecha" type="date" min="${hoy}" required class="w-full bg-[#060D1F] border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-[#2563EB]">
+            <label for="ci-motivo" class="block text-xs text-gray-400 mb-1.5">Motivo (interno, no sale en la web)</label>
+            <input id="ci-motivo" name="motivo" type="text" maxlength="${CIERRE_MOTIVO_MAX}" autocomplete="off" class="w-full bg-[#060D1F] border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#2563EB]">
           </div>
-          <div class="flex-1">
-            <label for="ci-motivo" class="block text-xs text-gray-400 mb-1.5">Motivo (se verá en la web)</label>
-            <input id="ci-motivo" name="motivo" type="text" maxlength="${CIERRE_MOTIVO_MAX}" placeholder="Fiesta local" autocomplete="off" class="w-full bg-[#060D1F] border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#2563EB]">
+          <div>
+            <label for="ci-aviso" class="block text-xs text-gray-400 mb-1.5">Aviso en la web (opcional)</label>
+            <input id="ci-aviso" name="aviso" type="text" maxlength="${CIERRE_AVISO_MAX}" placeholder="Fiesta local" autocomplete="off" aria-describedby="ci-aviso-ayuda" class="w-full bg-[#060D1F] border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#2563EB]">
+            <p id="ci-aviso-ayuda" class="mt-1.5 text-xs text-gray-500">Si lo dejas vacío, la web solo dirá que ese día está cerrado.</p>
           </div>
-          <button type="submit" class="bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-sm font-medium px-5 py-2 rounded-lg transition-colors">Añadir</button>
+          <button type="submit" class="bg-[#0D1B3E] hover:bg-white/10 text-gray-300 border border-white/10 text-sm font-semibold px-5 py-2.5 rounded-lg transition-colors">Añadir</button>
         </form>
         <ul class="mt-4 space-y-2">${filasCierres}
         </ul>
@@ -2305,13 +2377,16 @@ ${cuerpo}
       sel.title = 'No se pudo guardar la forma de pago';
       setTimeout(function () { sel.style.borderColor = ''; sel.removeAttribute('title'); }, 1500);
     }
-    // Días de cierre de hoy en adelante, pintados por el servidor
-    // (leerCierres): [{ fecha: 'YYYY-MM-DD', motivo }]. Solo para el aviso
-    // de guardarNuevaCita(); la lista visible la pinta el servidor.
+    // Cierres que aún no han terminado (fin >= hoy), pintados por el servidor
+    // (leerCierres): [{ inicio, fin, motivo }], fechas 'YYYY-MM-DD'. Solo
+    // para el aviso de guardarNuevaCita(), que enseña el MOTIVO INTERNO (lo
+    // ve Vicky, no el cliente); la lista visible la pinta el servidor.
+    // Una fecha está cerrada si cae dentro de algún rango: comparación de
+    // strings, sin new Date().
     var CIERRES = ${cierresJson};
     function cierreEn(fecha) {
       for (var i = 0; i < CIERRES.length; i++) {
-        if (CIERRES[i].fecha === fecha) return CIERRES[i];
+        if (CIERRES[i].inicio <= fecha && fecha <= CIERRES[i].fin) return CIERRES[i];
       }
       return null;
     }
@@ -3411,17 +3486,20 @@ const server = http.createServer(async (req, res) => {
   // GET /api/cierres — días de cierre del taller, de HOY en adelante.
   // RUTA PÚBLICA a propósito, FUERA del bloque /admin: la lee la web pública
   // (GitHub Pages, otro origen), de ahí el Access-Control-Allow-Origin: *,
-  // que va SOLO en esta respuesta. Solo lectura y solo dos campos por
-  // cierre (fecha, motivo), copiados uno a uno: cualquier otra clave que
-  // hubiera en cierres.json no sale. Comparación de strings YYYY-MM-DD
-  // contra hoyMadrid(), sin new Date() sobre fechas.
-  // El motivo va en CRUDO (es JSON, no HTML): quien lo pinte en la web debe
+  // que va SOLO en esta respuesta. Solo lectura y solo TRES campos por
+  // cierre (inicio, fin, aviso), copiados uno a uno: cualquier otra clave
+  // que hubiera en cierres.json no sale.
+  // EL MOTIVO NO PUEDE SALIR DE ESTA RUTA: es texto interno sobre empleados.
+  // No usar spread ni Object.assign en este .map().
+  // Rangos que aún no han terminado (fin >= hoy): comparación de strings
+  // YYYY-MM-DD contra hoyMadrid(), sin new Date() sobre fechas.
+  // El aviso va en CRUDO (es JSON, no HTML): quien lo pinte en la web debe
   // usar textContent, nunca innerHTML.
   if (req.method === 'GET' && p === '/api/cierres') {
     const hoy = hoyMadrid();
     const cierres = leerCierres()
-      .filter(c => c.fecha >= hoy)
-      .map(c => ({ fecha: c.fecha, motivo: c.motivo }));
+      .filter(c => c.fin >= hoy)
+      .map(c => ({ inicio: c.inicio, fin: c.fin, aviso: c.aviso }));
     res.writeHead(200, {
       'Content-Type': 'application/json; charset=utf-8',
       'Cache-Control': 'no-store',
@@ -4067,12 +4145,15 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
-    // POST /admin/cierres — añade un día de cierre desde el bloque "Días
-    // cerrados" del panel (form-urlencoded), o ACTUALIZA el motivo si la
-    // fecha ya existe. Fecha con la misma expresión que validarCita
-    // (RE_FECHA_ISO); motivo opcional, trim() y máximo CIERRE_MOTIVO_MAX →
-    // si no, 400. Lectura fresca tras el await de parseBody y 302 de vuelta
-    // al bloque. Dentro del bloque POST/PUT/DELETE: hereda isSameOrigin.
+    // POST /admin/cierres — añade un cierre (rango inicio–fin) desde el
+    // bloque "Días cerrados" del panel (form-urlencoded), o lo ACTUALIZA si
+    // ya existe uno con ese inicio (inicio es la clave). Fechas con la misma
+    // expresión que validarCita (RE_FECHA_ISO); fin vacío → fin = inicio;
+    // fin < inicio → 400. motivo (interno) y aviso (público) opcionales,
+    // trim() y máximos CIERRE_MOTIVO_MAX / CIERRE_AVISO_MAX → si no, 400.
+    // Rangos solapados: permitidos, no se validan. Lectura fresca tras el
+    // await de parseBody y 302 de vuelta al bloque. Dentro del bloque
+    // POST/PUT/DELETE: hereda isSameOrigin.
     // Solo guarda la lista: NO toca citas ni impide crear citas ese día (el
     // aviso es solo en cliente, ver guardarNuevaCita en adminHTML).
     if (req.method === 'POST' && p === '/admin/cierres') {
@@ -4087,31 +4168,49 @@ const server = http.createServer(async (req, res) => {
         res.end('Cuerpo de la petición inválido');
         return;
       }
-      const fecha = typeof body.fecha === 'string' ? body.fecha : '';
+      const inicio = typeof body.inicio === 'string' ? body.inicio : '';
+      const fin = typeof body.fin === 'string' && body.fin !== '' ? body.fin : inicio;
       const motivo = typeof body.motivo === 'string' ? body.motivo.trim() : '';
-      if (!RE_FECHA_ISO.test(fecha)) {
+      const aviso = typeof body.aviso === 'string' ? body.aviso.trim() : '';
+      const error400 = (msg) => {
         res.writeHead(400, { 'Content-Type': 'text/plain; charset=utf-8' });
-        res.end('La fecha debe tener formato YYYY-MM-DD');
+        res.end(msg);
+      };
+      if (!RE_FECHA_ISO.test(inicio) || !RE_FECHA_ISO.test(fin)) {
+        error400('Las fechas deben tener formato YYYY-MM-DD');
+        return;
+      }
+      if (fin < inicio) {
+        error400('La fecha "Hasta" no puede ser anterior a "Desde"');
         return;
       }
       if (motivo.length > CIERRE_MOTIVO_MAX) {
-        res.writeHead(400, { 'Content-Type': 'text/plain; charset=utf-8' });
-        res.end(`El motivo no puede superar ${CIERRE_MOTIVO_MAX} caracteres`);
+        error400(`El motivo no puede superar ${CIERRE_MOTIVO_MAX} caracteres`);
+        return;
+      }
+      if (aviso.length > CIERRE_AVISO_MAX) {
+        error400(`El aviso no puede superar ${CIERRE_AVISO_MAX} caracteres`);
         return;
       }
       const cierres = leerCierres();
-      const existente = cierres.find(c => c.fecha === fecha);
-      if (existente) existente.motivo = motivo;
-      else cierres.push({ fecha, motivo });
+      const existente = cierres.find(c => c.inicio === inicio);
+      if (existente) {
+        existente.fin = fin;
+        existente.motivo = motivo;
+        existente.aviso = aviso;
+      } else {
+        cierres.push({ inicio, fin, motivo, aviso });
+      }
       guardarCierres(cierres);
       res.writeHead(302, { Location: '/admin#dias-cerrados' });
       res.end();
       return;
     }
 
-    // POST /admin/cierres/eliminar — quita UN día de cierre (form-urlencoded,
-    // campo fecha). Lectura fresca, se quita solo esa fecha y 302 de vuelta
-    // al bloque. Fecha que no está en la lista → 404. Hereda isSameOrigin.
+    // POST /admin/cierres/eliminar — quita UN cierre (form-urlencoded, campo
+    // inicio, que es la clave). Lectura fresca, se quita solo ese rango y 302
+    // de vuelta al bloque. Inicio que no está en la lista → 404. Hereda
+    // isSameOrigin.
     if (req.method === 'POST' && p === '/admin/cierres/eliminar') {
       const body = await parseBody(req);
       if (body === BODY_TOO_LARGE) {
@@ -4124,14 +4223,14 @@ const server = http.createServer(async (req, res) => {
         res.end('Cuerpo de la petición inválido');
         return;
       }
-      const fecha = typeof body.fecha === 'string' ? body.fecha : '';
-      if (!RE_FECHA_ISO.test(fecha)) {
+      const inicio = typeof body.inicio === 'string' ? body.inicio : '';
+      if (!RE_FECHA_ISO.test(inicio)) {
         res.writeHead(400, { 'Content-Type': 'text/plain; charset=utf-8' });
         res.end('La fecha debe tener formato YYYY-MM-DD');
         return;
       }
       const cierres = leerCierres();
-      const idx = cierres.findIndex(c => c.fecha === fecha);
+      const idx = cierres.findIndex(c => c.inicio === inicio);
       if (idx === -1) {
         res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
         res.end('Día de cierre no encontrado');
