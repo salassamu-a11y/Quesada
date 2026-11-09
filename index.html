@@ -1000,6 +1000,11 @@
     class="fixed top-0 inset-x-0 z-[60] bg-q-yellow text-q-navy text-center font-bold text-sm leading-snug px-4 py-2.5">
   </div>
 
+  <!-- Banda de días cerrados (vienen de /api/cierres del panel): oculta por defecto, la muestra el JS -->
+  <div id="cierres-banner" style="display:none"
+    class="fixed top-0 inset-x-0 z-[60] bg-red-600 text-white text-center font-bold text-sm leading-snug px-4 py-2.5">
+  </div>
+
   <!-- ════════════════════════════════════════════
      HEADER — glassmorphism fijo
 ════════════════════════════════════════════ -->
@@ -1759,6 +1764,10 @@
                 </tr>
               </tbody>
             </table>
+            <!-- Días cerrados puntuales (de /api/cierres): línea aparte, las filas de arriba son el horario de todas las semanas -->
+            <p id="cierres-horario" style="display:none" class="mt-3 pt-3 border-t border-white/5 text-sm font-semibold text-red-400">
+              <i class="fa-solid fa-triangle-exclamation mr-1.5" aria-hidden="true"></i><span></span>
+            </p>
           </div>
 
           <!-- Google Maps link -->
@@ -1954,6 +1963,108 @@
         new ResizeObserver(aplicarAltura).observe(b);
       } else {
         window.addEventListener('resize', aplicarAltura, { passive: true });
+      }
+    })();
+
+    // ── Días cerrados desde el panel (/api/cierres): banda roja sobre el hero ──
+    // Sin GSAP, sin animación. Todo dentro de try/catch: si falla, la web queda igual.
+    const CIERRES_URL = 'https://neumaticos-quesada.onrender.com/api/cierres';
+    const CIERRES_VENTANA_DIAS = 14;
+    const CIERRES_TIMEOUT_MS = 6000;
+    const ES_ISO = /^\d{4}-\d{2}-\d{2}$/;
+    const MESES = ['', 'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
+      'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+
+    // Fecha local del navegador como 'YYYY-MM-DD'. Único uso de Date; el resto son strings.
+    function hoyLocalISO() {
+      const d = new Date();
+      const p = n => String(n).padStart(2, '0');
+      return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate());
+    }
+
+    // Suma n días a 'YYYY-MM-DD' anclando a mediodía UTC y devuelve 'YYYY-MM-DD'.
+    function sumarDiasISO(fecha, n) {
+      const d = new Date(fecha + 'T12:00:00Z');
+      d.setUTCDate(d.getUTCDate() + n);
+      return d.toISOString().slice(0, 10);
+    }
+
+    // Solo los cierres válidos que toca enseñar: en curso, o futuros que empiezan
+    // dentro de los próximos 14 días. Ordenados por inicio.
+    function cierresVisibles(cierres, hoy) {
+      if (!Array.isArray(cierres)) return [];
+      const limite = sumarDiasISO(hoy, CIERRES_VENTANA_DIAS);
+      return cierres
+        .filter(c => c && typeof c === 'object'
+          && ES_ISO.test(c.inicio) && ES_ISO.test(c.fin) && c.inicio <= c.fin)
+        .filter(c => {
+          const enCurso = hoy >= c.inicio && hoy <= c.fin;
+          const proximo = c.inicio > hoy && c.inicio <= limite;
+          return enCurso || proximo;
+        })
+        .sort((a, b) => a.inicio.localeCompare(b.inicio));
+    }
+
+    // 'Cerrado el 11 de noviembre' / 'Cerrado del 1 al 31 de agosto' /
+    // 'Cerrado del 28 de julio al 3 de agosto', más ' · aviso' si viene.
+    function textoCierre(c) {
+      const [, mI, dI] = c.inicio.split('-').map(Number);
+      const [, mF, dF] = c.fin.split('-').map(Number);
+      let txt;
+      if (c.inicio === c.fin) {
+        txt = 'Cerrado el ' + dI + ' de ' + MESES[mI];
+      } else if (mI === mF) {
+        txt = 'Cerrado del ' + dI + ' al ' + dF + ' de ' + MESES[mF];
+      } else {
+        txt = 'Cerrado del ' + dI + ' de ' + MESES[mI] + ' al ' + dF + ' de ' + MESES[mF];
+      }
+      const aviso = typeof c.aviso === 'string' ? c.aviso.trim() : '';
+      return aviso ? txt + ' · ' + aviso : txt;
+    }
+
+    // Misma compensación que el banner de vacaciones; se apila bajo él si coinciden.
+    function compensarAlturaCierres(b) {
+      const hero = document.getElementById('inicio');
+      function aplicar() {
+        b.style.top = vacBannerH + 'px';
+        const total = vacBannerH + b.offsetHeight;
+        hdr.style.top = total + 'px';
+        if (hero) hero.style.paddingTop = total + 'px';
+      }
+      aplicar();
+      if (window.ResizeObserver) {
+        new ResizeObserver(aplicar).observe(b);
+      } else {
+        window.addEventListener('resize', aplicar, { passive: true });
+      }
+    }
+
+    (async function () {
+      try {
+        const ctrl = new AbortController();
+        const timer = setTimeout(() => ctrl.abort(), CIERRES_TIMEOUT_MS);
+        const res = await fetch(CIERRES_URL, { signal: ctrl.signal, cache: 'no-store' });
+        clearTimeout(timer);
+        if (!res.ok) return;
+        const data = await res.json();
+        const lista = cierresVisibles(data && data.cierres, hoyLocalISO());
+        if (!lista.length) return;
+
+        const b = document.getElementById('cierres-banner');
+        if (!b) return;
+        const texto = lista.map(textoCierre).join(' · ');
+        b.textContent = texto; // textContent, nunca innerHTML
+        b.style.display = 'block';
+        compensarAlturaCierres(b);
+
+        // Misma lista bajo la tabla de horarios de #contacto, para no contradecir el horario semanal.
+        const h = document.getElementById('cierres-horario');
+        if (h && h.lastElementChild) {
+          h.lastElementChild.textContent = texto;
+          h.style.display = 'block';
+        }
+      } catch (_) {
+        // Fallo de red, timeout, JSON inválido o forma inesperada: la web queda igual.
       }
     })();
 
