@@ -11,6 +11,7 @@ const PORT = process.env.PORT || 3001;
 const DATA_DIR = process.env.DATA_DIR || __dirname;
 const CITAS_PATH = path.join(DATA_DIR, 'citas.json');
 const STOCK_PATH = path.join(DATA_DIR, 'stock.json');
+const CIERRES_PATH = path.join(DATA_DIR, 'cierres.json');
 const METRICAS_PATH = path.join(DATA_DIR, 'metricas.json');
 const BACKUP_DIR = path.join(DATA_DIR, 'backups');
 const BACKUP_KEEP_DAYS = 30;
@@ -106,6 +107,54 @@ function writeStock(stock) {
   fs.mkdirSync(path.dirname(STOCK_PATH), { recursive: true });
   fs.writeFileSync(tmp, JSON.stringify(stock, null, 2));
   fs.renameSync(tmp, STOCK_PATH);
+}
+
+// ---- Días de cierre del taller (DATA_DIR/cierres.json) ----
+// Array de { fecha, motivo }: fecha 'YYYY-MM-DD'; motivo string de hasta
+// CIERRE_MOTIVO_MAX caracteres, puede ir vacío. El motivo SE PUBLICA: sale
+// por GET /api/cierres hacia la web. Mismo patrón que readStock/writeStock,
+// en funciones PROPIAS: archivo corrupto → se preserva como
+// .corrupt-<timestamp> y se devuelve []; escritura atómica .tmp + rename;
+// mkdirSync del directorio antes de escribir.
+// RE_FECHA_ISO es la MISMA expresión que usa validarCita (una sola copia).
+const CIERRE_MOTIVO_MAX = 80;
+const RE_FECHA_ISO = /^(\d{4})-(\d{2})-(\d{2})$/;
+
+// Normaliza al leer: descarta entradas sin fecha YYYY-MM-DD y deja motivo
+// siempre como string, para que ni la ruta pública ni el panel puedan
+// lanzar con un cierres.json editado a mano.
+function leerCierres() {
+  if (!fs.existsSync(CIERRES_PATH)) return [];
+  try {
+    const cierres = JSON.parse(fs.readFileSync(CIERRES_PATH, 'utf8'));
+    if (!Array.isArray(cierres)) throw new Error('no es un array');
+    return cierres
+      .filter(c => c && typeof c.fecha === 'string' && RE_FECHA_ISO.test(c.fecha))
+      .map(c => ({ fecha: c.fecha, motivo: typeof c.motivo === 'string' ? c.motivo : '' }));
+  } catch (err) {
+    console.error(`[cierres] cierres.json ilegible o corrupto: ${err.message}`);
+    try {
+      const backup = `${CIERRES_PATH}.corrupt-${Date.now()}`;
+      fs.renameSync(CIERRES_PATH, backup);
+      console.error(`[cierres] Archivo corrupto preservado en ${backup}`);
+    } catch (renameErr) {
+      console.error(`[cierres] No se pudo preservar el archivo corrupto: ${renameErr.message}`);
+    }
+    return [];
+  }
+}
+
+// Guarda SIEMPRE sin duplicados (si una fecha se repite gana la última
+// entrada) y ordenado por fecha ascendente; comparar strings YYYY-MM-DD
+// equivale a comparar cronológicamente.
+function guardarCierres(lista) {
+  const porFecha = new Map();
+  for (const c of lista) porFecha.set(c.fecha, { fecha: c.fecha, motivo: c.motivo });
+  const ordenada = [...porFecha.values()].sort((a, b) => a.fecha.localeCompare(b.fecha));
+  const tmp = `${CIERRES_PATH}.tmp`;
+  fs.mkdirSync(path.dirname(CIERRES_PATH), { recursive: true });
+  fs.writeFileSync(tmp, JSON.stringify(ordenada, null, 2));
+  fs.renameSync(tmp, CIERRES_PATH);
 }
 
 // ---- Métricas de tiempos (DATA_DIR/metricas.json) ----
@@ -1136,7 +1185,7 @@ function validarCita(body, permitirPasado = false) {
   }
 
   const fecha = typeof body.fecha === 'string' ? body.fecha : '';
-  const fm = fecha.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  const fm = fecha.match(RE_FECHA_ISO);
   if (!fm) return 'La fecha debe tener formato YYYY-MM-DD';
   const y = Number(fm[1]), mo = Number(fm[2]), d = Number(fm[3]);
   const dt = new Date(y, mo - 1, d);
@@ -1441,7 +1490,7 @@ function calendarioHTML(citas, lunes, hoy) {
 
 // 'lunes' solo se usa con vista 'calendario' (lunes de la semana a pintar);
 // si falta, cae en la semana en curso.
-function adminHTML(citas, vista = 'proximas', pendientes = { acabadas: 0, incidencias: 0 }, lunes = null) {
+function adminHTML(citas, vista = 'proximas', pendientes = { acabadas: 0, incidencias: 0 }, lunes = null, cierres = []) {
   // Iconos de las acciones del listado (WhatsApp, Editar, Eliminar): SVG
   // inline de trazo, 16px en escritorio (1.25rem en móvil, ver el @media).
   // Sin librería a propósito: el panel ya carga Tailwind por CDN y no
@@ -1461,6 +1510,33 @@ function adminHTML(citas, vista = 'proximas', pendientes = { acabadas: 0, incide
   const nPendientes = pendientes.acabadas + pendientes.incidencias;
   const hoy = hoyMadrid();   // formato YYYY-MM-DD, seguro para interpolar
   const semana = esCalendario ? (lunes || lunesDe(hoy)) : null;
+
+  // ---- Días de cierre (cierres = lista COMPLETA de leerCierres()) ----
+  // cierresFuturos (hoy incluido): la lista del bloque "Días cerrados" y la
+  // que viaja al <script> para el confirm() de guardarNuevaCita.
+  const cierresFuturos = cierres.filter(c => c.fecha >= hoy);
+  // Banda roja de la cabecera: solo en las vistas de UN día ('hoy' y 'ayer')
+  // y solo si ese día es un cierre. Comparación de strings, sin new Date().
+  const diaVisto = vista === 'hoy' ? hoy : vista === 'ayer' ? sumarDias(hoy, -1) : null;
+  const cierreVisto = diaVisto ? cierres.find(c => c.fecha === diaVisto) : null;
+  const bandaCierre = cierreVisto
+    ? `<p id="aviso-cierre" class="mt-3 w-fit bg-red-600 text-white text-lg font-bold px-5 py-2.5 rounded-lg">${vista === 'hoy' ? 'Hoy el taller está cerrado' : 'Ayer el taller estuvo cerrado'}${cierreVisto.motivo ? ' · ' + escapeHtml(cierreVisto.motivo) : ''}</p>`
+    : '';
+  // Lista para el <script>. El motivo va SIN escapeHtml (confirm() pinta
+  // texto plano), pero con "<" como <: un motivo con "</script>" no
+  // puede cerrar la etiqueta.
+  const cierresJson = JSON.stringify(cierresFuturos).replace(/</g, '\\u003c');
+  const filasCierres = cierresFuturos.length === 0
+    ? '<li class="text-sm text-gray-500">Sin días cerrados a la vista</li>'
+    : cierresFuturos.map(c => `
+          <li class="flex items-center gap-3 text-sm">
+            <span class="font-semibold text-[#FFD700] whitespace-nowrap">${escapeHtml(fechaCorta(c.fecha))}</span>
+            <span class="flex-1 min-w-0 break-words text-gray-300">${c.motivo ? escapeHtml(c.motivo) : '<span class="text-gray-500">Sin motivo</span>'}</span>
+            <form method="post" action="/admin/cierres/eliminar" class="shrink-0">
+              <input type="hidden" name="fecha" value="${escapeHtml(c.fecha)}">
+              <button type="submit" title="Quitar este día de cierre" aria-label="Quitar el cierre del ${escapeHtml(fechaCorta(c.fecha))}" class="quitar-cierre bg-red-900/40 hover:bg-red-800/60 text-red-300 font-bold leading-none px-2.5 py-1.5 rounded-lg transition-colors">&times;</button>
+            </form>
+          </li>`).join('');
 
   // Campos hidden que comparten el desplegable de estado y el botón ✓: la
   // vista activa (y la semana, en calendario) para que POST /admin/cita/:id/estado
@@ -1704,14 +1780,16 @@ function adminHTML(citas, vista = 'proximas', pendientes = { acabadas: 0, incide
     /* Los inputs date/time usan controles nativos: sin color-scheme, el
        navegador los dibuja en tema claro (icono oscuro sobre navy = invisible)
        y el desplegable del calendario sale blanco. */
-    #nc-fecha, #nc-hora { color-scheme: dark; }
+    #nc-fecha, #nc-hora, #ci-fecha { color-scheme: dark; }
     #nc-fecha::-webkit-calendar-picker-indicator,
+    #ci-fecha::-webkit-calendar-picker-indicator,
     #nc-hora::-webkit-calendar-picker-indicator {
       opacity: .75;
       cursor: pointer;
       transition: opacity .15s;
     }
     #nc-fecha:hover::-webkit-calendar-picker-indicator,
+    #ci-fecha:hover::-webkit-calendar-picker-indicator,
     #nc-hora:hover::-webkit-calendar-picker-indicator { opacity: 1; }
 
     /* Intento de marcar 'pagada' SIN kilómetros (ver comprobarKmFila): celda
@@ -1731,6 +1809,8 @@ function adminHTML(citas, vista = 'proximas', pendientes = { acabadas: 0, incide
       header select { font-size: .875rem; padding: .5rem .6rem; }
       /* Banda: igual de amarilla, más compacta (a text-lg ocupaba 5 líneas). */
       #aviso-acabadas { display: block; font-size: .9rem; line-height: 1.3; padding: .45rem .75rem; }
+      #aviso-cierre { width: auto; font-size: .9rem; line-height: 1.3; padding: .45rem .75rem; }
+      .quitar-cierre { min-height: 2.5rem; min-width: 2.5rem; }
       /* Formulario de nueva cita: a dos columnas en 380px los campos quedan inservibles. */
       #nueva-cita-form .grid-cols-2 { grid-template-columns: 1fr; }
       /* Listado: cada <tr> es una tarjeta; cada <td>, una línea "ETIQUETA  valor". */
@@ -1787,6 +1867,9 @@ function adminHTML(citas, vista = 'proximas', pendientes = { acabadas: 0, incide
              un atributo, así que sondearAcabadas() puede reescribir el
              textContent sin perder el enlace. -->
         <a id="aviso-acabadas" href="/admin?ver=llamar" title="Ver las citas pendientes de llamar" class="${nPendientes > 0 ? '' : 'hidden'} mt-3 inline-block bg-[#FFD700] hover:bg-[#E6C200] text-[#060D1F] text-lg font-bold px-5 py-2.5 rounded-lg no-underline cursor-pointer" aria-live="polite">${textoAcabadas(pendientes.acabadas, pendientes.incidencias)}</a>
+        <!-- Banda roja: el día que se está viendo ('hoy' o 'ayer') es un día
+             de cierre. Solo indicador; vacía en el resto de vistas. -->
+        ${bandaCierre}
       </div>
       <div class="flex items-center gap-3">
         <!-- En la vista de calendario ninguna opción coincide: se antepone
@@ -1909,6 +1992,31 @@ function adminHTML(citas, vista = 'proximas', pendientes = { acabadas: 0, incide
         <p id="nc-error" class="hidden mt-3 text-red-400 text-sm"></p>
       </div>
     </div>
+
+    <!-- Días cerrados: fechas en las que el taller no abre (leerCierres /
+         guardarCierres). <details> plegado para no empujar el listado; se
+         abre solo al volver de añadir o quitar (ancla #dias-cerrados, ver el
+         script). Formularios normales, sin JS: POST /admin/cierres y
+         POST /admin/cierres/eliminar. OJO: el motivo SE PUBLICA en la web
+         (GET /api/cierres), de ahí el texto de su etiqueta. -->
+    <details id="dias-cerrados" class="mb-5 max-w-2xl bg-[#0D1B3E] border border-white/10 rounded-xl">
+      <summary class="cursor-pointer select-none px-6 py-3 text-sm font-semibold text-gray-300 hover:text-white">Días cerrados${cierresFuturos.length ? ` (${cierresFuturos.length})` : ''}</summary>
+      <div class="px-6 pb-6">
+        <form method="post" action="/admin/cierres" class="flex flex-col sm:flex-row sm:items-end gap-3">
+          <div>
+            <label for="ci-fecha" class="block text-xs text-gray-400 mb-1.5">Fecha</label>
+            <input id="ci-fecha" name="fecha" type="date" min="${hoy}" required class="w-full bg-[#060D1F] border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-[#2563EB]">
+          </div>
+          <div class="flex-1">
+            <label for="ci-motivo" class="block text-xs text-gray-400 mb-1.5">Motivo (se verá en la web)</label>
+            <input id="ci-motivo" name="motivo" type="text" maxlength="${CIERRE_MOTIVO_MAX}" placeholder="Fiesta local" autocomplete="off" class="w-full bg-[#060D1F] border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#2563EB]">
+          </div>
+          <button type="submit" class="bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-sm font-medium px-5 py-2 rounded-lg transition-colors">Añadir</button>
+        </form>
+        <ul class="mt-4 space-y-2">${filasCierres}
+        </ul>
+      </div>
+    </details>
 ${cuerpo}
   </div>
   <script>
@@ -2197,6 +2305,21 @@ ${cuerpo}
       sel.title = 'No se pudo guardar la forma de pago';
       setTimeout(function () { sel.style.borderColor = ''; sel.removeAttribute('title'); }, 1500);
     }
+    // Días de cierre de hoy en adelante, pintados por el servidor
+    // (leerCierres): [{ fecha: 'YYYY-MM-DD', motivo }]. Solo para el aviso
+    // de guardarNuevaCita(); la lista visible la pinta el servidor.
+    var CIERRES = ${cierresJson};
+    function cierreEn(fecha) {
+      for (var i = 0; i < CIERRES.length; i++) {
+        if (CIERRES[i].fecha === fecha) return CIERRES[i];
+      }
+      return null;
+    }
+    // Al volver de añadir o quitar un cierre (302 a /admin#dias-cerrados) el
+    // bloque se abre solo, para ver el resultado sin otro clic.
+    if (location.hash === '#dias-cerrados') {
+      document.getElementById('dias-cerrados').open = true;
+    }
     async function guardarNuevaCita() {
       const nombre   = document.getElementById('nc-nombre').value.trim();
       const telefono = document.getElementById('nc-telefono').value.trim();
@@ -2230,6 +2353,13 @@ ${cuerpo}
       if (!(editando && citaEditandoEstado === 'pagada') && faltanKmParaPagar(estado, servicio, kilometros)) {
         marcarFilaSinKm(editando ? document.getElementById('cita-' + citaEditandoId) : null);
         pedirKm();
+        return;
+      }
+      // Día de cierre: AVISO, NO BLOQUEO, en alta y en edición. El servidor
+      // no rechaza nada; si Vicky cancela, simplemente no se envía.
+      var cierre = cierreEn(fecha);
+      if (cierre && !confirm('El ' + fecha.split('-').reverse().join('/') + ' el taller está cerrado'
+        + (cierre.motivo ? ' (' + cierre.motivo + ')' : '') + '. ¿Crear la cita igualmente?')) {
         return;
       }
       const datos = { nombre, telefono, fecha, hora, servicio, detalle, matricula, vehiculo, kilometros, precio, pago, estado };
@@ -3278,6 +3408,29 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // GET /api/cierres — días de cierre del taller, de HOY en adelante.
+  // RUTA PÚBLICA a propósito, FUERA del bloque /admin: la lee la web pública
+  // (GitHub Pages, otro origen), de ahí el Access-Control-Allow-Origin: *,
+  // que va SOLO en esta respuesta. Solo lectura y solo dos campos por
+  // cierre (fecha, motivo), copiados uno a uno: cualquier otra clave que
+  // hubiera en cierres.json no sale. Comparación de strings YYYY-MM-DD
+  // contra hoyMadrid(), sin new Date() sobre fechas.
+  // El motivo va en CRUDO (es JSON, no HTML): quien lo pinte en la web debe
+  // usar textContent, nunca innerHTML.
+  if (req.method === 'GET' && p === '/api/cierres') {
+    const hoy = hoyMadrid();
+    const cierres = leerCierres()
+      .filter(c => c.fecha >= hoy)
+      .map(c => ({ fecha: c.fecha, motivo: c.motivo }));
+    res.writeHead(200, {
+      'Content-Type': 'application/json; charset=utf-8',
+      'Cache-Control': 'no-store',
+      'Access-Control-Allow-Origin': '*'
+    });
+    res.end(JSON.stringify({ cierres }));
+    return;
+  }
+
   // GET /taller — pantalla del taller (citas de HOY aún en el taller:
   // 'confirmada' o 'atendida'; si no queda ninguna, las de MAÑANA — ver más
   // abajo). Solo lectura salvo los botones "ACABADO" (POST /taller/acabar)
@@ -3712,7 +3865,7 @@ const server = http.createServer(async (req, res) => {
         .sort(cmp);
       res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
       // Pendientes sobre el array COMPLETO, no sobre 'visibles' (excluye pasadas).
-      res.end(adminHTML(visibles, vista, contarAcabadas(citas), lunes));
+      res.end(adminHTML(visibles, vista, contarAcabadas(citas), lunes, leerCierres()));
       return;
     }
 
@@ -3911,6 +4064,83 @@ const server = http.createServer(async (req, res) => {
       writeCitas(citas);
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ ok: true }));
+      return;
+    }
+
+    // POST /admin/cierres — añade un día de cierre desde el bloque "Días
+    // cerrados" del panel (form-urlencoded), o ACTUALIZA el motivo si la
+    // fecha ya existe. Fecha con la misma expresión que validarCita
+    // (RE_FECHA_ISO); motivo opcional, trim() y máximo CIERRE_MOTIVO_MAX →
+    // si no, 400. Lectura fresca tras el await de parseBody y 302 de vuelta
+    // al bloque. Dentro del bloque POST/PUT/DELETE: hereda isSameOrigin.
+    // Solo guarda la lista: NO toca citas ni impide crear citas ese día (el
+    // aviso es solo en cliente, ver guardarNuevaCita en adminHTML).
+    if (req.method === 'POST' && p === '/admin/cierres') {
+      const body = await parseBody(req);
+      if (body === BODY_TOO_LARGE) {
+        res.writeHead(413, { 'Content-Type': 'text/plain; charset=utf-8', 'Connection': 'close' });
+        res.end('Cuerpo demasiado grande');
+        return;
+      }
+      if (!body) {
+        res.writeHead(400, { 'Content-Type': 'text/plain; charset=utf-8' });
+        res.end('Cuerpo de la petición inválido');
+        return;
+      }
+      const fecha = typeof body.fecha === 'string' ? body.fecha : '';
+      const motivo = typeof body.motivo === 'string' ? body.motivo.trim() : '';
+      if (!RE_FECHA_ISO.test(fecha)) {
+        res.writeHead(400, { 'Content-Type': 'text/plain; charset=utf-8' });
+        res.end('La fecha debe tener formato YYYY-MM-DD');
+        return;
+      }
+      if (motivo.length > CIERRE_MOTIVO_MAX) {
+        res.writeHead(400, { 'Content-Type': 'text/plain; charset=utf-8' });
+        res.end(`El motivo no puede superar ${CIERRE_MOTIVO_MAX} caracteres`);
+        return;
+      }
+      const cierres = leerCierres();
+      const existente = cierres.find(c => c.fecha === fecha);
+      if (existente) existente.motivo = motivo;
+      else cierres.push({ fecha, motivo });
+      guardarCierres(cierres);
+      res.writeHead(302, { Location: '/admin#dias-cerrados' });
+      res.end();
+      return;
+    }
+
+    // POST /admin/cierres/eliminar — quita UN día de cierre (form-urlencoded,
+    // campo fecha). Lectura fresca, se quita solo esa fecha y 302 de vuelta
+    // al bloque. Fecha que no está en la lista → 404. Hereda isSameOrigin.
+    if (req.method === 'POST' && p === '/admin/cierres/eliminar') {
+      const body = await parseBody(req);
+      if (body === BODY_TOO_LARGE) {
+        res.writeHead(413, { 'Content-Type': 'text/plain; charset=utf-8', 'Connection': 'close' });
+        res.end('Cuerpo demasiado grande');
+        return;
+      }
+      if (!body) {
+        res.writeHead(400, { 'Content-Type': 'text/plain; charset=utf-8' });
+        res.end('Cuerpo de la petición inválido');
+        return;
+      }
+      const fecha = typeof body.fecha === 'string' ? body.fecha : '';
+      if (!RE_FECHA_ISO.test(fecha)) {
+        res.writeHead(400, { 'Content-Type': 'text/plain; charset=utf-8' });
+        res.end('La fecha debe tener formato YYYY-MM-DD');
+        return;
+      }
+      const cierres = leerCierres();
+      const idx = cierres.findIndex(c => c.fecha === fecha);
+      if (idx === -1) {
+        res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
+        res.end('Día de cierre no encontrado');
+        return;
+      }
+      cierres.splice(idx, 1);
+      guardarCierres(cierres);
+      res.writeHead(302, { Location: '/admin#dias-cerrados' });
+      res.end();
       return;
     }
 
