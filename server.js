@@ -12,6 +12,15 @@ const DATA_DIR = process.env.DATA_DIR || __dirname;
 const CITAS_PATH = path.join(DATA_DIR, 'citas.json');
 const STOCK_PATH = path.join(DATA_DIR, 'stock.json');
 const CIERRES_PATH = path.join(DATA_DIR, 'cierres.json');
+
+// Archivos de /vendor/ que sirve este backend. LISTA BLANCA LITERAL, no un
+// servidor de estáticos: la ruta en disco sale de este mapa, nunca de la URL.
+// Misma base (__dirname) que index.html: vendor/ es su hermano en el repo.
+const VENDOR = {
+  '/vendor/tailwind.js':          path.join(__dirname, 'vendor', 'tailwind.js'),
+  '/vendor/gsap.min.js':          path.join(__dirname, 'vendor', 'gsap.min.js'),
+  '/vendor/ScrollTrigger.min.js': path.join(__dirname, 'vendor', 'ScrollTrigger.min.js'),
+};
 const METRICAS_PATH = path.join(DATA_DIR, 'metricas.json');
 const BACKUP_DIR = path.join(DATA_DIR, 'backups');
 const BACKUP_KEEP_DAYS = 30;
@@ -3480,6 +3489,24 @@ const server = http.createServer(async (req, res) => {
     }
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
     res.end(fs.readFileSync(htmlPath));
+    return;
+  }
+
+  // GET /vendor/* → solo las tres claves de VENDOR (ver la constante).
+  // hasOwnProperty, como resolverVista(): /vendor/constructor no casa con el
+  // prototipo. Comparación exacta: ../, mayúsculas o barra final → 404.
+  if (req.method === 'GET' && p.startsWith('/vendor/')) {
+    const archivo = Object.prototype.hasOwnProperty.call(VENDOR, p) ? VENDOR[p] : null;
+    if (!archivo || !fs.existsSync(archivo)) {
+      res.writeHead(404, { 'Content-Type': 'text/plain' });
+      res.end('No encontrado');
+      return;
+    }
+    res.writeHead(200, {
+      'Content-Type': 'application/javascript; charset=utf-8',
+      'Cache-Control': 'public, max-age=86400',
+    });
+    res.end(fs.readFileSync(archivo));
     return;
   }
 
