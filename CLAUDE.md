@@ -9,7 +9,7 @@ Web + sistema de citas con recordatorio WhatsApp para taller de neumáticos en M
 - **Motivo del traslado**: OneDrive sincronizando una carpeta con `.git` dentro es fuente conocida de **corrupción del repositorio**. No devolver el proyecto a una ruta sincronizada.
 
 ## Stack
-- Frontend: index.html único, Tailwind CDN, Inter + Barlow Condensed (Google Fonts, títulos) + Font Awesome 6.5
+- Frontend: index.html único, Tailwind + GSAP + ScrollTrigger **desde `vendor/` del propio repo** (ver "Dependencias de terceros"), Inter + Barlow Condensed (Google Fonts, títulos) + Font Awesome 6.5.0 (cdnjs, con `integrity`)
 - Backend: Node.js + http nativo (sin frameworks)
 - Datos: citas.json (array JSON), config.json (configuración del taller)
 - WhatsApp: Twilio API (código intacto, **parado** por el bloqueo de Meta; vía manual con enlaces wa.me — ver "Recordatorios manuales")
@@ -41,6 +41,7 @@ proyecto/
 ├── config.json       ← no creado, no usado en el código actual
 ├── favicon.ico       ← raíz del repo, solo para el rastreador (ver "Favicon")
 ├── imagenes/         ← favicons nq2f (5), logos de marca .svg (7 — `logo-dunlop.svg` y `logo-pirelli.svg` saneados: sin fondos "horneados", el detalle interior vuelve como transparencia real evenodd/máscara, imprescindible para el filtro monocromo del marquee), `logo_quesada_navy.png` (logo de empresa para header+footer, transparente y sin pastilla blanca, sobre fondo navy), fotos del taller (audi/benelli/honda/jeep/michelin-taller.jpeg), taller-fachada.jpeg (fallback hero), rueda-scroll.png (rueda-progreso, verificado: carga en producción). `logo-empresa.jpg` sigue en la carpeta pero **ya no se referencia** (huérfano tras adoptar logo_quesada_navy.png). `og-image.jpg` (1200×630, preview social Open Graph — ver sección propia)
+├── vendor/           ← tailwind.js, gsap.min.js, ScrollTrigger.min.js (19/11/2026). Los carga index.html con ruta RELATIVA y Render los sirve por `GET /vendor/*` (lista blanca). Ver "Dependencias de terceros"
 ├── videos/           ← hero-quesada.mp4, hero-quesada-movil.mp4, hero-poster.jpg, hero-poster-movil.jpg (ver sección Hero — vídeo de fondo)
 ├── .env              ← credenciales (nunca al repo)
 ├── backups/          ← NO está en el repo: vive en `DATA_DIR/backups/` (en Render, `/data/backups/`), copias diarias `citas-YYYY-MM-DD.json` y `stock-YYYY-MM-DD.json` (ver "Backup de citas" y "Stock de ruedas")
@@ -52,6 +53,14 @@ proyecto/
 > Nota: `taller-interior.jpeg` y `Horario.jpeg` (fotos reales del taller) se archivaron fuera del repo en `..\Quesada-archivo\` — posible uso futuro en revisión visual o slider antes/después.
 
 > **Limpieza del repo (17/08/2026)**: eliminados **12 PNG de capturas de desarrollo** de la raíz (~14 MB); no los referenciaba nada. `imagenes/` y `videos/` revisados uno a uno: **sin peso muerto, todo se usa**.
+
+## Dependencias de terceros (vendor/ y CDN) — 19/11/2026
+- **Tailwind, GSAP y ScrollTrigger viven en `vendor/`** (`tailwind.js`, `gsap.min.js`, `ScrollTrigger.min.js`). **Motivo**: si el CDN se caía o iba lento, la web se veía rota (comprobado con el modo Offline de DevTools).
+- **index.html los carga con ruta RELATIVA, SIN barra inicial** (`src="vendor/gsap.min.js"`, nunca `/vendor/...`): la web se sirve desde **dos orígenes**, el dominio propio (`neumaticosquesada.com/`) y github.io (`salassamu-a11y.github.io/Quesada/`, bajo subruta). Una ruta absoluta apuntaría a la raíz del host y rompería el segundo.
+- **Font Awesome sigue en cdnjs**, versión **6.5.0**, ahora con **`integrity` sha512 + `crossorigin="anonymous"`** (y `referrerpolicy="no-referrer"`). **PENDIENTE, no hecho**: bajarlo al repo obliga a traerse también las **fuentes de los iconos** (`webfonts/`), que el CSS referencia por ruta relativa.
+- **REGLA — a Google Fonts NO se le pone `integrity`**: Google devuelve un CSS **distinto según el navegador que pregunta** (formatos y subconjuntos por user-agent), así que el hash nunca coincidiría y el navegador **rechazaría la hoja entera** (sin fuentes, sin error visible).
+- **Alcance real: SOLO index.html.** `privacidad.html` y `aviso-legal.html` siguen con `cdn.tailwindcss.com` y Font Awesome **sin `integrity`**; el panel (`adminHTML`), `recordatoriosHTML` y `stockHTML` de server.js siguen cargando `cdn.tailwindcss.com`. No se tocaron hoy.
+- **DECISIÓN NO TOMADA (consciente) — `vendor/tailwind.js` es el compilador EN EL NAVEGADOR**: unos **400 KB**, y **avisa por consola de que no es para producción**. La alternativa es generar el CSS con la CLI de Tailwind, pero eso **mete un paso de compilación** en un repo que no tiene ninguno. **Decidido no hacerlo por ahora**; el aviso de consola es conocido y no es un error.
 
 ## Frontend — Secciones de index.html (en orden)
 
@@ -258,6 +267,7 @@ Botón "volver arriba" fijo (inferior izquierda) con forma de rueda de neumátic
 | Método | Ruta                              | Descripción                                    |
 |--------|-----------------------------------|------------------------------------------------|
 | GET    | /                                 | Sirve index.html (pública) |
+| GET    | /vendor/*                         | **PÚBLICA, fuera del bloque `/admin`**: sirve SOLO las tres entradas exactas de la constante de módulo **`VENDOR`** (`/vendor/tailwind.js`, `/vendor/gsap.min.js`, `/vendor/ScrollTrigger.min.js`), `application/javascript`, `Cache-Control: public, max-age=86400`. **Lista blanca, NO servidor de estáticos**: construir la ruta en disco a partir de la URL es donde viven los agujeros de **path traversal**; aquí la URL solo es **clave de búsqueda** (`hasOwnProperty`, como `resolverVista()`, para que `/vendor/constructor` no case con el prototipo) y la ruta del archivo sale **siempre del mapa**. Comparación exacta: `../`, mayúsculas o barra final no casan. **Cualquier otra cosa bajo `/vendor/` → el MISMO 404**, tanto si no está en la lista como si falta en disco. Añadir un archivo = añadir una clave a `VENDOR` |
 | GET    | /taller?k=TALLER_TOKEN            | **PÚBLICA, fuera del bloque `/admin`**: pantalla del taller (citas `confirmada`/`atendida` de hoy en dos bloques, con KM —o PRECIO en los servicios de `servicioConPrecio()`— + botones D/J + ACABADO y NO SE HACE en las `atendida`). Token incorrecto/ausente/no configurado → 404 genérico (ver "Pantalla del taller") |
 | GET    | /taller/manifest.json?k=TALLER_TOKEN | **PÚBLICA, fuera del bloque `/admin`**: manifiesto de app web de la pantalla del taller. Mismo `?k=`, mismo `safeEqual` y **mismo 404 genérico** que `GET /taller`; nunca se sirve sin token. `start_url` **lleva el token**, `scope: /taller`, `Cache-Control: no-store` (el cuerpo contiene el token). Ver "Pantalla del taller instalable" |
 | POST   | /taller/acabar                    | **PÚBLICA, fuera del bloque `/admin`**: escritura desde la pantalla del taller. Body form-urlencoded `k` (mismo `TALLER_TOKEN`) + `id` + `kilometros` y/o `precio` + `hechoPor` (los tres opcionales para el servidor; el precio lo manda la pantalla en los servicios de `servicioConPrecio()`). Solo pasa a `acabada`, solo desde `confirmada`/`atendida` y **solo si la cita es de HOY**; guarda km, precio y `hechoPor` si vienen (inválidos → 409; `hechoPor` debe ser una clave de `MECANICOS`: `D`, `J` o `D+J`). Token malo → 404 genérico en texto plano; cita inexistente → 404 HTML; cualquier otro caso → 409 HTML; éxito → 302 a `/taller?k=` (ver "Pantalla del taller") |
@@ -418,7 +428,7 @@ Días o rangos en que el taller no abre (fiesta local, baja, puente…), gestion
 - Al cargar hace `fetch` a `https://neumaticos-quesada.onrender.com/api/cierres` (timeout 6 s, `cache: 'no-store'`) y pinta **`#cierres-banner`** (banda arriba, compensando altura como la de vacaciones) y **`#cierres-horario`** (línea bajo el horario de `#contacto`, para no contradecir el horario semanal). Texto: "Cerrado el 11 de noviembre" / "Cerrado del 1 al 31 de agosto" + " · aviso".
 - **Todo en `try/catch` silencioso**: si Render no responde, timeout o JSON raro, la web queda exactamente igual (los dos elementos están `display:none` en el HTML).
 - **Ventana (`cierresVisibles`)**: cierres **en curso siempre**, futuros **solo si empiezan en ≤ 14 días** (`CIERRES_VENTANA_DIAS`).
-- **OJO — "hoy" en la web es la fecha LOCAL del navegador** (`hoyLocalISO()`), no `Europe/Madrid` como `enVacaciones()`: un visitante de otra zona horaria puede ver el aviso un día antes/después. El servidor sí filtra con `hoyMadrid()`.
+- **"Hoy" en la web es `Europe/Madrid`** (`hoyLocalISO()`, `Intl.DateTimeFormat('en-CA', {timeZone:'Europe/Madrid'})`), **igual que `enVacaciones()`** — corregido el 19/11/2026: antes usaba la fecha del navegador y había **dos formas distintas de saber qué día es** dentro del mismo archivo. El nombre `hoyLocalISO` se conservó; no indica la zona. El servidor filtra con `hoyMadrid()`, mismo criterio.
 
 ### Límites conocidos
 - **NO hay copia diaria de `cierres.json`**: ni backup de 03:00, ni descarga desde el panel, ni GitHub. **Hueco conocido.** Si se pierde, Vicky vuelve a meter los cierres a mano.
@@ -508,7 +518,7 @@ GITHUB_BACKUP_REPO=        # owner/repo del repo privado de backups
 | 03:00 | `backupMetricas()` | Copia diaria de `metricas.json` + `purgarBackupsMetricas()` (ver "Backup de citas") |
 | 03:15 | `subirBackupGitHub()` | Sube la copia del día **de citas** al repo privado de GitHub. 15 min después para que el archivo ya exista |
 | 19:00 | recordatorios Twilio | Envía WhatsApp de las citas de mañana — **parado en la práctica** (sin `TWILIO_*` en Render) |
-| Lunes 20:00 | `purgarCitas()` | Borra citas cerradas de hace ≥7 días, guardando antes sus duraciones en `metricas.json` (ver "Pendiente") |
+| Lunes 19:10 | `purgarCitas()` | Borra citas cerradas de hace ≥7 días, guardando antes sus duraciones en `metricas.json`. A las 19:10 y no a las 19:00 para no chocar con el recordatorio (ver "Pendiente") |
 
 Recordatorios (19:00):
 - El recordatorio se envía a las 19:00 del día anterior a la cita.
@@ -730,7 +740,9 @@ Lo que queda:
   - **Por qué portapapeles y no el CSV planeado** (descarga con punto y coma + BOM UTF-8): Vicky lo pasa **sobre la marcha cuando cobra, cita a cita**, no al final de la jornada; un archivo por cita que hay que abrir e importar era más fricción que un pegado. Con la tabulación el pegado cuadra en columnas sin diálogo de importación. El CSV queda descartado salvo que lo pidan.
   - **ACLARADO (09/2026), ya no hay nada que preguntar**: **"PO SI"** es la **POSICIÓN DE LA RUEDA** y **"FECHA COBRO"** es el **cobro real de las empresas que pagan a 30 días**. Las dos las pone **Vicky a mano**, y la copia las deja **vacías a propósito** (junto con FACTURA, cuyo campo se retiró del panel). **FECHA COBRO no es `pagadaEn`** — ver "Copiar al Excel".
 - **BORRADO AUTOMÁTICO de citas — HECHO y en producción (13/10/2026)**: `purgarCitas()`, minimización de datos (RGPD). El histórico real lo llevan en su Excel.
-  - **`RETENCION_DIAS = 7`** (el cliente cambió el plazo; antes se había decidido 30). **Cron propio los LUNES a las 20:00**, `timezone: 'Europe/Madrid'` (elegido por el cliente: si a Vicky se le queda algo pendiente de la semana anterior, lo ve durante todo el lunes).
+  - **`RETENCION_DIAS = 7`** (el cliente cambió el plazo; antes se había decidido 30). **Cron propio los LUNES a las 19:10** (`'10 19 * * 1'`), `timezone: 'Europe/Madrid'` (elegido por el cliente: si a Vicky se le queda algo pendiente de la semana anterior, lo ve durante todo el lunes).
+    - **Historia de la hora (20/11/2026)**: estuvo a las **20:00 por error**; el cliente la había pedido **a partir de las 19:00**. Va a las **19:10 y no a las 19:00 en punto** porque a esa hora exacta ya corre el **cron del recordatorio de WhatsApp**, y los lunes los dos leerían y reescribirían `citas.json` a la vez. **No moverla a las 19:00.**
+    - **Consecuencia asumida**: a las 19:10 del lunes **el taller sigue abierto** (cierra a las 20:00), así que las citas purgadas pueden desaparecer del listado con Vicky delante.
   - **Borra SOLO las citas cuyo estado está en `CERRADAS`** (`pagada` o `cancelada`) **y cuya fecha es `<= hoy - 7`**. El `<=` es a propósito: la cita del lunes anterior cumple exactamente los 7 días y Vicky ha tenido el día entero.
   - **Las citas NO cerradas no se borran NUNCA**, por antiguas que sean (decisión del cliente: una cita abierta es trabajo pendiente y tiene que seguir viéndose). El log cuenta cuántas quedan en ese caso: es el número que avisa de que algo lleva semanas sin cerrar. **Fecha ausente o malformada: no se borra**, se loggea aparte.
   - **ASEGURA LA COPIA DEL DÍA ANTES DE BORRAR**: si no existe la de hoy en `BACKUP_DIR`, llama a `backupCitas()` y vuelve a comprobar; si sigue sin existir, **no borra nada**. **NO QUITAR ESA COMPROBACIÓN.**
@@ -803,4 +815,6 @@ Lo que queda:
 - **Renombrar clases CSS: NUNCA find/replace global.** Hay clases compartidas como literales entre componentes a propósito (p. ej. la card TPMS reutiliza `.svc-card` y `.bento-shine` para heredar comportamiento sin JS extra) — un renombrado global las desengancha sin avisar.
 - **Working tree limpio al arrancar sesión**: así el reformateo de HTML de Antigravity al guardar aparece como diff propio y no se mezcla con los cambios a mano.
 - **Mensajes de commit con acentos**: `COMMIT_MSG.txt` en UTF-8 **sin BOM** + `git commit -F`. Nunca here-strings de PowerShell (mismo problema de codificación que `Out-File`/`Set-Content`, ver arriba).
+- **Despliegues FUERA del horario del taller** (L–J 8–14 y 15:30–20, V 8–16): cualquier push a `main` reinicia Render y deja **el panel y la pantalla del taller sin responder 30–60 s**. Con Vicky cobrando o un mecánico pulsando ACABADO, eso es un fallo en mitad del trabajo.
+- **Scripts y assets propios en index.html: ruta RELATIVA, sin barra inicial** (la web vive en dos orígenes, uno bajo subruta — ver "Dependencias de terceros"). Y **nunca `integrity` en Google Fonts**.
 - **Marcha atrás de un deploy malo**: `git revert` + push. Servicio único con auto-deploy desde `main`, no hay servicio de respaldo al que saltar.

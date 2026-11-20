@@ -933,10 +933,12 @@ cron.schedule('15 3 * * *', () => {
   subirBackupGitHub().catch(err => console.error('[backup-remoto]', err.message));
 }, { timezone: 'Europe/Madrid' });
 
-// Purga semanal de citas cerradas: LUNES a las 20:00 (taller ya cerrado).
+// Purga semanal de citas cerradas: LUNES a las 19:10 (el cliente la pidió a
+// partir de las 19:00). No a las 19:00 en punto para no coincidir con el cron
+// del recordatorio de WhatsApp, que también lee y reescribe citas.json.
 // Bloque independiente: no toca los cron de las 03:00, 03:15 ni 19:00, y
 // NO se llama desde server.listen (ver purgarCitas).
-cron.schedule('0 20 * * 1', purgarCitas, { timezone: 'Europe/Madrid' });
+cron.schedule('10 19 * * 1', purgarCitas, { timezone: 'Europe/Madrid' });
 
 // Escapa datos variables antes de interpolarlos en el HTML del panel (anti-XSS).
 function escapeHtml(str) {
