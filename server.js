@@ -194,6 +194,146 @@ function guardarCierres(lista) {
   fs.renameSync(tmp, CIERRES_PATH);
 }
 
+// ---- Eventos de la web (DATA_DIR/eventos.json) ----
+// Contadores diarios de visitas y clics de contacto de la web pública,
+// alimentados por POST /api/evento. Formato: un OBJETO, clave = fecha ISO
+// YYYY-MM-DD, valor = objeto de contadores:
+//   { "2026-11-25": { "visita": 34, "whatsapp": 3, "llamar": 1, "presupuesto": 2 } }
+// SOLO NÚMEROS. Ni IP, ni user-agent, ni hora, ni ningún identificador: es
+// deliberado, así no hay dato personal que proteger ni que purgar.
+// Mismo patrón de persistencia que cierres.json (leerCierres/guardarCierres):
+// archivo corrupto → se aparta como .corrupt-<timestamp> y se sigue con {},
+// escritura atómica .tmp + rename, mkdirSync del directorio.
+const EVENTOS_PATH = path.join(DATA_DIR, 'eventos.json');
+// Lista blanca LITERAL de eventos admitidos; cualquier otra palabra se ignora
+// en silencio (ver POST /api/evento).
+const EVENTOS_VALIDOS = ['visita', 'whatsapp', 'llamar', 'presupuesto'];
+
+function leerEventos() {
+  if (!fs.existsSync(EVENTOS_PATH)) return {};
+  try {
+    const datos = JSON.parse(fs.readFileSync(EVENTOS_PATH, 'utf8'));
+    if (!datos || typeof datos !== 'object' || Array.isArray(datos)) throw new Error('no es un objeto');
+    // Solo se conservan claves YYYY-MM-DD y, dentro, solo los eventos de la
+    // lista blanca con enteros positivos: lo que no cuadre se descarta.
+    const limpio = {};
+    for (const [fecha, dia] of Object.entries(datos)) {
+      if (!RE_FECHA_ISO.test(fecha) || !dia || typeof dia !== 'object' || Array.isArray(dia)) continue;
+      const contadores = {};
+      for (const ev of EVENTOS_VALIDOS) {
+        const n = dia[ev];
+        if (Number.isInteger(n) && n > 0) contadores[ev] = n;
+      }
+      if (Object.keys(contadores).length) limpio[fecha] = contadores;
+    }
+    return limpio;
+  } catch (err) {
+    console.error(`[eventos] eventos.json ilegible o corrupto: ${err.message}`);
+    try {
+      const backup = `${EVENTOS_PATH}.corrupt-${Date.now()}`;
+      fs.renameSync(EVENTOS_PATH, backup);
+      console.error(`[eventos] Archivo corrupto preservado en ${backup}`);
+    } catch (renameErr) {
+      console.error(`[eventos] No se pudo preservar el archivo corrupto: ${renameErr.message}`);
+    }
+    return {};
+  }
+}
+
+function guardarEventos(datos) {
+  // Fechas ordenadas (comparar strings YYYY-MM-DD = orden cronológico).
+  const ordenado = {};
+  for (const fecha of Object.keys(datos).sort()) ordenado[fecha] = datos[fecha];
+  const tmp = `${EVENTOS_PATH}.tmp`;
+  fs.mkdirSync(path.dirname(EVENTOS_PATH), { recursive: true });
+  fs.writeFileSync(tmp, JSON.stringify(ordenado, null, 2));
+  fs.renameSync(tmp, EVENTOS_PATH);
+}
+
+// Contadores EN MEMORIA: los eventos no escriben a disco en cada petición.
+// eventosPendientes guarda SOLO los incrementos desde el último volcado
+// ({ fecha → { evento → n } }); volcarEventos() los SUMA a lo que ya hay en
+// el archivo (lectura fresca) y los vacía. Cada 5 minutos por cron. Si el
+// proceso muere entre dos volcados se pierden como mucho esos 5 minutos
+// (asumido: sin volcado en SIGTERM).
+const eventosPendientes = {};
+
+function registrarEvento(evento) {
+  const hoy = hoyMadrid();
+  const dia = eventosPendientes[hoy] || (eventosPendientes[hoy] = {});
+  dia[evento] = (dia[evento] || 0) + 1;
+}
+
+function volcarEventos() {
+  const fechas = Object.keys(eventosPendientes);
+  // Sin nada acumulado NO se escribe: si no, serían 288 escrituras al día
+  // aunque no entre nadie en la web.
+  if (!fechas.length) return;
+  // Se vacía la memoria ANTES de tocar disco: un evento que llegue durante
+  // la escritura cae en el siguiente volcado, no se pierde ni se duplica.
+  const pendientes = {};
+  for (const f of fechas) {
+    pendientes[f] = eventosPendientes[f];
+    delete eventosPendientes[f];
+  }
+  try {
+    const datos = leerEventos();
+    for (const [fecha, dia] of Object.entries(pendientes)) {
+      const destino = datos[fecha] || (datos[fecha] = {});
+      for (const [ev, n] of Object.entries(dia)) destino[ev] = (destino[ev] || 0) + n;
+    }
+    guardarEventos(datos);
+  } catch (err) {
+    // Devuelve los incrementos a memoria para reintentarlos en el siguiente
+    // ciclo: se prefiere contar tarde a perder.
+    for (const [fecha, dia] of Object.entries(pendientes)) {
+      const destino = eventosPendientes[fecha] || (eventosPendientes[fecha] = {});
+      for (const [ev, n] of Object.entries(dia)) destino[ev] = (destino[ev] || 0) + n;
+    }
+    console.error(`[eventos] No se pudo volcar eventos.json: ${err.message}`);
+  }
+}
+
+// Cuota por IP de POST /api/evento: EVENTO_MAX_POR_HORA eventos por IP y
+// hora; pasado el tope se ignoran en silencio (204 igual). La IP vive SOLO
+// en este Map en memoria, para contar: nunca se escribe en ningún sitio.
+// Cuenta TODOS los POST que llegan con cuerpo de tamaño válido, no solo las
+// palabras admitidas (lectura más estrecha).
+// TOPE DE TAMAÑO del Map (EVENTO_MAX_IPS): es una ruta pública sin
+// autenticar y entre purga y purga podría crecer sin límite con peticiones
+// desde muchas IPs distintas. Alcanzado el tope, las IPs NUEVAS no se
+// añaden y su evento se cuenta igual: es preferible contar de más a
+// quedarse sin memoria.
+const EVENTO_MAX_BYTES = 32;
+const EVENTO_MAX_POR_HORA = 30;
+const EVENTO_VENTANA_MS = 60 * 60 * 1000;
+const EVENTO_MAX_IPS = 5000;
+const eventosPorIp = new Map(); // ip → { n, inicio }
+
+function eventoPermitido(ip) {
+  const now = Date.now();
+  let rec = eventosPorIp.get(ip);
+  if (rec && now - rec.inicio > EVENTO_VENTANA_MS) {
+    rec = null;
+    eventosPorIp.delete(ip);
+  }
+  if (!rec) {
+    if (eventosPorIp.size >= EVENTO_MAX_IPS) return true; // Map lleno: se cuenta sin registrar la IP
+    rec = { n: 0, inicio: now };
+    eventosPorIp.set(ip, rec);
+  }
+  rec.n += 1;
+  return rec.n <= EVENTO_MAX_POR_HORA;
+}
+
+// Purga horaria de ventanas expiradas (independiente de la de authAttempts).
+setInterval(() => {
+  const now = Date.now();
+  for (const [ip, rec] of eventosPorIp) {
+    if (now - rec.inicio > EVENTO_VENTANA_MS) eventosPorIp.delete(ip);
+  }
+}, 60 * 60 * 1000).unref();
+
 // ---- Métricas de tiempos (DATA_DIR/metricas.json) ----
 // Array de { fecha, hora, servicio, incidencia, espera, trabajo, aviso,
 // recogida }: una entrada por cita purgada, con las duraciones EN MINUTOS de
@@ -939,6 +1079,10 @@ cron.schedule('15 3 * * *', () => {
 // Bloque independiente: no toca los cron de las 03:00, 03:15 ni 19:00, y
 // NO se llama desde server.listen (ver purgarCitas).
 cron.schedule('10 19 * * 1', purgarCitas, { timezone: 'Europe/Madrid' });
+
+// Volcado de los contadores de la web a eventos.json cada 5 minutos (ver
+// volcarEventos: no escribe si no hay nada acumulado).
+cron.schedule('*/5 * * * *', volcarEventos, { timezone: 'Europe/Madrid' });
 
 // Escapa datos variables antes de interpolarlos en el HTML del panel (anti-XSS).
 function escapeHtml(str) {
@@ -3538,6 +3682,71 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // POST /api/evento — contador de visitas y clics de contacto de la web.
+  // RUTA PÚBLICA, FUERA del bloque /admin y FUERA de isSameOrigin, A PROPÓSITO.
+  // Es el primer POST público del servidor: lo llama la web (GitHub Pages,
+  // OTRO ORIGEN), que nunca pasaría el anti-CSRF del panel. Es seguro que
+  // esté abierto porque:
+  //   - NO LEE NADA: la respuesta es un 204 vacío, idéntico para evento
+  //     válido, inválido, cuerpo demasiado largo o IP pasada de cuota. Ni
+  //     siquiera revela qué palabras existen.
+  //   - NO BORRA NI EDITA NADA: no toca citas, stock, cierres ni métricas.
+  //     Solo suma 1 a un contador en memoria (volcarEventos lo lleva a disco).
+  //   - NO GUARDA NADA DE QUIEN LLAMA: la IP solo vive en eventosPorIp (RAM)
+  //     para la cuota; ni IP, ni user-agent, ni hora llegan a eventos.json.
+  //   Lo PEOR que puede hacer un atacante es inflar un contador, y para eso
+  //   está el tope de EVENTO_MAX_POR_HORA por IP.
+  // El anti-CSRF del admin NO se toca: sigue cubriendo todo POST/PUT/DELETE
+  // bajo /admin exactamente igual que antes; esta ruta simplemente no pasa
+  // por ahí (p no empieza por /admin).
+  // Cuerpo: UNA palabra en texto plano, NO JSON (no usa parseBody). Lista
+  // blanca literal EVENTOS_VALIDOS. Tope EVENTO_MAX_BYTES (32): al superarlo
+  // se responde el 204 EN ESE MOMENTO y se hace req.destroy() — si solo se
+  // marcara como descartado, el servidor seguiría tragando el resto del
+  // cuerpo (100 MB de ancho de banda por una petición basura).
+  // Access-Control-Allow-Origin: * va SOLO en esta respuesta (y en la de
+  // /api/cierres), nunca en las del panel. La web debe mandar el cuerpo como
+  // string sin Content-Type JSON: así es una "simple request" CORS y no hay
+  // preflight OPTIONS, que esta ruta no atiende.
+  if (req.method === 'POST' && p === '/api/evento') {
+    const ip = getClientIp(req);
+    const cabeceras = { 'Access-Control-Allow-Origin': '*', 'Cache-Control': 'no-store' };
+    let raw = '';
+    let recibido = 0;
+    let cerrado = false;
+    const responder = () => {
+      if (cerrado) return;
+      cerrado = true;
+      res.writeHead(204, cabeceras);
+      res.end();
+    };
+    req.on('data', chunk => {
+      if (cerrado) return;
+      recibido += chunk.length;
+      if (recibido > EVENTO_MAX_BYTES) {
+        raw = '';
+        // 204 ya, y se corta la conexión: no se lee ni un byte más.
+        res.writeHead(204, cabeceras);
+        cerrado = true;
+        res.end(() => req.destroy());
+        return;
+      }
+      raw += chunk;
+    });
+    req.on('end', () => {
+      if (cerrado) return;
+      // Cuenta SOLO si la IP no ha agotado su cuota y la palabra está en la
+      // lista blanca. En cualquier otro caso, el mismo 204.
+      if (eventoPermitido(ip)) {
+        const evento = raw.trim();
+        if (EVENTOS_VALIDOS.includes(evento)) registrarEvento(evento);
+      }
+      responder();
+    });
+    req.on('error', responder);
+    return;
+  }
+
   // GET /taller — pantalla del taller (citas de HOY aún en el taller:
   // 'confirmada' o 'atendida'; si no queda ninguna, las de MAÑANA — ver más
   // abajo). Solo lectura salvo los botones "ACABADO" (POST /taller/acabar)
@@ -4480,4 +4689,9 @@ server.listen(PORT, () => {
   if (!fs.existsSync(path.join(BACKUP_DIR, `metricas-${hoyMadrid()}.json`))) {
     backupMetricas();
   }
+
+  // Eventos de la web: se carga el archivo una vez al arrancar para que, si
+  // está corrupto, se aparte ya (.corrupt-*) y no en el primer volcado.
+  const diasEventos = Object.keys(leerEventos()).length;
+  console.log(`[eventos] eventos.json cargado: ${diasEventos} día(s) con contadores`);
 });
